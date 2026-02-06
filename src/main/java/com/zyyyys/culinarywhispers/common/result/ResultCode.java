@@ -14,6 +14,7 @@ public enum ResultCode {
     UNAUTHORIZED(401, "未授权"),
     FORBIDDEN(403, "禁止访问"),
     VALIDATE_FAILED(400, "参数校验失败"),
+    DATA_NOT_FOUND(404, "数据不存在"),
     USER_NOT_EXIST(1001, "用户不存在"),
     PASSWORD_ERROR(1002, "密码错误"),
     USER_EXIST(1003, "用户已存在");

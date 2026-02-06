@@ -56,7 +56,81 @@ class DataFactory:
     def __init__(self):
         self.users = []
         self.transactions = []
+        self.recipes = [] # list of dict
+        self.categories = [] # list of dict
+        self.stats = [] # list of dict
         self.daily_stats = {} # (date, merchant_id, biz_type) -> {amount, count}
+
+    def generate_categories(self):
+        print("Generating Categories...")
+        # Simple 2-level hierarchy
+        roots = ['Home Cooking', 'Baking', 'Western', 'Beverage']
+        subs = {
+            'Home Cooking': ['Sichuan', 'Cantonese', 'Spicy', 'Soup'],
+            'Baking': ['Cake', 'Bread', 'Cookie'],
+            'Western': ['Steak', 'Pasta', 'Salad'],
+            'Beverage': ['Juice', 'Tea', 'Coffee']
+        }
+        
+        id_counter = 1
+        for r in roots:
+            root_id = id_counter
+            self.categories.append({
+                'id': root_id, 'name': r, 'parent_id': 0, 'level': 1, 'sort': id_counter
+            })
+            id_counter += 1
+            for s in subs[r]:
+                self.categories.append({
+                    'id': id_counter, 'name': s, 'parent_id': root_id, 'level': 2, 'sort': id_counter
+                })
+                id_counter += 1
+
+    def generate_recipes(self):
+        print("Generating Recipes...")
+        # Needs users to be generated first
+        if not self.users:
+            return
+
+        for i in range(1, 501): # 500 recipes
+            user = random.choice(self.users)
+            cat = random.choice(self.categories)
+            
+            gmt_create = fake.date_time_between(start_date='-1y', end_date='now')
+            
+            rcp = {
+                'id': i + 10000, # Start from 10000
+                'author_id': user['id'],
+                'title': get_chaos_string(fake.sentence(nb_words=4)),
+                'cover_url': fake.image_url(),
+                'video_url': "",
+                'description': fake.text(max_nb_chars=100),
+                'category_id': cat['id'],
+                'cuisine_id': 0,
+                'difficulty': random.randint(1, 5),
+                'time_cost': random.choice([10, 30, 60, 120]),
+                'calories': random.randint(100, 1000),
+                'score': round(random.uniform(3.0, 5.0), 1),
+                'status': 2, # Published
+                'gmt_create': gmt_create.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
+                'gmt_modified': gmt_create.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
+                'is_deleted': 0,
+                'version': 1
+            }
+            self.recipes.append(rcp)
+            
+            # Generate Stats
+            stat = {
+                'recipe_id': rcp['id'],
+                'view_count': random.randint(100, 10000),
+                'like_count': random.randint(0, 1000),
+                'collect_count': random.randint(0, 500),
+                'comment_count': random.randint(0, 100),
+                'share_count': random.randint(0, 50),
+                'try_count': random.randint(0, 20),
+                'score': rcp['score'],
+                'gmt_modified': rcp['gmt_modified']
+            }
+            self.stats.append(stat)
 
     def generate_users(self):
         print(f"Generating {USER_COUNT} users...")
@@ -157,10 +231,31 @@ class DataFactory:
             # t_usr_base
             f.write("-- t_usr_base\n")
             for u in self.users:
-                # Handle None/Nulls for SQL
                 sql = f"INSERT INTO t_usr_base (id, username, mobile, email, password_hash, salt, nickname, avatar_url, status, register_source, register_ip, last_login_time, last_login_ip, gmt_create, gmt_modified, is_deleted, version) VALUES ({u['id']}, '{u['username']}', '{u['mobile']}', '{u['email']}', '{u['password_hash']}', '{u['salt']}', '{u['nickname']}', '{u['avatar_url']}', {u['status']}, '{u['register_source']}', '{u['register_ip']}', '{u['last_login_time']}', '{u['last_login_ip']}', '{u['gmt_create']}', '{u['gmt_modified']}', {u['is_deleted']}, {u['version']});\n"
                 f.write(sql)
             
+            # t_rcp_category
+            f.write("\n-- t_rcp_category\n")
+            for c in self.categories:
+                sql = f"INSERT INTO t_rcp_category (id, name, parent_id, level, sort, is_visible) VALUES ({c['id']}, '{c['name']}', {c['parent_id']}, {c['level']}, {c['sort']}, 1);\n"
+                f.write(sql)
+
+            # t_rcp_info
+            f.write("\n-- t_rcp_info\n")
+            for r in self.recipes:
+                # Find matching stats
+                s = next((x for x in self.stats if x['recipe_id'] == r['id']), None)
+                v_count = s['view_count'] if s else 0
+                
+                sql = f"INSERT INTO t_rcp_info (id, author_id, title, cover_url, description, category_id, cuisine_id, difficulty, time_cost, calories, score, view_count, like_count, collect_count, comment_count, share_count, try_count, status, gmt_create, gmt_modified, is_deleted, version) VALUES ({r['id']}, {r['author_id']}, '{r['title']}', '{r['cover_url']}', '{r['description']}', {r['category_id']}, {r['cuisine_id']}, {r['difficulty']}, {r['time_cost']}, {r['calories']}, {r['score']}, {v_count}, {s['like_count']}, {s['collect_count']}, {s['comment_count']}, {s['share_count']}, {s['try_count']}, {r['status']}, '{r['gmt_create']}', '{r['gmt_modified']}', {r['is_deleted']}, {r['version']});\n"
+                f.write(sql)
+
+            # t_rcp_stats
+            f.write("\n-- t_rcp_stats\n")
+            for s in self.stats:
+                sql = f"INSERT INTO t_rcp_stats (recipe_id, view_count, like_count, collect_count, comment_count, share_count, try_count, score, gmt_modified) VALUES ({s['recipe_id']}, {s['view_count']}, {s['like_count']}, {s['collect_count']}, {s['comment_count']}, {s['share_count']}, {s['try_count']}, {s['score']}, '{s['gmt_modified']}');\n"
+                f.write(sql)
+
             # t_fin_transaction_flow
             f.write("\n-- t_fin_transaction_flow\n")
             for t in self.transactions:
@@ -183,9 +278,29 @@ class DataFactory:
                 sql = f"INSERT INTO dws_fin_daily_settlement (stat_date, merchant_id, biz_type, total_amount, trans_count) VALUES ('{date}', {merchant_id}, {biz_type}, {stats['total_amount']}, {stats['trans_count']});\n"
                 f.write(sql)
 
+            # dws_recipe_daily_stats (Aggregated)
+            f.write("\n-- dws_recipe_daily_stats\n")
+            # Generate one daily stat entry per recipe for 'today' (or the recipe's modified date)
+            for r in self.recipes:
+                # Find matching stats
+                s = next((x for x in self.stats if x['recipe_id'] == r['id']), None)
+                if s:
+                    # Use gmt_modified date part as stat_date
+                    stat_date = s['gmt_modified'].split(' ')[0]
+                    # Randomize daily stats slightly less than total stats
+                    daily_view = random.randint(0, s['view_count'])
+                    daily_like = random.randint(0, s['like_count'])
+                    daily_comment = random.randint(0, s['comment_count'])
+                    daily_share = random.randint(0, s['share_count'])
+                    
+                    sql = f"INSERT INTO dws_recipe_daily_stats (stat_date, recipe_id, category_id, view_count, like_count, comment_count, share_count) VALUES ('{stat_date}', {r['id']}, {r['category_id']}, {daily_view}, {daily_like}, {daily_comment}, {daily_share});\n"
+                    f.write(sql)
+
 if __name__ == "__main__":
     factory = DataFactory()
     factory.generate_users()
+    factory.generate_categories()
+    factory.generate_recipes()
     factory.generate_transactions()
     factory.write_mysql_sql()
     factory.write_doris_sql()

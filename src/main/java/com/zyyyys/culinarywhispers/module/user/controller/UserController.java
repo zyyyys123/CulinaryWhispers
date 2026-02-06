@@ -4,12 +4,10 @@ import com.zyyyys.culinarywhispers.common.result.Result;
 import com.zyyyys.culinarywhispers.module.user.dto.UserLoginDTO;
 import com.zyyyys.culinarywhispers.module.user.dto.UserRegisterDTO;
 import com.zyyyys.culinarywhispers.module.user.service.UserService;
+import com.zyyyys.culinarywhispers.module.user.vo.UserProfileVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 用户接口
@@ -38,5 +36,15 @@ public class UserController {
     public Result<String> login(@RequestBody @Valid UserLoginDTO loginDTO) {
         String token = userService.login(loginDTO);
         return Result.success(token);
+    }
+
+    /**
+     * 获取个人信息
+     */
+    @GetMapping("/profile")
+    public Result<UserProfileVO> getProfile() {
+        // TODO: 从 Token 获取 userId
+        Long userId = 1L; 
+        return Result.success(userService.getProfile(userId));
     }
 }

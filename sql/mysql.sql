@@ -146,6 +146,58 @@ CREATE TABLE `t_rcp_step` (
   KEY `idx_recipe_id` (`recipe_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='食谱步骤表';
 
+-- 2.2.3 食谱扩展表 (Recipe Extensions)
+-- Recipe Category Table
+CREATE TABLE IF NOT EXISTS `t_rcp_category` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Category ID',
+  `name` varchar(64) NOT NULL COMMENT 'Category Name',
+  `parent_id` int(11) NOT NULL DEFAULT 0 COMMENT 'Parent Category ID',
+  `level` tinyint(4) NOT NULL DEFAULT 1 COMMENT 'Level: 1-Root, 2-Sub, 3-Leaf',
+  `sort` int(11) NOT NULL DEFAULT 0 COMMENT 'Sort Order',
+  `icon_url` varchar(512) DEFAULT NULL COMMENT 'Icon URL',
+  `is_visible` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Visibility',
+  `gmt_create` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `gmt_modified` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  KEY `idx_parent` (`parent_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Recipe Category Table';
+
+-- Recipe Tag Table
+CREATE TABLE IF NOT EXISTS `t_rcp_tag` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Tag ID',
+  `name` varchar(64) NOT NULL COMMENT 'Tag Name',
+  `type` tinyint(4) DEFAULT 1 COMMENT 'Tag Type: 1-General, 2-Ingredient, 3-Scene',
+  `use_count` int(11) DEFAULT 0 COMMENT 'Usage Count',
+  `gmt_create` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `gmt_modified` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Recipe Tag Table';
+
+-- Recipe Tag Relation Table
+CREATE TABLE IF NOT EXISTS `t_rcp_tag_relation` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `recipe_id` bigint(20) unsigned NOT NULL COMMENT 'Recipe ID',
+  `tag_id` bigint(20) unsigned NOT NULL COMMENT 'Tag ID',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_recipe_tag` (`recipe_id`, `tag_id`),
+  KEY `idx_tag` (`tag_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Recipe Tag Relation Table';
+
+-- Recipe Stats Table (Separated from Info)
+CREATE TABLE IF NOT EXISTS `t_rcp_stats` (
+  `recipe_id` bigint(20) unsigned NOT NULL COMMENT 'Recipe ID',
+  `view_count` bigint(20) DEFAULT 0 COMMENT 'View Count',
+  `like_count` bigint(20) DEFAULT 0 COMMENT 'Like Count',
+  `collect_count` bigint(20) DEFAULT 0 COMMENT 'Collect Count',
+  `comment_count` bigint(20) DEFAULT 0 COMMENT 'Comment Count',
+  `share_count` bigint(20) DEFAULT 0 COMMENT 'Share Count',
+  `try_count` int(11) DEFAULT 0 COMMENT 'Try Count',
+  `score` decimal(3,1) DEFAULT 0.0 COMMENT 'Score',
+  `gmt_modified` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`recipe_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Recipe Statistics Table';
+
 -- 2.3 社交互动中心 (Social Center)
 
 -- 2.3.1 评论表 t_soc_comment

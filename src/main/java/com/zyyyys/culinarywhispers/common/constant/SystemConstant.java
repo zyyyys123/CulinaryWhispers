@@ -1,7 +1,7 @@
 package com.zyyyys.culinarywhispers.common.constant;
 
 /**
- * System Constants
+ * 系统常量
  */
 public class SystemConstant {
     public static final String DEFAULT_AVATAR = "https://example.com/default_avatar.png";

@@ -46,6 +46,9 @@ public class JwtUtil {
         return token;
     }
 
+    /**
+     * 创建Token
+     */
     private String createToken(Map<String, Object> claims) {
         return Jwts.builder()
                 .setClaims(claims)
