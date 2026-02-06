@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: culinary-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/culinary_user?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      # Doris Configuration (Assuming application needs to connect to Doris)
+      # You might need to add these to your application.yml or use them here if your app supports it
+      # - SPRING_DATASOURCE_DORIS_URL=jdbc:mysql://doris-fe:9030/culinary_dw
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      doris-fe:
+        condition: service_started
+    networks:
+      - culinary-net
+
+  mysql:
+    image: mysql:8.0
+    container_name: culinary-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    volumes:
+      - ./sql/mysql.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - mysql-data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - culinary-net
+
+  redis:
+    image: redis:7
+    container_name: culinary-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - culinary-net
+
+  doris-fe:
+    image: apache/doris:2.0.3-fe-x86_64
+    container_name: culinary-doris-fe
+    hostname: doris-fe
+    environment:
+      - FE_SERVERS=fe1:172.20.80.2:9010
+      - FE_ID=1
+    ports:
+      - "8030:8030" # UI
+      - "9030:9030" # MySQL Query
+    volumes:
+      - doris-fe-data:/opt/apache-doris/fe/doris-meta
+    networks:
+      culinary-net:
+        ipv4_address: 172.20.80.2
+
+  doris-be:
+    image: apache/doris:2.0.3-be-x86_64
+    container_name: culinary-doris-be
+    hostname: doris-be
+    environment:
+      - FE_SERVERS=fe1:172.20.80.2:9010
+      - BE_ADDR=172.20.80.3:9050
+    ports:
+      - "8040:8040" # BE Web
+    volumes:
+      - doris-be-data:/opt/apache-doris/be/storage
+    depends_on:
+      - doris-fe
+    privileged: true # Often required for sysctl
+    networks:
+      culinary-net:
+        ipv4_address: 172.20.80.3
+
+  doris-init:
+    image: mysql:8.0
+    container_name: culinary-doris-init
+    volumes:
+      - ./scripts/ops/init_doris.sh:/init_doris.sh
+      - ./sql/doris.sql:/sql/doris.sql
+    entrypoint: ["/bin/bash", "/init_doris.sh"]
+    depends_on:
+      - doris-fe
+      - doris-be
+    networks:
+      - culinary-net
+
+networks:
+  culinary-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  mysql-data:
+  redis-data:
+  doris-fe-data:
+  doris-be-data:

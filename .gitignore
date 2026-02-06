@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Logs & Temp ###
+logs/
+*.log
+tmp/
+temp/
+
+### Generated Data ###
+scripts/data/*.sql
