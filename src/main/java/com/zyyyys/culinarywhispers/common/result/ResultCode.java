@@ -9,7 +9,7 @@ import lombok.Getter;
 @Getter
 public enum ResultCode {
 
-    SUCCESS(200, "操作成功"),
+    SUCCESS(0, "操作成功"),
     ERROR(500, "系统异常"),
     UNAUTHORIZED(401, "未授权"),
     FORBIDDEN(403, "禁止访问"),
