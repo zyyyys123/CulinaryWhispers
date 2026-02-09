@@ -10,6 +10,7 @@ import com.zyyyys.culinarywhispers.module.commerce.mapper.OrderItemMapper;
 import com.zyyyys.culinarywhispers.module.commerce.mapper.OrderMapper;
 import com.zyyyys.culinarywhispers.module.commerce.service.OrderService;
 import com.zyyyys.culinarywhispers.module.commerce.service.ProductService;
+import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     private final ProductService productService;
     private final OrderItemMapper orderItemMapper;
+    private final UserService userService;
 
     /**
      * 创建订单
@@ -146,6 +148,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         order.setPayTime(LocalDateTime.now());
         order.setGmtModified(LocalDateTime.now());
         this.updateById(order);
+
+        // 更新用户消费总额
+        userService.updateTotalSpend(order.getUserId(), order.getTotalAmount());
         
         log.info("Order paid: {}", orderId);
     }

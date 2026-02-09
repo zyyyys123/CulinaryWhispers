@@ -41,6 +41,10 @@ public class UserProfile {
     private String bgImageUrl;
     private String videoIntroUrl;
     private String contactEmail;
+    /**
+     * 用户总消费金额 (用于数据一致性演示)
+     */
+    private java.math.BigDecimal totalSpend;
     private LocalDateTime gmtCreate;
     private LocalDateTime gmtModified;
 }

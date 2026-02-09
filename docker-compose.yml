@@ -218,6 +218,47 @@ services:
     networks:
       - culinary-net
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: culinary-prometheus
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - culinary-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: culinary-grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - culinary-net
+
+  skywalking-oap:
+    image: apache/skywalking-oap-server:9.4.0
+    container_name: culinary-skywalking-oap
+    ports:
+      - "11800:11800"
+      - "12800:12800"
+    networks:
+      - culinary-net
+
+  skywalking-ui:
+    image: apache/skywalking-ui:9.4.0
+    container_name: culinary-skywalking-ui
+    ports:
+      - "8088:8080"
+    environment:
+      SW_OAP_ADDRESS: http://skywalking-oap:12800
+    depends_on:
+      - skywalking-oap
+    networks:
+      - culinary-net
+
 networks:
   culinary-net:
     driver: bridge

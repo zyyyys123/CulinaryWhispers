@@ -169,4 +169,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             profileMapper.updateById(profile);
         }
     }
+
+    /**
+     * 更新用户总消费金额
+     * @param userId 用户ID
+     * @param amount 消费金额
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateTotalSpend(Long userId, java.math.BigDecimal amount) {
+        if (amount == null || amount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        UserProfile profile = profileMapper.selectById(userId);
+        if (profile == null) {
+            profile = new UserProfile();
+            profile.setUserId(userId);
+            profile.setTotalSpend(amount);
+            profileMapper.insert(profile);
+        } else {
+            java.math.BigDecimal current = profile.getTotalSpend() == null ? java.math.BigDecimal.ZERO : profile.getTotalSpend();
+            profile.setTotalSpend(current.add(amount));
+            profileMapper.updateById(profile);
+        }
+    }
 }

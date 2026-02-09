@@ -34,3 +34,12 @@ logging:
 jwt:
   secret: mySecretKeyForCulinaryWhispersProject2026
   expiration: 86400000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}

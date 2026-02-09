@@ -23,10 +23,16 @@ public interface UserService extends IService<User> {
     /**
      * 用户登录
      * @param loginDTO 登录信息
-     * @return Token
+     * @return 登录结果
      */
     String login(UserLoginDTO loginDTO);
 
+    /**
+     * 更新用户总消费金额
+     * @param userId 用户ID
+     * @param amount 消费金额
+     */
+    void updateTotalSpend(Long userId, java.math.BigDecimal amount);
     /**
      * 获取用户画像
      * @param userId 用户ID
