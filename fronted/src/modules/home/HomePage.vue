@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { gsap } from 'gsap'
 import HeroScene from '@/components/visual/HeroScene.vue'
 import StorybookSplash from '@/components/visual/StorybookSplash.vue'
+import RecipeFeed from '@/components/business/RecipeFeed.vue'
 
 const titleRef = ref(null)
 const subtitleRef = ref(null)
@@ -61,26 +62,16 @@ const onSplashComplete = () => {
       </div>
     </div>
 
-    <!-- Featured Section (Placeholder for Masonry) -->
-    <div class="content min-h-screen bg-dark-bg p-8 md:p-20 relative z-20">
+    <!-- Featured Section (Masonry) -->
+    <div class="content min-h-screen bg-dark-bg p-4 md:p-8 lg:p-20 relative z-20">
       <div class="max-w-7xl mx-auto">
-        <div class="flex items-end justify-between mb-12">
-          <h2 class="text-5xl font-serif text-primary">Featured Recipes</h2>
-          <button class="text-white hover:text-primary transition-colors underline decoration-1 underline-offset-8">View All</button>
+        <div class="flex items-end justify-between mb-12 px-2">
+          <h2 class="text-4xl md:text-5xl font-serif text-primary">Featured Recipes</h2>
+          <button class="hidden md:block text-white hover:text-primary transition-colors underline decoration-1 underline-offset-8 text-sm tracking-widest uppercase">View All Collection</button>
         </div>
         
-        <!-- Grid Placeholder -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div v-for="i in 6" :key="i" class="group relative aspect-[3/4] bg-dark-surface rounded-2xl overflow-hidden cursor-pointer">
-            <!-- Image Placeholder -->
-            <div class="absolute inset-0 bg-gray-800 transition-transform duration-700 group-hover:scale-110"></div>
-            <!-- Content Overlay -->
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-              <h3 class="text-2xl font-serif text-white mb-2 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">Recipe Title {{ i }}</h3>
-              <p class="text-sm text-gray-300 translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75">By Master Chef</p>
-            </div>
-          </div>
-        </div>
+        <!-- Recipe Feed Component -->
+        <RecipeFeed />
       </div>
     </div>
   </div>
