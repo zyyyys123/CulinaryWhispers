@@ -1,5 +1,6 @@
 package com.zyyyys.culinarywhispers.module.recipe.listener;
 
+import com.zyyyys.culinarywhispers.common.constant.RedisKeyConstant;
 import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeStats;
 import com.zyyyys.culinarywhispers.module.recipe.event.RecipeDeletedEvent;
 import com.zyyyys.culinarywhispers.module.recipe.event.RecipePublishedEvent;
@@ -9,14 +10,17 @@ import com.zyyyys.culinarywhispers.module.social.event.InteractionEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 /**
  * 食谱统计监听器
  * 负责初始化和清理食谱统计数据，以及处理互动事件更新统计
+ * 升级: 使用 Redis Write-Back 模式处理高并发计数
  * @author zyyyys
  */
 @Slf4j
@@ -25,6 +29,7 @@ import java.math.BigDecimal;
 public class RecipeStatsListener {
 
     private final RecipeStatsMapper statsMapper;
+    private final StringRedisTemplate redisTemplate;
 
     @EventListener
     @Transactional(rollbackFor = Exception.class)
@@ -42,6 +47,16 @@ public class RecipeStatsListener {
         stats.setScore(BigDecimal.ZERO);
         
         statsMapper.insert(stats);
+        
+        // Init Redis
+        String key = RedisKeyConstant.RECIPE_STATS_PREFIX + event.getRecipeId();
+        redisTemplate.opsForHash().putAll(key, Map.of(
+                "view_count", "0",
+                "like_count", "0",
+                "collect_count", "0",
+                "comment_count", "0",
+                "share_count", "0"
+        ));
     }
 
     @EventListener
@@ -49,63 +64,59 @@ public class RecipeStatsListener {
     public void handleRecipeDeleted(RecipeDeletedEvent event) {
         log.info("Deleting stats for recipe: {}", event.getRecipeId());
         statsMapper.deleteById(event.getRecipeId());
+        redisTemplate.delete(RedisKeyConstant.RECIPE_STATS_PREFIX + event.getRecipeId());
     }
 
     @EventListener
-    @Transactional(rollbackFor = Exception.class)
     public void handleInteraction(InteractionEvent event) {
         // 仅处理针对食谱 (TargetType=1) 的互动
         if (event.getTargetType() != 1) {
             return;
         }
 
-        log.info("Updating stats for recipe: {}, action: {}, isAdd: {}", 
+        log.info("Updating Redis stats for recipe: {}, action: {}, isAdd: {}", 
                 event.getTargetId(), event.getActionType(), event.isAdd());
 
-        RecipeStats stats = statsMapper.selectById(event.getTargetId());
-        if (stats == null) {
-            log.warn("Recipe stats not found for id: {}", event.getTargetId());
-            return;
-        }
-
-        // 1-点赞, 2-收藏, 3-分享
+        String key = RedisKeyConstant.RECIPE_STATS_PREFIX + event.getTargetId();
         long delta = event.isAdd() ? 1 : -1;
-        
+        String field = null;
+
         switch (event.getActionType()) {
             case 1: // Like
-                long newLikeCount = stats.getLikeCount() + delta;
-                stats.setLikeCount(newLikeCount < 0 ? 0 : newLikeCount);
+                field = "like_count";
                 break;
             case 2: // Collect
-                long newCollectCount = stats.getCollectCount() + delta;
-                stats.setCollectCount(newCollectCount < 0 ? 0 : newCollectCount);
+                field = "collect_count";
                 break;
             case 3: // Share
-                if (event.isAdd()) { // Share usually only adds up
-                    stats.setShareCount(stats.getShareCount() + 1);
+                if (event.isAdd()) {
+                    field = "share_count";
                 }
                 break;
             default:
                 break;
         }
         
-        statsMapper.updateById(stats);
+        if (field != null) {
+            incrementRedisStats(event.getTargetId(), key, field, delta);
+        }
     }
 
     @EventListener
-    @Transactional(rollbackFor = Exception.class)
     public void handleComment(CommentEvent event) {
-        log.info("Updating comment count for recipe: {}, isAdd: {}", event.getRecipeId(), event.isAdd());
+        log.info("Updating Redis comment count for recipe: {}, isAdd: {}", event.getRecipeId(), event.isAdd());
         
-        RecipeStats stats = statsMapper.selectById(event.getRecipeId());
-        if (stats == null) {
-            return;
-        }
-        
+        String key = RedisKeyConstant.RECIPE_STATS_PREFIX + event.getRecipeId();
         long delta = event.isAdd() ? 1 : -1;
-        long newCount = stats.getCommentCount() + delta;
-        stats.setCommentCount(newCount < 0 ? 0 : newCount);
         
-        statsMapper.updateById(stats);
+        incrementRedisStats(event.getRecipeId(), key, "comment_count", delta);
+    }
+    
+    private void incrementRedisStats(Long recipeId, String key, String field, long delta) {
+        // 1. Increment Hash
+        redisTemplate.opsForHash().increment(key, field, delta);
+        
+        // 2. Add to Dirty Set for Async Sync
+        redisTemplate.opsForSet().add(RedisKeyConstant.RECIPE_STATS_DIRTY_SET, String.valueOf(recipeId));
     }
 }

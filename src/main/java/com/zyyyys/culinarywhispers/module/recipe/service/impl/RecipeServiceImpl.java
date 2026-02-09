@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zyyyys.culinarywhispers.common.constant.RedisKeyConstant;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.ResultCode;
 import com.zyyyys.culinarywhispers.module.recipe.dto.RecipePublishDTO;
@@ -27,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -51,6 +53,7 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
     private final UserService userService;
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
+    private final StringRedisTemplate redisTemplate;
 
     /**
      * 发布食谱
@@ -116,19 +119,8 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
             throw new BusinessException(ResultCode.DATA_NOT_FOUND.getCode(), "食谱不存在");
         }
 
-        // 2. 获取统计信息
-        RecipeStats stats = statsMapper.selectById(id);
-        if (stats == null) {
-            stats = new RecipeStats();
-            stats.setRecipeId(id);
-            stats.setViewCount(0L);
-            stats.setLikeCount(0L);
-            stats.setCollectCount(0L);
-            stats.setCommentCount(0L);
-            stats.setShareCount(0L);
-            stats.setTryCount(0);
-            stats.setScore(BigDecimal.ZERO);
-        }
+        // 2. 获取统计信息 (优先从 Redis 获取)
+        RecipeStats stats = getStatsFromRedisOrDb(id);
 
         // 3. 获取步骤列表
         LambdaQueryWrapper<RecipeStep> stepWrapper = new LambdaQueryWrapper<>();
@@ -152,7 +144,71 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
         vo.setSteps(steps);
         vo.setAuthor(authorVO);
 
+        // 增加浏览量 (异步写入 Redis)
+        try {
+            redisTemplate.opsForHash().increment(RedisKeyConstant.RECIPE_STATS_PREFIX + id, "view_count", 1);
+            redisTemplate.opsForSet().add(RedisKeyConstant.RECIPE_STATS_DIRTY_SET, String.valueOf(id));
+        } catch (Exception e) {
+            log.error("Failed to increment view count for recipe: " + id, e);
+        }
+
         return vo;
+    }
+
+    private RecipeStats getStatsFromRedisOrDb(Long recipeId) {
+        String key = RedisKeyConstant.RECIPE_STATS_PREFIX + recipeId;
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries(key);
+        
+        if (!entries.isEmpty()) {
+            // Hit Redis
+            RecipeStats stats = new RecipeStats();
+            stats.setRecipeId(recipeId);
+            stats.setViewCount(parseLong(entries.get("view_count")));
+            stats.setLikeCount(parseLong(entries.get("like_count")));
+            stats.setCollectCount(parseLong(entries.get("collect_count")));
+            stats.setCommentCount(parseLong(entries.get("comment_count")));
+            stats.setShareCount(parseLong(entries.get("share_count")));
+            // Other fields use default or null
+            return stats;
+        }
+
+        // Miss Redis, load from DB
+        RecipeStats stats = statsMapper.selectById(recipeId);
+        if (stats == null) {
+            stats = new RecipeStats();
+            stats.setRecipeId(recipeId);
+            stats.setViewCount(0L);
+            stats.setLikeCount(0L);
+            stats.setCollectCount(0L);
+            stats.setCommentCount(0L);
+            stats.setShareCount(0L);
+            stats.setTryCount(0);
+            stats.setScore(BigDecimal.ZERO);
+        }
+        
+        // Write back to Redis for next time
+        try {
+            redisTemplate.opsForHash().putAll(key, Map.of(
+                    "view_count", String.valueOf(stats.getViewCount()),
+                    "like_count", String.valueOf(stats.getLikeCount()),
+                    "collect_count", String.valueOf(stats.getCollectCount()),
+                    "comment_count", String.valueOf(stats.getCommentCount()),
+                    "share_count", String.valueOf(stats.getShareCount())
+            ));
+        } catch (Exception e) {
+            log.error("Failed to cache stats to Redis for recipe: " + recipeId, e);
+        }
+        
+        return stats;
+    }
+    
+    private Long parseLong(Object val) {
+        if (val == null) return 0L;
+        try {
+            return Long.parseLong(val.toString());
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
     }
 
     /**
