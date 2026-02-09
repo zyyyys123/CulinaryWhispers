@@ -30,3 +30,7 @@ mybatis-plus:
 logging:
   level:
     com.zyyyys.culinarywhispers: debug
+
+jwt:
+  secret: mySecretKeyForCulinaryWhispersProject2026
+  expiration: 86400000

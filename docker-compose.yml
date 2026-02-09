@@ -190,6 +190,34 @@ services:
     networks:
       - culinary-net
 
+  go-gateway:
+    build:
+      context: ./go-edge
+      dockerfile: gateway/Dockerfile
+    container_name: culinary-go-gateway
+    ports:
+      - "8081:8081"
+    environment:
+      - GIN_MODE=release
+    depends_on:
+      - app
+    networks:
+      - culinary-net
+
+  go-im:
+    build:
+      context: ./go-edge
+      dockerfile: im/Dockerfile
+    container_name: culinary-go-im
+    ports:
+      - "8082:8082"
+    environment:
+      - GIN_MODE=release
+    depends_on:
+      - redis
+    networks:
+      - culinary-net
+
 networks:
   culinary-net:
     driver: bridge

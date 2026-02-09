@@ -6,14 +6,17 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import jakarta.annotation.PostConstruct;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.time.Duration;
+import java.nio.charset.StandardCharsets;
 
 /**
  * JWT工具类
@@ -24,12 +27,23 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class JwtUtil {
 
-    private static final Key KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-    private static final long EXPIRATION = 86400000; // 24 hours
+    @Value("${jwt.secret}")
+    private String secret;
+
+    @Value("${jwt.expiration}")
+    private long expiration;
+
+    private Key key;
+
     private static final String KEY_USER_TOKEN = "login:token:";
     private static final String KEY_TOKEN_USER = "login:jwt:";
 
     private final StringRedisTemplate stringRedisTemplate;
+
+    @PostConstruct
+    public void init() {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
 
     /**
      * 生成Token
@@ -41,8 +55,8 @@ public class JwtUtil {
         String token = createToken(claims);
         String userKey = KEY_USER_TOKEN + userId;
         String tokenKey = KEY_TOKEN_USER + token;
-        stringRedisTemplate.opsForValue().set(userKey, token, Duration.ofMillis(EXPIRATION));
-        stringRedisTemplate.opsForValue().set(tokenKey, String.valueOf(userId), Duration.ofMillis(EXPIRATION));
+        stringRedisTemplate.opsForValue().set(userKey, token, Duration.ofMillis(expiration));
+        stringRedisTemplate.opsForValue().set(tokenKey, String.valueOf(userId), Duration.ofMillis(expiration));
         return token;
     }
 
@@ -53,8 +67,8 @@ public class JwtUtil {
         return Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
-                .signWith(KEY)
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -63,7 +77,7 @@ public class JwtUtil {
      */
     public Claims parseToken(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(KEY)
+                .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
