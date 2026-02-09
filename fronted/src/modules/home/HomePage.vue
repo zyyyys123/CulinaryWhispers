@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { gsap } from 'gsap'
 import HeroScene from '@/components/visual/HeroScene.vue'
 import StorybookSplash from '@/components/visual/StorybookSplash.vue'
 import RecipeFeed from '@/components/business/RecipeFeed.vue'
 
+const router = useRouter()
 const titleRef = ref(null)
 const subtitleRef = ref(null)
 
@@ -33,6 +35,21 @@ const onSplashComplete = () => {
     <!-- New Storybook Splash Screen -->
     <StorybookSplash @complete="onSplashComplete" />
 
+    <!-- Top Navigation / Profile Link -->
+    <nav class="absolute top-0 w-full z-30 p-8 flex justify-end gap-6">
+        <div @click="router.push({ name: 'market' })" class="cursor-pointer group flex items-center gap-2 text-white hover:text-primary transition-colors">
+             <span class="text-xs font-bold uppercase tracking-widest">Market</span>
+        </div>
+        
+        <div @click="router.push({ name: 'user-profile' })" class="cursor-pointer group flex items-center gap-3">
+             <span class="text-xs font-bold uppercase tracking-widest text-white group-hover:text-primary transition-colors">My Profile</span>
+             <div class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center group-hover:border-primary transition-colors">
+                <!-- User Icon -->
+                <svg class="w-4 h-4 text-white group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+             </div>
+        </div>
+    </nav>
+
     <!-- Hero Section -->
     <div class="hero h-screen w-full relative overflow-hidden">
       
@@ -55,7 +72,8 @@ const onSplashComplete = () => {
       </div>
 
       <!-- Scroll Indicator -->
-      <div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce z-20">
+      <div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce z-20 flex flex-col items-center gap-2 pointer-events-none">
+        <span class="text-[10px] text-gray-400 uppercase tracking-widest">Scroll</span>
         <svg class="w-6 h-6 text-white opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
         </svg>

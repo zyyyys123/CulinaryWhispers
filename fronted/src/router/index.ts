@@ -12,6 +12,16 @@ const router = createRouter({
       path: '/recipe/:id',
       name: 'recipe-detail',
       component: () => import('@/modules/recipe/RecipeDetail.vue')
+    },
+    {
+      path: '/user/profile',
+      name: 'user-profile',
+      component: () => import('@/modules/user/UserProfile.vue')
+    },
+    {
+      path: '/market',
+      name: 'market',
+      component: () => import('@/modules/commerce/MarketPage.vue')
     }
   ]
 })

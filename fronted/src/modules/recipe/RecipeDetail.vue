@@ -7,6 +7,7 @@ import { RecipeAPI } from '@/api/recipe'
 import type { RecipeDetailVO } from '@/types/recipe'
 import AIAssistantOrb from '@/components/visual/AIAssistantOrb.vue'
 import { NIcon, NRate } from 'naive-ui'
+import CommentSection from './components/CommentSection.vue'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -175,6 +176,9 @@ onUnmounted(() => {
             </div>
           </div>
         </section>
+
+        <!-- Comments Section -->
+        <CommentSection :recipeId="recipe.id" />
       </div>
 
       <!-- Right Column: Ingredients (Sticky) -->
