@@ -12,8 +12,6 @@ import com.zyyyys.culinarywhispers.module.recipe.dto.RecipeQueryDTO;
 import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeInfo;
 import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeStats;
 import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeStep;
-import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeTag;
-import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeTagRelation;
 import com.zyyyys.culinarywhispers.module.recipe.event.RecipeDeletedEvent;
 import com.zyyyys.culinarywhispers.module.recipe.event.RecipePublishedEvent;
 import com.zyyyys.culinarywhispers.module.recipe.event.RecipeUpdatedEvent;
@@ -52,7 +50,7 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
     private final RecipeStatsMapper statsMapper;
     private final UserService userService;
     private final ApplicationEventPublisher eventPublisher;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     /**
      * 发布食谱

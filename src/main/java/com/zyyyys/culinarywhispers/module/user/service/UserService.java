@@ -5,6 +5,7 @@ import com.zyyyys.culinarywhispers.module.user.dto.UserLoginDTO;
 import com.zyyyys.culinarywhispers.module.user.dto.UserRegisterDTO;
 import com.zyyyys.culinarywhispers.module.user.dto.UserUpdateDTO;
 import com.zyyyys.culinarywhispers.module.user.entity.User;
+import com.zyyyys.culinarywhispers.module.user.entity.UserProfile;
 import com.zyyyys.culinarywhispers.module.user.vo.UserProfileVO;
 
 /**
@@ -33,6 +34,13 @@ public interface UserService extends IService<User> {
      * @param amount 消费金额
      */
     void updateTotalSpend(Long userId, java.math.BigDecimal amount);
+
+    /**
+     * 获取用户画像实体 (内部调用)
+     * @param userId 用户ID
+     * @return 画像实体
+     */
+    UserProfile getUserProfile(Long userId);
     /**
      * 获取用户画像
      * @param userId 用户ID

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zyyyys.culinarywhispers.module.recipe.mapper.RecipeTagMapper">
+
+    <!-- 根据食谱ID查询标签名称列表 -->
+    <select id="selectTagNamesByRecipeId" resultType="java.lang.String">
+        SELECT t.name
+        FROM t_rcp_tag t
+        INNER JOIN t_rcp_tag_relation r ON t.id = r.tag_id
+        WHERE r.recipe_id = #{recipeId}
+    </select>
+
+</mapper>

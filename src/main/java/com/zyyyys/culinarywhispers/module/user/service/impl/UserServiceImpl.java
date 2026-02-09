@@ -18,9 +18,11 @@ import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import com.zyyyys.culinarywhispers.module.user.vo.UserProfileVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.redis.core.StringRedisTemplate;
+
+import java.math.BigDecimal;
 import java.time.Duration;
 
 /**
@@ -192,5 +194,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             profile.setTotalSpend(current.add(amount));
             profileMapper.updateById(profile);
         }
+    }
+
+    /**
+     * 获取用户画像实体
+     * @param userId 用户ID
+     * @return 画像实体
+     */
+    @Override
+    public UserProfile getUserProfile(Long userId) {
+        return profileMapper.selectById(userId);
     }
 }
