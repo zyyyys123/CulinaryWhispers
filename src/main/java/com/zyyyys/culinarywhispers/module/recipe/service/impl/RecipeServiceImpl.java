@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zyyyys.culinarywhispers.common.constant.RedisKeyConstant;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.ResultCode;
+import com.zyyyys.culinarywhispers.common.utils.NutritionCalculator;
 import com.zyyyys.culinarywhispers.module.recipe.dto.RecipePublishDTO;
 import com.zyyyys.culinarywhispers.module.recipe.dto.RecipeQueryDTO;
 import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeInfo;
@@ -143,6 +144,23 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
         vo.setStats(stats);
         vo.setSteps(steps);
         vo.setAuthor(authorVO);
+
+        // 6. 营养分析 (3.2 营养分析与热量计算)
+        RecipeDetailVO.NutritionAnalysisVO nutritionVO = new RecipeDetailVO.NutritionAnalysisVO();
+        nutritionVO.setCaloriesPercent(NutritionCalculator.calculateCaloriesPercentage(recipeInfo.getCalories()));
+        nutritionVO.setProteinPercent(NutritionCalculator.calculateProteinPercentage(recipeInfo.getProtein()));
+        nutritionVO.setFatPercent(NutritionCalculator.calculateFatPercentage(recipeInfo.getFat()));
+        nutritionVO.setCarbsPercent(NutritionCalculator.calculateCarbsPercentage(recipeInfo.getCarbs()));
+        
+        // 简单健康建议
+        if (nutritionVO.getProteinPercent() > 30) {
+            nutritionVO.setHealthTip("高蛋白，适合增肌");
+        } else if (nutritionVO.getFatPercent() < 10) {
+            nutritionVO.setHealthTip("低脂清淡");
+        } else {
+            nutritionVO.setHealthTip("营养均衡");
+        }
+        vo.setNutritionAnalysis(nutritionVO);
 
         // 增加浏览量 (异步写入 Redis)
         try {

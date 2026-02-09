@@ -36,10 +36,24 @@ public class RecipeDetailVO implements Serializable {
      */
     private AuthorVO author;
 
+    /**
+     * 营养分析 (3.2 营养分析与热量计算)
+     */
+    private NutritionAnalysisVO nutritionAnalysis;
+
     @Data
     public static class AuthorVO implements Serializable {
         private Long id;
         private String nickname;
         private String avatarUrl;
+    }
+
+    @Data
+    public static class NutritionAnalysisVO implements Serializable {
+        private Integer caloriesPercent;
+        private Integer proteinPercent;
+        private Integer fatPercent;
+        private Integer carbsPercent;
+        private String healthTip; // 健康建议: "高蛋白", "低脂", "均衡"
     }
 }

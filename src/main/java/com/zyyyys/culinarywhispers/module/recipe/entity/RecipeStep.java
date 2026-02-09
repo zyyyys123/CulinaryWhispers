@@ -51,6 +51,11 @@ public class RecipeStep implements Serializable {
     private Integer timeCost;
 
     /**
+     * 语音讲解
+     */
+    private String voiceUrl;
+
+    /**
      * 是否关键步骤
      */
     private Boolean isKeyStep;

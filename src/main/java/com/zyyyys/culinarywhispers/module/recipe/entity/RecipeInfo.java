@@ -66,6 +66,21 @@ public class RecipeInfo implements Serializable {
     private Integer calories;
 
     /**
+     * 蛋白质(g)
+     */
+    private BigDecimal protein;
+
+    /**
+     * 脂肪(g)
+     */
+    private BigDecimal fat;
+
+    /**
+     * 碳水(g)
+     */
+    private BigDecimal carbs;
+
+    /**
      * 综合评分
      */
     private BigDecimal score;

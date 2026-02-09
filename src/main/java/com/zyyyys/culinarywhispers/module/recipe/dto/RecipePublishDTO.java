@@ -45,6 +45,26 @@ public class RecipePublishDTO {
     private Integer timeCost;
 
     /**
+     * 卡路里(千卡)
+     */
+    private Integer calories;
+
+    /**
+     * 蛋白质(g)
+     */
+    private java.math.BigDecimal protein;
+
+    /**
+     * 脂肪(g)
+     */
+    private java.math.BigDecimal fat;
+
+    /**
+     * 碳水(g)
+     */
+    private java.math.BigDecimal carbs;
+
+    /**
      * 小贴士
      */
     private String tips;
@@ -69,6 +89,7 @@ public class RecipePublishDTO {
         private String imgUrl;
         private String videoUrl;
         private Integer timeCost;
+        private String voiceUrl;
         private Boolean isKeyStep;
     }
 }
