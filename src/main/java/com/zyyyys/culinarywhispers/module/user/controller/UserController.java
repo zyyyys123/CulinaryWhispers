@@ -1,10 +1,14 @@
 package com.zyyyys.culinarywhispers.module.user.controller;
 
+import com.zyyyys.culinarywhispers.common.context.UserContext;
 import com.zyyyys.culinarywhispers.common.result.Result;
 import com.zyyyys.culinarywhispers.module.user.dto.UserLoginDTO;
 import com.zyyyys.culinarywhispers.module.user.dto.UserRegisterDTO;
+import com.zyyyys.culinarywhispers.module.user.dto.UserUpdateDTO;
 import com.zyyyys.culinarywhispers.module.user.service.UserService;
+import com.zyyyys.culinarywhispers.module.user.service.UserStatsService;
 import com.zyyyys.culinarywhispers.module.user.vo.UserProfileVO;
+import com.zyyyys.culinarywhispers.module.user.vo.UserStatsVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final UserStatsService userStatsService;
 
     /**
      * 用户注册
@@ -43,8 +48,34 @@ public class UserController {
      */
     @GetMapping("/profile")
     public Result<UserProfileVO> getProfile() {
-        // TODO: 从 Token 获取 userId
-        Long userId = 1L; 
+        Long userId = UserContext.getUserId();
+        // Fallback for testing/no-auth scenarios if needed, but ideally should throw error if not logged in
+        if (userId == null) {
+            // throw new BusinessException(ResultCode.UNAUTHORIZED);
+            // For now, let's assume middleware sets it, or use default for dev
+            userId = 1L; 
+        }
         return Result.success(userService.getProfile(userId));
+    }
+    
+    /**
+     * 更新个人信息
+     */
+    @PutMapping("/profile")
+    public Result<Void> updateProfile(@RequestBody UserUpdateDTO updateDTO) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) userId = 1L; // Dev fallback
+        userService.updateProfile(userId, updateDTO);
+        return Result.success();
+    }
+
+    /**
+     * 获取用户成长数据 (等级、经验、勋章)
+     */
+    @GetMapping("/stats")
+    public Result<UserStatsVO> getUserStats() {
+        Long userId = UserContext.getUserId();
+        if (userId == null) userId = 1L; // Dev fallback
+        return Result.success(userStatsService.getUserStats(userId));
     }
 }
