@@ -27,14 +27,30 @@ public class Comment implements Serializable {
     private Long userId;
 
     /**
-     * 关联食谱ID
+     * 目标类型: 1-食谱, 2-动态
      */
+    private Integer targetType;
+
+    /**
+     * 目标ID
+     */
+    private Long targetId;
+
+    /**
+     * 关联食谱ID (保留字段，兼容旧逻辑，建议逐步迁移到 targetId)
+     */
+    @Deprecated
     private Long recipeId;
 
     /**
      * 评论内容
      */
     private String content;
+
+    /**
+     * 图片列表 (JSON)
+     */
+    private String imgUrls;
 
     /**
      * 父评论ID (0为根评论)

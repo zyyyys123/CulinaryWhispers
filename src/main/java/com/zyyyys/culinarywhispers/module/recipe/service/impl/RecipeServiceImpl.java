@@ -23,6 +23,7 @@ import com.zyyyys.culinarywhispers.module.recipe.mapper.RecipeStepMapper;
 import com.zyyyys.culinarywhispers.module.recipe.service.RecipeService;
 import com.zyyyys.culinarywhispers.module.recipe.vo.RecipeDetailVO;
 import com.zyyyys.culinarywhispers.module.recipe.vo.RecipePageVO;
+import com.zyyyys.culinarywhispers.module.social.service.CommentService;
 import com.zyyyys.culinarywhispers.module.user.entity.User;
 import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,7 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
     private final RecipeStepMapper stepMapper;
     private final RecipeStatsMapper statsMapper;
     private final UserService userService;
+    private final CommentService commentService;
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
@@ -161,6 +163,14 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
             nutritionVO.setHealthTip("营养均衡");
         }
         vo.setNutritionAnalysis(nutritionVO);
+
+        // 7. "跟做"作业展示 (4.1 社区运营活动)
+        try {
+            vo.setWorks(commentService.getRecipeWorks(id, 5)); // 默认展示前5个热门作业
+        } catch (Exception e) {
+            log.error("Failed to load recipe works for: " + id, e);
+            // 降级：不展示作业，不影响主流程
+        }
 
         // 增加浏览量 (异步写入 Redis)
         try {

@@ -2,7 +2,6 @@ package com.zyyyys.culinarywhispers.module.social.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
-import com.zyyyys.culinarywhispers.common.result.ResultCode;
 import com.zyyyys.culinarywhispers.module.social.entity.Comment;
 import com.zyyyys.culinarywhispers.module.social.event.CommentEvent;
 import com.zyyyys.culinarywhispers.module.social.mapper.CommentMapper;
@@ -10,11 +9,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,11 +40,33 @@ class CommentServiceImplTest {
     }
 
     @Test
-    void addComment_Success() {
-        // ... (保持不变)
-        // 略，因为 save 是 ServiceImpl 方法，需要 mock 或 verify
-        // 这里为了简化，我们模拟 save 方法
+    void getRecipeWorks_Success() {
+        // 准备数据
+        Long recipeId = 1L;
+        int limit = 5;
         
+        Comment comment = new Comment();
+        comment.setId(1L);
+        comment.setImgUrls("[\"http://img.com/1.jpg\"]");
+        
+        // 模拟 list 方法 (MyBatis-Plus IService.list(Wrapper))
+        // 注意: list(Wrapper) 是 ServiceImpl 的方法，通常会调用 baseMapper.selectList
+        // 这里我们需要 mock ServiceImpl.list 或者 baseMapper.selectList
+        
+        // 由于 CommentServiceImpl 继承 ServiceImpl，内部调用 this.list(wrapper) 最终调用 baseMapper.selectList
+        when(commentMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(comment));
+
+        // 执行
+        List<Comment> works = commentService.getRecipeWorks(recipeId, limit);
+
+        // 验证
+        assertNotNull(works);
+        assertEquals(1, works.size());
+        verify(commentMapper).selectList(any(LambdaQueryWrapper.class));
+    }
+
+    @Test
+    void addComment_Success() {
         Long userId = 1L;
         Long recipeId = 100L;
         String content = "Delicious!";

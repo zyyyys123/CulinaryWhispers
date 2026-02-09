@@ -3,6 +3,7 @@ package com.zyyyys.culinarywhispers.module.recipe.vo;
 import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeInfo;
 import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeStats;
 import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeStep;
+import com.zyyyys.culinarywhispers.module.social.entity.Comment;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -40,6 +41,11 @@ public class RecipeDetailVO implements Serializable {
      * 营养分析 (3.2 营养分析与热量计算)
      */
     private NutritionAnalysisVO nutritionAnalysis;
+
+    /**
+     * "跟做"作业展示 (4.1 社区运营活动)
+     */
+    private List<Comment> works;
 
     @Data
     public static class AuthorVO implements Serializable {

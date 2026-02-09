@@ -28,6 +28,14 @@ public interface CommentService extends IService<Comment> {
     void deleteComment(Long userId, Long commentId);
 
     /**
+     * 获取食谱的"跟做"作业 (带图片的评论)
+     * @param recipeId 食谱ID
+     * @param limit 限制数量
+     * @return 评论列表
+     */
+    java.util.List<Comment> getRecipeWorks(Long recipeId, int limit);
+
+    /**
      * 获取食谱评论列表
      * @param recipeId 食谱ID
      * @param page 页码

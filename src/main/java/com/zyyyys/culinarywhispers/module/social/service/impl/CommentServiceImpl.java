@@ -120,4 +120,21 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         // TODO: 可以在这里处理树形结构的组装，目前先返回扁平列表
         return this.page(pageParam, wrapper);
     }
+
+    /**
+     * 获取食谱的"跟做"作业 (带图片的评论)
+     * @param recipeId 食谱ID
+     * @param limit 限制数量
+     * @return 评论列表
+     */
+    @Override
+    public java.util.List<Comment> getRecipeWorks(Long recipeId, int limit) {
+        LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Comment::getRecipeId, recipeId)
+               .isNotNull(Comment::getImgUrls)
+               .ne(Comment::getImgUrls, "")
+               .orderByDesc(Comment::getLikeCount) // 按点赞数排序，展示热门作业
+               .last("LIMIT " + limit);
+        return this.list(wrapper);
+    }
 }

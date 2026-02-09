@@ -86,6 +86,21 @@ public class UserStats implements Serializable {
     private LocalDateTime lastPublishTime;
 
     /**
+     * 积分余额 (5.2 积分生态)
+     */
+    private Integer points;
+
+    /**
+     * 连续签到天数 (5.2 积分生态)
+     */
+    private Integer continueSignDays;
+
+    /**
+     * 上次签到日期 (5.2 积分生态)
+     */
+    private java.time.LocalDate lastSignDate;
+
+    /**
      * 修改时间
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)

@@ -2,6 +2,7 @@ package com.zyyyys.culinarywhispers.module.recipe.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zyyyys.culinarywhispers.common.constant.RedisKeyConstant;
 import com.zyyyys.culinarywhispers.module.recipe.dto.RecipePublishDTO;
 import com.zyyyys.culinarywhispers.module.recipe.dto.RecipeQueryDTO;
 import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeInfo;
@@ -12,6 +13,8 @@ import com.zyyyys.culinarywhispers.module.recipe.event.RecipeUpdatedEvent;
 import com.zyyyys.culinarywhispers.module.recipe.mapper.*;
 import com.zyyyys.culinarywhispers.module.recipe.vo.RecipeDetailVO;
 import com.zyyyys.culinarywhispers.module.recipe.vo.RecipePageVO;
+import com.zyyyys.culinarywhispers.module.social.entity.Comment;
+import com.zyyyys.culinarywhispers.module.social.service.CommentService;
 import com.zyyyys.culinarywhispers.module.user.entity.User;
 import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,10 +25,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.SetOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,7 +52,15 @@ class RecipeServiceImplTest {
     @Mock
     private UserService userService;
     @Mock
+    private CommentService commentService;
+    @Mock
     private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private StringRedisTemplate redisTemplate;
+    @Mock
+    private HashOperations<String, Object, Object> hashOperations;
+    @Mock
+    private SetOperations<String, String> setOperations;
 
     @InjectMocks
     private RecipeServiceImpl recipeService;
@@ -52,6 +69,10 @@ class RecipeServiceImplTest {
     void setUp() {
         // 为 MyBatis-Plus ServiceImpl 注入 baseMapper
         ReflectionTestUtils.setField(recipeService, "baseMapper", infoMapper);
+        
+        // Mock Redis ops
+        lenient().when(redisTemplate.opsForHash()).thenReturn(hashOperations);
+        lenient().when(redisTemplate.opsForSet()).thenReturn(setOperations);
     }
 
     @Test
@@ -198,16 +219,27 @@ class RecipeServiceImplTest {
         info.setId(recipeId);
         info.setAuthorId(authorId);
         info.setTitle("Delicious Cake");
+        // Nutrition data
+        info.setCalories(500);
+        info.setProtein(new BigDecimal("30"));
+        info.setFat(new BigDecimal("20"));
+        info.setCarbs(new BigDecimal("50"));
 
         User author = new User();
         author.setId(authorId);
         author.setNickname("Chef");
+        
+        // Mock Redis Miss
+        when(hashOperations.entries(anyString())).thenReturn(Collections.emptyMap());
         
         // 模拟 baseMapper 而非 service
         when(infoMapper.selectById(recipeId)).thenReturn(info);
         when(userService.getById(authorId)).thenReturn(author);
         when(statsMapper.selectById(recipeId)).thenReturn(null); // 将初始化空统计
         when(stepMapper.selectList(any())).thenReturn(Collections.emptyList());
+        
+        // Mock Works
+        when(commentService.getRecipeWorks(recipeId, 5)).thenReturn(Collections.singletonList(new Comment()));
 
         // 执行操作
         RecipeDetailVO vo = recipeService.getDetail(recipeId);
@@ -217,6 +249,17 @@ class RecipeServiceImplTest {
         assertEquals("Delicious Cake", vo.getInfo().getTitle());
         assertEquals("Chef", vo.getAuthor().getNickname());
         assertNotNull(vo.getStats());
+        
+        // Verify Nutrition
+        assertNotNull(vo.getNutritionAnalysis());
+        assertEquals(25, vo.getNutritionAnalysis().getCaloriesPercent()); // 500/2000
+        
+        // Verify Works
+        assertNotNull(vo.getWorks());
+        assertEquals(1, vo.getWorks().size());
+        
+        // Verify Redis Write-Back (View Count)
+        verify(hashOperations).increment(anyString(), eq("view_count"), eq(1));
     }
 
     @Test
