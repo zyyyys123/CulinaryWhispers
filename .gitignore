@@ -40,3 +40,13 @@ temp/
 
 ### Generated Data ###
 scripts/data/*.sql
+
+### Frontend ###
+fronted/node_modules/
+fronted/dist/
+fronted/.DS_Store
+fronted/*.local
+fronted/npm-debug.log*
+fronted/yarn-debug.log*
+fronted/yarn-error.log*
+
