@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import type { RecipePageVO } from '@/types/recipe'
 import { NIcon } from 'naive-ui'
 
@@ -8,6 +9,13 @@ const props = defineProps<{
   data: RecipePageVO
   index?: number
 }>()
+
+const router = useRouter()
+
+// Methods
+const goToDetail = () => {
+  router.push({ name: 'recipe-detail', params: { id: props.data.id } })
+}
 
 // Computed
 const formattedTime = computed(() => {
@@ -22,7 +30,7 @@ const difficultyLabel = computed(() => {
 </script>
 
 <template>
-  <div class="recipe-card group relative w-full break-inside-avoid mb-6 cursor-pointer">
+  <div @click="goToDetail" class="recipe-card group relative w-full break-inside-avoid mb-6 cursor-pointer">
     <!-- Image Container -->
     <div class="relative w-full overflow-hidden rounded-2xl bg-gray-800 shadow-lg">
       <!-- Aspect Ratio Hack or just natural height -->
