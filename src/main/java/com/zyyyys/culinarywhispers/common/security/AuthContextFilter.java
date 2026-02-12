@@ -101,6 +101,9 @@ public class AuthContextFilter extends OncePerRequestFilter {
         if (path.equals("/api/user/login") || path.equals("/api/user/register")) {
             return true;
         }
+        if (path.equals("/api/log/capture")) {
+            return true;
+        }
         if (path.startsWith("/api/search")) {
             return true;
         }

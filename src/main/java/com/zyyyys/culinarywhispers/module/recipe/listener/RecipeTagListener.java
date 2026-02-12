@@ -10,10 +10,17 @@ import com.zyyyys.culinarywhispers.module.recipe.mapper.RecipeTagMapper;
 import com.zyyyys.culinarywhispers.module.recipe.mapper.RecipeTagRelationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.util.LinkedHashSet;
+import java.util.List;
 
 /**
  * 食谱标签监听器
@@ -28,48 +35,75 @@ public class RecipeTagListener {
     private final RecipeTagMapper tagMapper;
     private final RecipeTagRelationMapper tagRelationMapper;
 
-    @EventListener
-    @Transactional(rollbackFor = Exception.class)
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void handleRecipePublished(RecipePublishedEvent event) {
         log.info("Processing tags for recipe: {}", event.getRecipeId());
-        processTags(event.getRecipeId(), event.getTags());
+        try {
+            processTags(event.getRecipeId(), event.getTags());
+        } catch (Exception e) {
+            // 标签属于“辅助能力”，不应影响主链路（发布菜谱）结果
+            log.error("Failed to process tags for recipe: {}", event.getRecipeId(), e);
+        }
     }
 
-    @EventListener
-    @Transactional(rollbackFor = Exception.class)
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void handleRecipeUpdated(RecipeUpdatedEvent event) {
         log.info("Updating tags for recipe: {}", event.getRecipeId());
-        
-        // 1. 删除旧关联
-        LambdaQueryWrapper<RecipeTagRelation> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(RecipeTagRelation::getRecipeId, event.getRecipeId());
-        tagRelationMapper.delete(wrapper);
 
-        // 2. 重新处理标签 (逻辑复用)
-        // 构造一个临时的 PublishedEvent 复用逻辑，或者抽取公共方法
-        // 这里为了简单直观，直接调用 handleRecipePublished 的逻辑，但需要适配参数
-        // 更好的方式是抽取 processTags 方法
-        processTags(event.getRecipeId(), event.getTags());
+        try {
+            // 1. 删除旧关联
+            LambdaQueryWrapper<RecipeTagRelation> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(RecipeTagRelation::getRecipeId, event.getRecipeId());
+            tagRelationMapper.delete(wrapper);
+
+            // 2. 重新处理标签
+            processTags(event.getRecipeId(), event.getTags());
+        } catch (Exception e) {
+            // 标签属于“辅助能力”，不应影响主链路（更新菜谱）结果
+            log.error("Failed to update tags for recipe: {}", event.getRecipeId(), e);
+        }
     }
 
-    @EventListener
-    @Transactional(rollbackFor = Exception.class)
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void handleRecipeDeleted(RecipeDeletedEvent event) {
         log.info("Deleting tag relations for recipe: {}", event.getRecipeId());
-        // 删除关联关系
-        LambdaQueryWrapper<RecipeTagRelation> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(RecipeTagRelation::getRecipeId, event.getRecipeId());
-        tagRelationMapper.delete(wrapper);
-        // 注意：这里暂不处理 t_rcp_tag 的 use_count 递减，因为比较复杂且不是核心路径
+        try {
+            // 删除关联关系
+            LambdaQueryWrapper<RecipeTagRelation> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(RecipeTagRelation::getRecipeId, event.getRecipeId());
+            tagRelationMapper.delete(wrapper);
+            // 注意：这里暂不处理 t_rcp_tag 的 use_count 递减，因为比较复杂且不是核心路径
+        } catch (Exception e) {
+            log.error("Failed to delete tag relations for recipe: {}", event.getRecipeId(), e);
+        }
     }
 
-    private void processTags(Long recipeId, java.util.List<String> tags) {
+    private void processTags(Long recipeId, List<String> tags) {
         if (tags == null || tags.isEmpty()) {
             return;
         }
-        for (String tagName : tags) {
-            if (!StringUtils.hasText(tagName)) continue;
+        // 去重：避免同一个菜谱在一次发布/更新中出现重复标签，导致唯一索引冲突引发“系统繁忙”
+        LinkedHashSet<String> distinctNames = new LinkedHashSet<>();
+        for (String raw : tags) {
+            if (!StringUtils.hasText(raw)) {
+                continue;
+            }
+            String trimmed = raw.trim();
+            if (StringUtils.hasText(trimmed)) {
+                distinctNames.add(trimmed);
+            }
+        }
+        if (distinctNames.isEmpty()) {
+            return;
+        }
 
+        for (String tagName : distinctNames) {
             // 查找或创建标签
             LambdaQueryWrapper<RecipeTag> tagWrapper = new LambdaQueryWrapper<>();
             tagWrapper.eq(RecipeTag::getName, tagName);
@@ -80,7 +114,15 @@ public class RecipeTagListener {
                 tag.setName(tagName);
                 tag.setType(1); // 默认为通用
                 tag.setUseCount(1);
-                tagMapper.insert(tag);
+                try {
+                    tagMapper.insert(tag);
+                } catch (DuplicateKeyException duplicateKeyException) {
+                    // 并发场景下，可能另一个线程先插入了同名标签；这里兜底重查一次即可
+                    tag = tagMapper.selectOne(tagWrapper);
+                    if (tag == null) {
+                        throw duplicateKeyException;
+                    }
+                }
             } else {
                 tag.setUseCount(tag.getUseCount() + 1);
                 tagMapper.updateById(tag);
@@ -90,7 +132,11 @@ public class RecipeTagListener {
             RecipeTagRelation relation = new RecipeTagRelation();
             relation.setRecipeId(recipeId);
             relation.setTagId(tag.getId());
-            tagRelationMapper.insert(relation);
+            try {
+                tagRelationMapper.insert(relation);
+            } catch (DuplicateKeyException duplicateKeyException) {
+                // 已有关联则忽略：避免影响主链路
+            }
         }
     }
 }

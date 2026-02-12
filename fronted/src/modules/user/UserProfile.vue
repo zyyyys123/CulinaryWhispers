@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { gsap } from 'gsap'
 import { UserAPI } from '@/api/user'
 import type { UserProfileVO, UserStatsVO } from '@/types/user'
@@ -10,10 +11,14 @@ import BadgeWall3D from './components/BadgeWall3D.vue'
 const profile = ref<UserProfileVO | null>(null)
 const stats = ref<UserStatsVO | null>(null)
 const loading = ref(true)
+const errorMessage = ref('')
 const activeTab = ref('recipes') // 'recipes' | 'likes' | 'about'
 const showBadgeWall = ref(false)
 const showEdit = ref(false)
 const saving = ref(false)
+
+const router = useRouter()
+const route = useRoute()
 
 const editForm = ref({
   nickname: '',
@@ -49,14 +54,31 @@ const formatCount = (n: number) => {
 
 // Data Fetching
 const fetchData = async () => {
-  const [profileRes, statsRes] = await Promise.all([
-    UserAPI.getProfile(),
-    UserAPI.getStats()
-  ])
-  
-  if (profileRes.code === 200) profile.value = profileRes.data
-  if (statsRes.code === 200) stats.value = statsRes.data
-  loading.value = false
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    const [profileRes, statsRes] = await Promise.all([
+      UserAPI.getProfile(),
+      UserAPI.getStats()
+    ])
+    
+    if (profileRes.code === 200) profile.value = profileRes.data
+    if (statsRes.code === 200) stats.value = statsRes.data
+    if (!profile.value || !stats.value) {
+      errorMessage.value = '加载失败，请稍后重试'
+    }
+  } catch (e: any) {
+    const status = e?.response?.status
+    if (status === 401) {
+      localStorage.removeItem('cw_token')
+      errorMessage.value = '登录已失效，请重新登录'
+      await router.replace({ name: 'login', query: { redirect: route.fullPath } })
+      return
+    }
+    errorMessage.value = '加载失败，请检查网络或稍后重试'
+  } finally {
+    loading.value = false
+  }
 
   if (profile.value) {
     editForm.value = {
@@ -116,7 +138,7 @@ const saveProfile = async () => {
 
 const logout = () => {
   localStorage.removeItem('cw_token')
-  window.location.href = '/'
+  router.replace({ name: 'home' })
 }
 </script>
 
@@ -340,6 +362,19 @@ const logout = () => {
       </div>
     </div>
 
+  </div>
+  
+  <div v-else class="min-h-screen bg-dark-bg flex flex-col items-center justify-center text-white px-6">
+    <div class="text-lg font-bold mb-2">User Profile</div>
+    <div class="text-gray-400 mb-6">{{ errorMessage || '加载失败' }}</div>
+    <div class="flex gap-3">
+      <button @click="fetchData" class="px-6 py-3 rounded-full bg-primary text-black font-bold">
+        Retry
+      </button>
+      <button @click="router.replace({ name: 'login', query: { redirect: route.fullPath } })" class="px-6 py-3 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors">
+        Go Login
+      </button>
+    </div>
   </div>
 </template>
 

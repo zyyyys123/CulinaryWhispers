@@ -61,6 +61,7 @@ CREATE TABLE `t_usr_profile` (
   `bg_image_url` varchar(512) DEFAULT NULL COMMENT '个人主页背景图',
   `video_intro_url` varchar(512) DEFAULT NULL COMMENT '视频介绍地址',
   `contact_email` varchar(128) DEFAULT NULL COMMENT '商务联系邮箱',
+  `total_spend` decimal(12,2) DEFAULT 0.00 COMMENT '用户总消费金额',
   `gmt_create` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `gmt_modified` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`user_id`)

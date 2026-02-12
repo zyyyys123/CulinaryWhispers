@@ -62,6 +62,22 @@ class RecipeTagListenerTest {
         verify(tagMapper).updateById(argThat(t -> t.getUseCount() == 3));
         verify(relationMapper).insert(any(RecipeTagRelation.class));
     }
+    
+    @Test
+    void handleRecipePublished_duplicateTags_deduplicatesToAvoidDuplicateRelation() {
+        when(tagMapper.selectOne(any())).thenReturn(null);
+        when(tagMapper.insert(any(RecipeTag.class))).thenAnswer(invocation -> {
+            RecipeTag tag = invocation.getArgument(0);
+            tag.setId(10L);
+            return 1;
+        });
+
+        RecipePublishedEvent event = new RecipePublishedEvent(this, 100L, 1L, List.of("T1", "T1", "  T1 "));
+        assertDoesNotThrow(() -> listener.handleRecipePublished(event));
+
+        verify(tagMapper, times(1)).insert(any(RecipeTag.class));
+        verify(relationMapper, times(1)).insert(any(RecipeTagRelation.class));
+    }
 
     @Test
     void handleRecipeUpdated_deletesOldRelations_thenProcess() {

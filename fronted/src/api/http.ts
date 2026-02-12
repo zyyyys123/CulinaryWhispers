@@ -25,7 +25,14 @@ http.interceptors.response.use(
     return response
   },
   error => {
+    const status = error?.response?.status
+    if (status === 401) {
+      localStorage.removeItem('cw_token')
+      const current = window.location.pathname + window.location.search + window.location.hash
+      if (!current.startsWith('/login')) {
+        window.location.href = `/login?redirect=${encodeURIComponent(current)}`
+      }
+    }
     return Promise.reject(error)
   }
 )
-

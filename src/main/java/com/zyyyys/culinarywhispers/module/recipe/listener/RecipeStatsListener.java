@@ -9,10 +9,14 @@ import com.zyyyys.culinarywhispers.module.social.event.CommentEvent;
 import com.zyyyys.culinarywhispers.module.social.event.InteractionEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.event.TransactionPhase;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -31,43 +35,67 @@ public class RecipeStatsListener {
     private final RecipeStatsMapper statsMapper;
     private final StringRedisTemplate redisTemplate;
 
-    @EventListener
-    @Transactional(rollbackFor = Exception.class)
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void handleRecipePublished(RecipePublishedEvent event) {
         log.info("Initializing stats for recipe: {}", event.getRecipeId());
-        
-        RecipeStats stats = new RecipeStats();
-        stats.setRecipeId(event.getRecipeId());
-        stats.setViewCount(0L);
-        stats.setLikeCount(0L);
-        stats.setCollectCount(0L);
-        stats.setCommentCount(0L);
-        stats.setShareCount(0L);
-        stats.setTryCount(0);
-        stats.setScore(BigDecimal.ZERO);
-        
-        statsMapper.insert(stats);
-        
-        // Init Redis
-        String key = RedisKeyConstant.RECIPE_STATS_PREFIX + event.getRecipeId();
-        redisTemplate.opsForHash().putAll(key, Map.of(
-                "view_count", "0",
-                "like_count", "0",
-                "collect_count", "0",
-                "comment_count", "0",
-                "share_count", "0"
-        ));
+        try {
+            // 统计属于“辅助能力”，需要保证幂等性：避免重复 insert 导致异常回滚主链路
+            if (statsMapper.selectById(event.getRecipeId()) == null) {
+                RecipeStats stats = new RecipeStats();
+                stats.setRecipeId(event.getRecipeId());
+                stats.setViewCount(0L);
+                stats.setLikeCount(0L);
+                stats.setCollectCount(0L);
+                stats.setCommentCount(0L);
+                stats.setShareCount(0L);
+                stats.setTryCount(0);
+                stats.setScore(BigDecimal.ZERO);
+                try {
+                    statsMapper.insert(stats);
+                } catch (DuplicateKeyException duplicateKeyException) {
+                    // 并发场景下可能已插入，直接忽略即可
+                }
+            }
+
+            // Init Redis
+            String key = RedisKeyConstant.RECIPE_STATS_PREFIX + event.getRecipeId();
+            try {
+                redisTemplate.opsForHash().putAll(key, Map.of(
+                        "view_count", "0",
+                        "like_count", "0",
+                        "collect_count", "0",
+                        "comment_count", "0",
+                        "share_count", "0"
+                ));
+            } catch (Exception e) {
+                log.error("Failed to init redis stats for recipe: {}", event.getRecipeId(), e);
+            }
+        } catch (Exception e) {
+            // 统计属于“辅助能力”，不应影响主链路（发布菜谱）结果
+            log.error("Failed to init stats for recipe: {}", event.getRecipeId(), e);
+        }
     }
 
-    @EventListener
-    @Transactional(rollbackFor = Exception.class)
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void handleRecipeDeleted(RecipeDeletedEvent event) {
         log.info("Deleting stats for recipe: {}", event.getRecipeId());
-        statsMapper.deleteById(event.getRecipeId());
-        redisTemplate.delete(RedisKeyConstant.RECIPE_STATS_PREFIX + event.getRecipeId());
+        try {
+            statsMapper.deleteById(event.getRecipeId());
+        } catch (Exception e) {
+            log.error("Failed to delete stats from db for recipe: {}", event.getRecipeId(), e);
+        }
+        try {
+            redisTemplate.delete(RedisKeyConstant.RECIPE_STATS_PREFIX + event.getRecipeId());
+        } catch (Exception e) {
+            log.error("Failed to delete stats from redis for recipe: {}", event.getRecipeId(), e);
+        }
     }
 
-    @EventListener
+    @org.springframework.context.event.EventListener
     public void handleInteraction(InteractionEvent event) {
         // 仅处理针对食谱 (TargetType=1) 的互动
         if (event.getTargetType() != 1) {
@@ -98,18 +126,26 @@ public class RecipeStatsListener {
         }
         
         if (field != null) {
-            incrementRedisStats(event.getTargetId(), key, field, delta);
+            try {
+                incrementRedisStats(event.getTargetId(), key, field, delta);
+            } catch (Exception e) {
+                log.error("Failed to update redis stats for recipe: {}, field: {}", event.getTargetId(), field, e);
+            }
         }
     }
 
-    @EventListener
+    @org.springframework.context.event.EventListener
     public void handleComment(CommentEvent event) {
         log.info("Updating Redis comment count for recipe: {}, isAdd: {}", event.getRecipeId(), event.isAdd());
         
         String key = RedisKeyConstant.RECIPE_STATS_PREFIX + event.getRecipeId();
         long delta = event.isAdd() ? 1 : -1;
-        
-        incrementRedisStats(event.getRecipeId(), key, "comment_count", delta);
+
+        try {
+            incrementRedisStats(event.getRecipeId(), key, "comment_count", delta);
+        } catch (Exception e) {
+            log.error("Failed to update redis comment count for recipe: {}", event.getRecipeId(), e);
+        }
     }
     
     private void incrementRedisStats(Long recipeId, String key, String field, long delta) {

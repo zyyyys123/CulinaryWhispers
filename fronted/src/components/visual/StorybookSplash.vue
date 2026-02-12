@@ -69,7 +69,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div ref="containerRef" class="splash-screen fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black">
+  <div ref="containerRef" class="splash-screen fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black pointer-events-none">
     
     <!-- The "Curtains" - Deep textured layers -->
     <div ref="leftCurtainRef" class="curtain absolute inset-y-0 left-0 w-1/2 bg-black z-10 border-r border-gray-900/30">
