@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { gsap } from 'gsap'
 import HeroScene from '@/components/visual/HeroScene.vue'
 import StorybookSplash from '@/components/visual/StorybookSplash.vue'
 import RecipeFeed from '@/components/business/RecipeFeed.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const titleRef = ref(null)
 const subtitleRef = ref(null)
+const auth = useAuthStore()
+
+const hasToken = computed(() => Boolean(auth.token))
+
+onMounted(() => {
+  if (auth.token && !auth.profile) auth.loadProfile()
+})
 
 // Called when StorybookSplash finishes its animation
 const onSplashComplete = () => {
@@ -40,13 +48,36 @@ const onSplashComplete = () => {
         <div @click="router.push({ name: 'market' })" class="cursor-pointer group flex items-center gap-2 text-white hover:text-primary transition-colors">
              <span class="text-xs font-bold uppercase tracking-widest">Market</span>
         </div>
+
+        <div
+          v-if="hasToken"
+          @click="router.push({ name: 'recipe-publish' })"
+          class="cursor-pointer group flex items-center gap-2 text-white hover:text-primary transition-colors"
+        >
+          <span class="text-xs font-bold uppercase tracking-widest">Publish</span>
+        </div>
         
-        <div @click="router.push({ name: 'user-profile' })" class="cursor-pointer group flex items-center gap-3">
+        <div
+          v-if="hasToken"
+          @click="router.push({ name: 'user-profile' })"
+          class="cursor-pointer group flex items-center gap-3"
+        >
              <span class="text-xs font-bold uppercase tracking-widest text-white group-hover:text-primary transition-colors">My Profile</span>
              <div class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center group-hover:border-primary transition-colors">
                 <!-- User Icon -->
                 <svg class="w-4 h-4 text-white group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
              </div>
+        </div>
+
+        <div
+          v-else
+          @click="router.push({ name: 'login', query: { redirect: '/' } })"
+          class="cursor-pointer group flex items-center gap-3"
+        >
+          <span class="text-xs font-bold uppercase tracking-widest text-white group-hover:text-primary transition-colors">Sign In</span>
+          <div class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center group-hover:border-primary transition-colors">
+            <svg class="w-4 h-4 text-white group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6A2.25 2.25 0 0015.75 18.75V15M18 15l3-3m0 0l-3-3m3 3H9"></path></svg>
+          </div>
         </div>
     </nav>
 

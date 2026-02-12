@@ -25,7 +25,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnProperty(value = "cw.search.type", havingValue = "db")
+@ConditionalOnProperty(value = "cw.search.type", havingValue = "db", matchIfMissing = true)
 public class DbSearchServiceImpl implements SearchService {
 
     private final RecipeInfoMapper recipeInfoMapper;
@@ -173,4 +173,3 @@ public class DbSearchServiceImpl implements SearchService {
         return boost;
     }
 }
-

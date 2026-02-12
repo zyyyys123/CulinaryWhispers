@@ -39,6 +39,30 @@ export interface RecipeStep {
   isKeyStep: boolean
 }
 
+export interface RecipePublishDTO {
+  title: string
+  coverUrl: string
+  videoUrl?: string
+  description: string
+  categoryId?: number
+  difficulty: number
+  timeCost: number
+  calories?: number
+  protein?: number
+  fat?: number
+  carbs?: number
+  tips?: string
+  tags: string[]
+  steps: Array<{
+    stepNo: number
+    desc: string
+    imgUrl?: string
+    videoUrl?: string
+    timeCost?: number
+    isKeyStep?: boolean
+  }>
+}
+
 // 食谱详情 VO
 export interface RecipeDetailVO {
   id: string
@@ -56,6 +80,8 @@ export interface RecipeDetailVO {
   fat: number
   carbs: number
   score: number
+  likeCount: number
+  collectCount: number
   steps: RecipeStep[]
   tags: string[]
   ingredients: Array<{ name: string; amount: string }>

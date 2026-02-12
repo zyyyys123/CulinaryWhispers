@@ -23,6 +23,11 @@ type BackendFollow = {
   gmtCreate: string
 }
 
+type BackendInteractionStatusVO = {
+  liked?: boolean
+  collected?: boolean
+}
+
 const fallbackUser = (userId: string): UserProfileVO => ({
   userId,
   username: `user_${userId}`,
@@ -41,6 +46,17 @@ export const SocialAPI = {
       { params: { targetType: params.targetType, targetId: params.targetId, actionType: params.actionType } }
     )
     return { code: res.data.code, message: res.data.message, data: undefined }
+  },
+
+  getInteractionStatus: async (params: { targetType: number; targetId: string }): Promise<Result<{ liked: boolean; collected: boolean }>> => {
+    const res = await http.get<BackendResult<BackendInteractionStatusVO>>('/social/interact/status', {
+      params: { targetType: params.targetType, targetId: params.targetId }
+    })
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: null as any }
+    }
+    const d = res.data.data
+    return { code: 200, message: res.data.message, data: { liked: Boolean(d.liked), collected: Boolean(d.collected) } }
   },
 
   // 2. 评论

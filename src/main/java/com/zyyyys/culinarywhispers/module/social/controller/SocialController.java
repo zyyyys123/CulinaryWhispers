@@ -8,6 +8,7 @@ import com.zyyyys.culinarywhispers.module.social.entity.Follow;
 import com.zyyyys.culinarywhispers.module.social.service.CommentService;
 import com.zyyyys.culinarywhispers.module.social.service.FollowService;
 import com.zyyyys.culinarywhispers.module.social.service.InteractionService;
+import com.zyyyys.culinarywhispers.module.social.vo.InteractionStatusVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,6 +38,13 @@ public class SocialController {
         Long userId = SecurityUtil.getUserId();
         interactionService.toggleInteraction(userId, targetType, targetId, actionType);
         return Result.success();
+    }
+
+    @GetMapping("/interact/status")
+    public Result<InteractionStatusVO> getInteractionStatus(@RequestParam Integer targetType,
+                                                            @RequestParam Long targetId) {
+        Long userId = SecurityUtil.getOptionalUserId();
+        return Result.success(interactionService.getStatus(userId, targetType, targetId));
     }
 
     // ================== 评论接口 ==================

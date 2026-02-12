@@ -2,6 +2,7 @@ package com.zyyyys.culinarywhispers.module.social.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zyyyys.culinarywhispers.module.social.entity.Interaction;
+import com.zyyyys.culinarywhispers.module.social.vo.InteractionStatusVO;
 
 /**
  * 互动服务接口
@@ -17,4 +18,6 @@ public interface InteractionService extends IService<Interaction> {
      * @param actionType 动作类型 (1-点赞, 2-收藏, 3-分享)
      */
     void toggleInteraction(Long userId, Integer targetType, Long targetId, Integer actionType);
+
+    InteractionStatusVO getStatus(Long userId, Integer targetType, Long targetId);
 }

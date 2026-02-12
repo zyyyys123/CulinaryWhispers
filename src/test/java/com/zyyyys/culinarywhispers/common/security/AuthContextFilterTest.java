@@ -1,8 +1,8 @@
 package com.zyyyys.culinarywhispers.common.security;
 
 import com.zyyyys.culinarywhispers.common.context.UserContext;
-import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.utils.JwtUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -19,7 +19,7 @@ class AuthContextFilterTest {
     @Test
     void doFilter_xUserId_setsAndClearsContext() throws Exception {
         JwtUtil jwtUtil = mock(JwtUtil.class);
-        AuthContextFilter filter = new AuthContextFilter(jwtUtil);
+        AuthContextFilter filter = new AuthContextFilter(jwtUtil, new ObjectMapper());
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/user/profile");
         request.addHeader("X-User-Id", "123");
@@ -37,7 +37,7 @@ class AuthContextFilterTest {
     @Test
     void doFilter_bearerToken_setsAndClearsContext() throws Exception {
         JwtUtil jwtUtil = mock(JwtUtil.class);
-        AuthContextFilter filter = new AuthContextFilter(jwtUtil);
+        AuthContextFilter filter = new AuthContextFilter(jwtUtil, new ObjectMapper());
 
         Claims claims = mock(Claims.class);
         when(jwtUtil.validateToken("token")).thenReturn(true);
@@ -60,7 +60,7 @@ class AuthContextFilterTest {
     @Test
     void doFilter_whitelist_allowsWithoutAuth() throws Exception {
         JwtUtil jwtUtil = mock(JwtUtil.class);
-        AuthContextFilter filter = new AuthContextFilter(jwtUtil);
+        AuthContextFilter filter = new AuthContextFilter(jwtUtil, new ObjectMapper());
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/recipe/list");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -75,13 +75,13 @@ class AuthContextFilterTest {
     @Test
     void doFilter_nonWhitelist_withoutAuth_throwsUnauthorized() {
         JwtUtil jwtUtil = mock(JwtUtil.class);
-        AuthContextFilter filter = new AuthContextFilter(jwtUtil);
+        AuthContextFilter filter = new AuthContextFilter(jwtUtil, new ObjectMapper());
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/user/profile");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        assertThrows(BusinessException.class, () -> filter.doFilter(request, response, (req, res) -> {}));
+        assertDoesNotThrow(() -> filter.doFilter(request, response, (req, res) -> {}));
+        assertEquals(401, response.getStatus());
         assertNull(UserContext.getUserId());
     }
 }
-

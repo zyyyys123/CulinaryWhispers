@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -74,7 +75,8 @@ func ValidateToken(c *gin.Context) error {
 		return fmt.Errorf("Token 格式错误")
 	}
 
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	parser := jwt.NewParser(jwt.WithJSONNumber())
+	token, err := parser.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("意外的签名方法: %v", token.Header["alg"])
 		}
@@ -87,8 +89,14 @@ func ValidateToken(c *gin.Context) error {
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		// 将 userId 透传给下游服务
-		if userId, ok := claims["userId"].(float64); ok {
-			c.Request.Header.Set("X-User-Id", fmt.Sprintf("%.0f", userId))
+		val := claims["userId"]
+		switch v := val.(type) {
+		case float64:
+			c.Request.Header.Set("X-User-Id", fmt.Sprintf("%.0f", v))
+		case json.Number:
+			c.Request.Header.Set("X-User-Id", v.String())
+		case string:
+			c.Request.Header.Set("X-User-Id", v)
 		}
 		return nil
 	}

@@ -13,6 +13,9 @@ spring:
       password: 
       database: 0
       timeout: 3000
+    elasticsearch:
+      repositories:
+        enabled: false
 
 server:
   port: 8080

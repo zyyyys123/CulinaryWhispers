@@ -8,6 +8,7 @@ import com.zyyyys.culinarywhispers.module.social.entity.Interaction;
 import com.zyyyys.culinarywhispers.module.social.event.InteractionEvent;
 import com.zyyyys.culinarywhispers.module.social.mapper.InteractionMapper;
 import com.zyyyys.culinarywhispers.module.social.service.InteractionService;
+import com.zyyyys.culinarywhispers.module.social.vo.InteractionStatusVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 互动服务实现类
@@ -73,5 +75,34 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionMapper, Inter
 
         // 5. 发布事件 (异步/同步通知统计更新)
         eventPublisher.publishEvent(new InteractionEvent(this, userId, targetType, targetId, actionType, isAdd));
+    }
+
+    @Override
+    public InteractionStatusVO getStatus(Long userId, Integer targetType, Long targetId) {
+        InteractionStatusVO vo = new InteractionStatusVO();
+        vo.setLiked(false);
+        vo.setCollected(false);
+        if (userId == null || targetType == null || targetId == null) {
+            return vo;
+        }
+
+        LambdaQueryWrapper<Interaction> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Interaction::getUserId, userId)
+                .eq(Interaction::getTargetType, targetType)
+                .eq(Interaction::getTargetId, targetId)
+                .in(Interaction::getActionType, List.of(1, 2));
+
+        List<Interaction> list = this.list(wrapper);
+        for (Interaction it : list) {
+            if (it.getActionType() == null) {
+                continue;
+            }
+            if (it.getActionType() == 1) {
+                vo.setLiked(true);
+            } else if (it.getActionType() == 2) {
+                vo.setCollected(true);
+            }
+        }
+        return vo;
     }
 }

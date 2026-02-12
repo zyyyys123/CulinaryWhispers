@@ -4,18 +4,23 @@ import { useRoute, useRouter } from 'vue-router'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { RecipeAPI } from '@/api/recipe'
+import { SocialAPI } from '@/api/social'
 import type { RecipeDetailVO } from '@/types/recipe'
 import AIAssistantOrb from '@/components/visual/AIAssistantOrb.vue'
 import { NRate } from 'naive-ui'
 import CommentSection from './components/CommentSection.vue'
+import { useAuthStore } from '@/stores/auth'
 
 gsap.registerPlugin(ScrollTrigger)
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 const recipe = ref<RecipeDetailVO | null>(null)
 const loading = ref(true)
 const isZenMode = ref(false)
+const isLiked = ref(false)
+const isCollected = ref(false)
 
 // Mock Data Fetch
 const fetchDetail = async () => {
@@ -23,10 +28,62 @@ const fetchDetail = async () => {
   const res = await RecipeAPI.getDetail(id)
   if (res.code === 200) {
     recipe.value = res.data
+    if (auth.token) {
+      const s = await SocialAPI.getInteractionStatus({ targetType: 1, targetId: id })
+      if (s.code === 200) {
+        isLiked.value = s.data.liked
+        isCollected.value = s.data.collected
+      }
+    } else {
+      isLiked.value = false
+      isCollected.value = false
+    }
     // After data loaded, trigger animations
     setTimeout(() => initAnimations(), 100)
   }
   loading.value = false
+}
+
+const toggleLike = async () => {
+  if (!recipe.value) return
+  if (!auth.token) {
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
+  const before = isLiked.value
+  isLiked.value = !before
+  recipe.value.likeCount += isLiked.value ? 1 : -1
+  try {
+    const res = await SocialAPI.interact({ targetType: 1, targetId: recipe.value.id, actionType: 1 })
+    if (res.code !== 200) {
+      isLiked.value = before
+      recipe.value.likeCount += isLiked.value ? 1 : -1
+    }
+  } catch {
+    isLiked.value = before
+    recipe.value.likeCount += isLiked.value ? 1 : -1
+  }
+}
+
+const toggleCollect = async () => {
+  if (!recipe.value) return
+  if (!auth.token) {
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
+  const before = isCollected.value
+  isCollected.value = !before
+  recipe.value.collectCount += isCollected.value ? 1 : -1
+  try {
+    const res = await SocialAPI.interact({ targetType: 1, targetId: recipe.value.id, actionType: 2 })
+    if (res.code !== 200) {
+      isCollected.value = before
+      recipe.value.collectCount += isCollected.value ? 1 : -1
+    }
+  } catch {
+    isCollected.value = before
+    recipe.value.collectCount += isCollected.value ? 1 : -1
+  }
 }
 
 // GSAP Animations
@@ -118,6 +175,24 @@ onUnmounted(() => {
             </div>
             <div>{{ recipe.timeCost }} mins</div>
             <div>{{ recipe.calories }} kcal</div>
+            <button
+              class="flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-black/20 hover:border-primary transition-colors"
+              :class="isLiked ? 'text-primary' : 'text-gray-200'"
+              @click.stop="toggleLike"
+              title="Like"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+              <span class="text-xs">{{ recipe.likeCount }}</span>
+            </button>
+            <button
+              class="flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-black/20 hover:border-primary transition-colors"
+              :class="isCollected ? 'text-primary' : 'text-gray-200'"
+              @click.stop="toggleCollect"
+              title="Collect"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3-7 3V5z"></path></svg>
+              <span class="text-xs">{{ recipe.collectCount }}</span>
+            </button>
           </div>
         </div>
       </div>

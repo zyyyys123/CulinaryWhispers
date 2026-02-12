@@ -1,4 +1,4 @@
-import type { Result, Page, RecipePageVO, RecipeDetailVO } from '@/types/recipe'
+import type { Result, Page, RecipePageVO, RecipeDetailVO, RecipePublishDTO } from '@/types/recipe'
 import { http } from './http'
 
 type BackendResult<T> = { code: number; message: string; data: T }
@@ -112,6 +112,14 @@ export const RecipeAPI = {
     return mapPage(res.data.data, res.data.message)
   },
 
+  publish: async (payload: RecipePublishDTO): Promise<Result<string>> => {
+    const res = await http.post<BackendResult<number>>('/recipe/publish', payload)
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: '' }
+    }
+    return { code: 200, message: res.data.message, data: String(res.data.data ?? '') }
+  },
+
   // 获取详情
   getDetail: async (id: string): Promise<Result<RecipeDetailVO>> => {
     const res = await http.get<BackendResult<BackendRecipeDetailVO>>(`/recipe/${id}`)
@@ -121,6 +129,7 @@ export const RecipeAPI = {
     const d = res.data.data
     const info = d.info
     const tags = parseTags(info.tags)
+    const stats = d.stats ?? {}
     return {
       code: 200,
       message: res.data.message,
@@ -140,6 +149,8 @@ export const RecipeAPI = {
         fat: Number(info.fat ?? 0),
         carbs: Number(info.carbs ?? 0),
         score: Number(info.score ?? 0),
+        likeCount: Number(stats.likeCount ?? 0),
+        collectCount: Number(stats.collectCount ?? 0),
         steps: (d.steps ?? []).map(s => ({
           stepNo: s.stepNo,
           desc: s.desc,

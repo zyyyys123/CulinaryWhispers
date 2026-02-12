@@ -53,7 +53,9 @@ func isWhitelisted(method string, path string) bool {
 		"/api/user/login",
 		"/api/user/register",
 		"/api/recipe/list", // 允许游客访问
+		"/api/recipe/recommend",
 		"/api/search",
+		"/api/social/interact/status",
 	}
 	for _, p := range whitelist {
 		if strings.HasPrefix(path, p) {

@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnProperty(value = "cw.search.type", havingValue = "elasticsearch", matchIfMissing = true)
+@ConditionalOnProperty(value = "cw.search.type", havingValue = "elasticsearch", matchIfMissing = false)
 @ConditionalOnBean({RecipeSearchRepository.class, ElasticsearchOperations.class})
 public class SearchServiceImpl implements SearchService {
 
