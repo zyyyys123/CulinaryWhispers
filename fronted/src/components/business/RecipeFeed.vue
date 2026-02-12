@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { useWindowSize } from '@vueuse/core'
 import { gsap } from 'gsap'
 import { RecipeAPI } from '@/api/recipe'
@@ -35,7 +35,7 @@ const fetchRecipes = async () => {
   
   loading.value = true
   try {
-    const res = await RecipeAPI.getList({ page: page.value, size: 6 }) // 6 items per batch
+    const res = await RecipeAPI.recommend({ page: page.value, size: 6 }) // 6 items per batch
     if (res.code === 200) {
       const newRecipes = res.data.records
       if (newRecipes.length === 0) {

@@ -9,8 +9,16 @@ type BackendUserProfileVO = {
   username: string
   nickname: string
   avatarUrl?: string
+  mobile?: string
+  email?: string
+  gender?: number
   signature?: string
   city?: string
+  job?: string
+  cookAge?: number
+  favoriteCuisine?: string
+  tastePreference?: string
+  dietaryRestrictions?: string
   isMasterChef?: boolean
 }
 
@@ -55,13 +63,39 @@ export const UserAPI = {
         username: d.username,
         nickname: d.nickname,
         avatarUrl: d.avatarUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+        mobile: d.mobile,
+        email: d.email,
+        gender: d.gender,
         signature: d.signature,
+        city: d.city,
+        job: d.job,
+        cookAge: d.cookAge,
+        favoriteCuisine: d.favoriteCuisine,
+        tastePreference: d.tastePreference,
+        dietaryRestrictions: d.dietaryRestrictions,
         totalSpend: 0,
         isMasterChef: Boolean(d.isMasterChef),
         masterTitle: undefined,
         bgImageUrl: undefined
       }
     }
+  },
+
+  updateProfile: async (payload: Partial<UserProfileVO>): Promise<Result<void>> => {
+    const body = {
+      nickname: payload.nickname,
+      avatarUrl: payload.avatarUrl,
+      gender: payload.gender,
+      signature: payload.signature,
+      city: payload.city,
+      job: payload.job,
+      cookAge: payload.cookAge,
+      favoriteCuisine: payload.favoriteCuisine,
+      tastePreference: payload.tastePreference,
+      dietaryRestrictions: payload.dietaryRestrictions
+    }
+    const res = await http.put<BackendResult<null>>('/user/profile', body)
+    return { code: res.data.code, message: res.data.message, data: undefined as any }
   },
 
   getStats: async (): Promise<Result<UserStatsVO>> => {

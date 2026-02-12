@@ -2,17 +2,18 @@
 import { ref, onMounted } from 'vue'
 import { TresCanvas, useRenderLoop } from '@tresjs/core'
 import { OrbitControls, Stars } from '@tresjs/cientos'
-import { SRGBColorSpace, NoToneMapping, DoubleSide } from 'three'
+import { SRGBColorSpace, NoToneMapping } from 'three'
+import type { Group } from 'three'
 import { gsap } from 'gsap'
 import type { BadgeVO } from '@/types/user'
 
-const props = defineProps<{
+const { badges } = defineProps<{
   badges: BadgeVO[]
 }>()
 
 const emit = defineEmits(['close'])
 
-const groupRef = ref(null)
+const groupRef = ref<Group | null>(null)
 const { onLoop } = useRenderLoop()
 
 // Rotate the carousel

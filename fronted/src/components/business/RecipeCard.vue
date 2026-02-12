@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { RecipePageVO } from '@/types/recipe'
-import { NIcon } from 'naive-ui'
 
 // Props
 const props = defineProps<{

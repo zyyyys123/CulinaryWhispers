@@ -71,6 +71,29 @@ const parseTags = (raw?: string): string[] => {
   }
 }
 
+const mapPage = (page: Page<BackendRecipePageVO>, message: string): Result<Page<RecipePageVO>> => {
+  return {
+    code: 200,
+    message,
+    data: {
+      ...page,
+      records: (page.records ?? []).map(r => ({
+        id: String(r.id),
+        title: r.title,
+        description: r.description,
+        coverUrl: r.coverUrl,
+        authorName: r.authorName,
+        authorAvatar: r.authorAvatar ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+        viewCount: Number(r.viewCount ?? 0),
+        likeCount: Number(r.likeCount ?? 0),
+        difficulty: Number(r.difficulty ?? 1),
+        timeCost: Number(r.timeCost ?? 0),
+        tags: []
+      }))
+    }
+  }
+}
+
 export const RecipeAPI = {
   // 获取食谱列表
   getList: async (params: { page: number; size: number }): Promise<Result<Page<RecipePageVO>>> => {
@@ -78,27 +101,15 @@ export const RecipeAPI = {
     if (res.data.code !== 200) {
       return { code: res.data.code, message: res.data.message, data: null as any }
     }
-    const page = res.data.data
-    return {
-      code: 200,
-      message: res.data.message,
-      data: {
-        ...page,
-        records: (page.records ?? []).map(r => ({
-          id: String(r.id),
-          title: r.title,
-          description: r.description,
-          coverUrl: r.coverUrl,
-          authorName: r.authorName,
-          authorAvatar: r.authorAvatar ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-          viewCount: Number(r.viewCount ?? 0),
-          likeCount: Number(r.likeCount ?? 0),
-          difficulty: Number(r.difficulty ?? 1),
-          timeCost: Number(r.timeCost ?? 0),
-          tags: []
-        }))
-      }
+    return mapPage(res.data.data, res.data.message)
+  },
+
+  recommend: async (params: { page: number; size: number }): Promise<Result<Page<RecipePageVO>>> => {
+    const res = await http.get<BackendResult<Page<BackendRecipePageVO>>>('/recipe/recommend', { params })
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: null as any }
     }
+    return mapPage(res.data.data, res.data.message)
   },
 
   // 获取详情

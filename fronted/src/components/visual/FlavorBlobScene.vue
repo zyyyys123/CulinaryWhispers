@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { shallowRef, watch } from 'vue'
+import { shallowRef, watch, onBeforeUnmount } from 'vue'
 import { useRenderLoop } from '@tresjs/core'
 import { OrbitControls, Stars } from '@tresjs/cientos'
 import { gsap } from 'gsap'
+import type { Group, Mesh } from 'three'
 
 // Refs
-const blobRef = shallowRef(null)
-const groupRef = shallowRef(null)
+const blobRef = shallowRef<Mesh | null>(null)
+const groupRef = shallowRef<Group | null>(null)
 
 // Shader Material for the "Flavor Blob"
 const vertexShader = `
@@ -133,6 +134,10 @@ watch(groupRef, (val) => {
   if(val) {
     window.addEventListener('mousemove', onMouseMove)
   }
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('mousemove', onMouseMove)
 })
 </script>
 

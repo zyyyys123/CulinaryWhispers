@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { gsap } from 'gsap'
 import { UserAPI } from '@/api/user'
 import type { UserProfileVO, UserStatsVO } from '@/types/user'
@@ -12,6 +12,40 @@ const stats = ref<UserStatsVO | null>(null)
 const loading = ref(true)
 const activeTab = ref('recipes') // 'recipes' | 'likes' | 'about'
 const showBadgeWall = ref(false)
+const showEdit = ref(false)
+const saving = ref(false)
+
+const editForm = ref({
+  nickname: '',
+  avatarUrl: '',
+  gender: 0,
+  signature: '',
+  city: '',
+  job: '',
+  cookAge: 0,
+  favoriteCuisine: '',
+  tastePreference: '',
+  dietaryRestrictions: ''
+})
+
+const coverUrl = computed(() => {
+  const bg = profile.value?.bgImageUrl
+  return bg && bg.trim().length > 0
+    ? bg
+    : 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1800&q=80'
+})
+
+const masterLabel = computed(() => {
+  if (!profile.value?.isMasterChef) return ''
+  const t = profile.value.masterTitle
+  return t && t.trim().length > 0 ? t : 'MASTER CHEF'
+})
+
+const formatCount = (n: number) => {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
+}
 
 // Data Fetching
 const fetchData = async () => {
@@ -23,6 +57,21 @@ const fetchData = async () => {
   if (profileRes.code === 200) profile.value = profileRes.data
   if (statsRes.code === 200) stats.value = statsRes.data
   loading.value = false
+
+  if (profile.value) {
+    editForm.value = {
+      nickname: profile.value.nickname ?? '',
+      avatarUrl: profile.value.avatarUrl ?? '',
+      gender: profile.value.gender ?? 0,
+      signature: profile.value.signature ?? '',
+      city: profile.value.city ?? '',
+      job: profile.value.job ?? '',
+      cookAge: profile.value.cookAge ?? 0,
+      favoriteCuisine: profile.value.favoriteCuisine ?? '',
+      tastePreference: profile.value.tastePreference ?? '',
+      dietaryRestrictions: profile.value.dietaryRestrictions ?? ''
+    }
+  }
   
   // Animation after load
   setTimeout(() => {
@@ -39,6 +88,36 @@ const fetchData = async () => {
 onMounted(() => {
   fetchData()
 })
+
+const saveProfile = async () => {
+  if (!profile.value || saving.value) return
+  saving.value = true
+  try {
+    const res = await UserAPI.updateProfile({
+      nickname: editForm.value.nickname,
+      avatarUrl: editForm.value.avatarUrl,
+      gender: editForm.value.gender,
+      signature: editForm.value.signature,
+      city: editForm.value.city,
+      job: editForm.value.job,
+      cookAge: editForm.value.cookAge,
+      favoriteCuisine: editForm.value.favoriteCuisine,
+      tastePreference: editForm.value.tastePreference,
+      dietaryRestrictions: editForm.value.dietaryRestrictions
+    })
+    if (res.code === 200) {
+      showEdit.value = false
+      await fetchData()
+    }
+  } finally {
+    saving.value = false
+  }
+}
+
+const logout = () => {
+  localStorage.removeItem('cw_token')
+  window.location.href = '/'
+}
 </script>
 
 <template>
@@ -52,7 +131,7 @@ onMounted(() => {
     <header class="relative h-[400px] overflow-hidden group">
       <div class="absolute inset-0 bg-gray-900">
         <img 
-          :src="profile.bgImageUrl" 
+          :src="coverUrl" 
           class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-[20s] ease-linear" 
         />
         <div class="absolute inset-0 bg-gradient-to-t from-dark-bg via-dark-bg/50 to-transparent"></div>
@@ -87,7 +166,7 @@ onMounted(() => {
           <div class="flex items-center gap-4 mb-2">
             <h1 class="text-4xl font-serif font-bold">{{ profile.nickname }}</h1>
             <span v-if="profile.isMasterChef" class="bg-primary text-black text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-              {{ profile.masterTitle }}
+              {{ masterLabel }}
             </span>
           </div>
           <p class="text-gray-300 max-w-xl">{{ profile.signature }}</p>
@@ -95,11 +174,11 @@ onMounted(() => {
 
         <!-- Action Buttons -->
         <div class="flex gap-4 mb-4">
-          <button class="px-8 py-3 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors">
-            Follow
+          <button @click="showEdit = true" class="px-8 py-3 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors">
+            Edit Profile
           </button>
-          <button class="w-12 h-12 rounded-full border border-gray-600 flex items-center justify-center hover:bg-gray-800 transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+          <button @click="logout" class="w-12 h-12 rounded-full border border-gray-600 flex items-center justify-center hover:bg-gray-800 transition-colors" title="Logout">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6A2.25 2.25 0 0015.75 18.75V15M18 15l3-3m0 0l-3-3m3 3H9"></path></svg>
           </button>
         </div>
       </div>
@@ -114,11 +193,11 @@ onMounted(() => {
             <div class="text-xs text-gray-500 uppercase tracking-widest">Recipes</div>
           </div>
           <div class="stat-item text-center cursor-pointer hover:text-primary transition-colors">
-            <div class="text-xl font-bold font-serif">{{ (stats.followerCount / 1000000).toFixed(1) }}M</div>
+            <div class="text-xl font-bold font-serif">{{ formatCount(stats.followerCount) }}</div>
             <div class="text-xs text-gray-500 uppercase tracking-widest">Followers</div>
           </div>
           <div class="stat-item text-center cursor-pointer hover:text-primary transition-colors">
-            <div class="text-xl font-bold font-serif">{{ (stats.likeCount / 1000000).toFixed(1) }}M</div>
+            <div class="text-xl font-bold font-serif">{{ formatCount(stats.likeCount) }}</div>
             <div class="text-xs text-gray-500 uppercase tracking-widest">Likes</div>
           </div>
         </div>
@@ -151,8 +230,40 @@ onMounted(() => {
           Likes list placeholder...
         </div>
         
-        <div v-else key="about" class="text-center py-20 text-gray-600">
-          About section placeholder...
+        <div v-else key="about" class="max-w-2xl mx-auto">
+          <div class="bg-black/20 border border-white/10 rounded-2xl p-6 md:p-8">
+            <div class="text-sm tracking-widest uppercase text-gray-500 mb-6">About</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">City</div>
+                <div class="text-gray-200">{{ profile.city || '-' }}</div>
+              </div>
+              <div>
+                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Job</div>
+                <div class="text-gray-200">{{ profile.job || '-' }}</div>
+              </div>
+              <div>
+                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Cook Age</div>
+                <div class="text-gray-200">{{ profile.cookAge ?? '-' }}</div>
+              </div>
+              <div>
+                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Gender</div>
+                <div class="text-gray-200">{{ profile.gender === 1 ? 'Male' : profile.gender === 2 ? 'Female' : 'Unknown' }}</div>
+              </div>
+              <div class="md:col-span-2">
+                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Favorite Cuisine</div>
+                <div class="text-gray-200 whitespace-pre-wrap">{{ profile.favoriteCuisine || '-' }}</div>
+              </div>
+              <div class="md:col-span-2">
+                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Taste Preference</div>
+                <div class="text-gray-200 whitespace-pre-wrap">{{ profile.tastePreference || '-' }}</div>
+              </div>
+              <div class="md:col-span-2">
+                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Dietary Restrictions</div>
+                <div class="text-gray-200 whitespace-pre-wrap">{{ profile.dietaryRestrictions || '-' }}</div>
+              </div>
+            </div>
+          </div>
         </div>
       </transition>
     </main>
@@ -163,6 +274,71 @@ onMounted(() => {
       :badges="stats.badges" 
       @close="showBadgeWall = false" 
     />
+
+    <div v-if="showEdit" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur">
+      <div class="w-[92vw] max-w-2xl bg-dark-bg border border-white/10 rounded-2xl p-6 md:p-8">
+        <div class="flex items-center justify-between mb-6">
+          <div class="text-sm tracking-widest uppercase text-gray-400">Edit Profile</div>
+          <button @click="showEdit = false" class="text-gray-400 hover:text-white transition-colors">✕</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Nickname</div>
+            <input v-model="editForm.nickname" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+          </div>
+          <div>
+            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Avatar URL</div>
+            <input v-model="editForm.avatarUrl" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+          </div>
+          <div>
+            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Gender</div>
+            <select v-model.number="editForm.gender" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary">
+              <option :value="0">Unknown</option>
+              <option :value="1">Male</option>
+              <option :value="2">Female</option>
+            </select>
+          </div>
+          <div>
+            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">City</div>
+            <input v-model="editForm.city" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+          </div>
+          <div>
+            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Job</div>
+            <input v-model="editForm.job" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+          </div>
+          <div>
+            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Cook Age</div>
+            <input v-model.number="editForm.cookAge" type="number" min="0" max="80" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+          </div>
+          <div class="md:col-span-2">
+            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Signature</div>
+            <textarea v-model="editForm.signature" rows="2" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary"></textarea>
+          </div>
+          <div class="md:col-span-2">
+            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Favorite Cuisine</div>
+            <input v-model="editForm.favoriteCuisine" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+          </div>
+          <div class="md:col-span-2">
+            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Taste Preference</div>
+            <input v-model="editForm.tastePreference" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+          </div>
+          <div class="md:col-span-2">
+            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Dietary Restrictions</div>
+            <input v-model="editForm.dietaryRestrictions" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-8">
+          <button @click="showEdit = false" class="px-6 py-3 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors">
+            Cancel
+          </button>
+          <button @click="saveProfile" :disabled="saving" class="px-6 py-3 rounded-full bg-primary text-black font-bold disabled:opacity-60">
+            {{ saving ? 'Saving...' : 'Save' }}
+          </button>
+        </div>
+      </div>
+    </div>
 
   </div>
 </template>

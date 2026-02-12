@@ -11,11 +11,11 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 5173,
     open: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8081',
+        target: process.env.VITE_API_TARGET || 'http://localhost:8080',
         changeOrigin: true,
       },
     },

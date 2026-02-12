@@ -6,7 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { RecipeAPI } from '@/api/recipe'
 import type { RecipeDetailVO } from '@/types/recipe'
 import AIAssistantOrb from '@/components/visual/AIAssistantOrb.vue'
-import { NIcon, NRate } from 'naive-ui'
+import { NRate } from 'naive-ui'
 import CommentSection from './components/CommentSection.vue'
 
 gsap.registerPlugin(ScrollTrigger)

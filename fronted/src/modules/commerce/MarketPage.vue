@@ -3,9 +3,7 @@ import { ref, onMounted } from 'vue'
 import { gsap } from 'gsap'
 import { CommerceAPI } from '@/api/commerce'
 import type { ProductVO } from '@/types/commerce'
-import { NRate, useMessage } from 'naive-ui'
 
-const message = useMessage()
 const products = ref<ProductVO[]>([])
 const loading = ref(true)
 

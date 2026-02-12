@@ -4,8 +4,19 @@ export interface UserProfileVO {
   username: string
   nickname: string
   avatarUrl: string
+  mobile?: string
+  email?: string
+
+  gender?: number
   signature?: string
-  totalSpend: number
+  city?: string
+  job?: string
+  cookAge?: number
+  favoriteCuisine?: string
+  tastePreference?: string
+  dietaryRestrictions?: string
+
+  totalSpend?: number
   isMasterChef: boolean // 认证大厨标识
   masterTitle?: string
   bgImageUrl?: string // 个人主页背景图

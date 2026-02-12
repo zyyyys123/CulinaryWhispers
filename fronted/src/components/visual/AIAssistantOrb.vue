@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { gsap } from 'gsap'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 // Props: status = 'idle' | 'listening' | 'processing' | 'speaking'
 const props = defineProps<{ status: string }>()
@@ -15,7 +14,6 @@ const draw = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
   
   const centerX = width / 2
   const centerY = height / 2
-  const maxRadius = Math.min(width, height) / 2 - 4
   
   // Base Circle
   ctx.beginPath()
@@ -57,6 +55,10 @@ onMounted(() => {
       draw(ctx, canvasRef.value.width, canvasRef.value.height)
     }
   }
+})
+
+onBeforeUnmount(() => {
+  if (animationFrameId) cancelAnimationFrame(animationFrameId)
 })
 </script>
 
