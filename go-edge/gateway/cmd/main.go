@@ -29,7 +29,7 @@ func main() {
 	// 2. 需鉴权接口 (校验 Token)
 	r.NoRoute(func(c *gin.Context) {
 		if strings.HasPrefix(c.Request.URL.Path, "/api") {
-			if !isWhitelisted(c.Request.URL.Path) {
+			if !isWhitelisted(c.Request.Method, c.Request.URL.Path) {
 				// 校验 Token
 				if err := middleware.ValidateToken(c); err != nil {
 					c.JSON(401, middleware.Response{Code: 401, Message: "未授权: " + err.Error(), Data: nil})
@@ -47,7 +47,7 @@ func main() {
 }
 
 // isWhitelisted 检查路径是否在白名单中
-func isWhitelisted(path string) bool {
+func isWhitelisted(method string, path string) bool {
 	// 白名单: 登录、注册、公开食谱列表、搜索
 	whitelist := []string{
 		"/api/user/login",
@@ -59,6 +59,9 @@ func isWhitelisted(path string) bool {
 		if strings.HasPrefix(path, p) {
 			return true
 		}
+	}
+	if strings.EqualFold(method, "GET") && strings.HasPrefix(path, "/api/recipe/") {
+		return true
 	}
 	return false
 }

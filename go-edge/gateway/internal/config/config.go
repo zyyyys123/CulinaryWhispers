@@ -1,5 +1,7 @@
 package config
 
+import "os"
+
 // AppConfig 应用配置
 type AppConfig struct {
 	Port      string
@@ -9,7 +11,15 @@ type AppConfig struct {
 
 // GlobalConfig 全局配置实例
 var GlobalConfig = &AppConfig{
-	Port:      ":8081",
-	TargetURL: "http://app:8080", // Docker内部网络
-	JwtSecret: "mySecretKeyForCulinaryWhispersProject2026",
+	Port:      getEnvOrDefault("CW_GATEWAY_PORT", ":8081"),
+	TargetURL: getEnvOrDefault("CW_GATEWAY_TARGET_URL", "http://app:8080"),
+	JwtSecret: getEnvOrDefault("CW_JWT_SECRET", "mySecretKeyForCulinaryWhispersProject2026"),
+}
+
+func getEnvOrDefault(key string, defaultValue string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		return defaultValue
+	}
+	return v
 }

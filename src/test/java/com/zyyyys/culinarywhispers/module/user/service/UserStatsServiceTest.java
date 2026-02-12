@@ -6,13 +6,14 @@ import com.zyyyys.culinarywhispers.module.user.mapper.UserProfileMapper;
 import com.zyyyys.culinarywhispers.module.user.mapper.UserStatsMapper;
 import com.zyyyys.culinarywhispers.module.user.service.impl.UserStatsServiceImpl;
 import com.zyyyys.culinarywhispers.module.user.vo.UserStatsVO;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.lang.reflect.Method;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,23 +31,27 @@ public class UserStatsServiceTest {
     @InjectMocks
     private UserStatsServiceImpl userStatsService;
 
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(userStatsService, "baseMapper", userStatsMapper);
+        lenient().when(userStatsMapper.insert(any(UserStats.class))).thenReturn(1);
+        lenient().when(userStatsMapper.updateById(any(UserStats.class))).thenReturn(1);
+    }
+
     @Test
     public void testGetUserStats_InitWhenNull() {
-        when(userStatsMapper.selectById(1L)).thenReturn(null).thenReturn(new UserStats());
-        
-        // Use spy or verify internal calls if possible, but here we just check logic flow
-        // Since getById calls selectById, first time null triggers initStats which calls save
-        
-        // However, MyBatis-Plus ServiceImpl getById logic is simple. 
-        // We need to mock getById behavior carefully or use Spy.
-        // But here we are unit testing ServiceImpl, so `this.getById` calls `baseMapper.selectById`.
-        
-        // First call returns null
-        // initStats calls save (void)
-        // Second call returns new object
-        
-        // Ideally we should test initStats separately or mock logic better.
-        // Let's test the happy path first where stats exist.
+        UserStats afterInit = new UserStats();
+        afterInit.setUserId(1L);
+        afterInit.setLevel(1);
+        afterInit.setExperience(0L);
+
+        when(userStatsMapper.selectById(1L)).thenReturn(null).thenReturn(afterInit);
+        when(userProfileMapper.selectById(1L)).thenReturn(null);
+
+        UserStatsVO vo = userStatsService.getUserStats(1L);
+        assertNotNull(vo);
+        assertEquals(1, vo.getLevel());
+        verify(userStatsMapper).insert(any(UserStats.class));
     }
 
     @Test

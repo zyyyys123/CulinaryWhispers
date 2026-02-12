@@ -67,7 +67,8 @@ public class UserStatsServiceImpl extends ServiceImpl<UserStatsMapper, UserStats
 
         // 勋章逻辑
         List<String> badges = new ArrayList<>();
-        if (stats.getTotalLikesReceived() > 1000) {
+        long totalLikesReceived = stats.getTotalLikesReceived() == null ? 0L : stats.getTotalLikesReceived();
+        if (totalLikesReceived > 1000) {
             badges.add("人气之星");
         }
         if (profile != null && profile.getCookAge() != null && profile.getCookAge() >= 3) {

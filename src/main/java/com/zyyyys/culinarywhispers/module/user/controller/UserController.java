@@ -1,7 +1,7 @@
 package com.zyyyys.culinarywhispers.module.user.controller;
 
-import com.zyyyys.culinarywhispers.common.context.UserContext;
 import com.zyyyys.culinarywhispers.common.result.Result;
+import com.zyyyys.culinarywhispers.common.utils.SecurityUtil;
 import com.zyyyys.culinarywhispers.module.user.dto.UserLoginDTO;
 import com.zyyyys.culinarywhispers.module.user.dto.UserRegisterDTO;
 import com.zyyyys.culinarywhispers.module.user.dto.UserUpdateDTO;
@@ -48,13 +48,7 @@ public class UserController {
      */
     @GetMapping("/profile")
     public Result<UserProfileVO> getProfile() {
-        Long userId = UserContext.getUserId();
-        // Fallback for testing/no-auth scenarios if needed, but ideally should throw error if not logged in
-        if (userId == null) {
-            // throw new BusinessException(ResultCode.UNAUTHORIZED);
-            // For now, let's assume middleware sets it, or use default for dev
-            userId = 1L; 
-        }
+        Long userId = SecurityUtil.getUserId();
         return Result.success(userService.getProfile(userId));
     }
     
@@ -63,8 +57,7 @@ public class UserController {
      */
     @PutMapping("/profile")
     public Result<Void> updateProfile(@RequestBody UserUpdateDTO updateDTO) {
-        Long userId = UserContext.getUserId();
-        if (userId == null) userId = 1L; // Dev fallback
+        Long userId = SecurityUtil.getUserId();
         userService.updateProfile(userId, updateDTO);
         return Result.success();
     }
@@ -74,8 +67,7 @@ public class UserController {
      */
     @GetMapping("/stats")
     public Result<UserStatsVO> getUserStats() {
-        Long userId = UserContext.getUserId();
-        if (userId == null) userId = 1L; // Dev fallback
+        Long userId = SecurityUtil.getUserId();
         return Result.success(userStatsService.getUserStats(userId));
     }
 }

@@ -6,22 +6,24 @@ import (
 
 func TestIsWhitelisted(t *testing.T) {
 	tests := []struct {
+		method   string
 		path     string
 		expected bool
 	}{
-		{"/api/user/login", true},
-		{"/api/user/register", true},
-		{"/api/recipe/list", true},
-		{"/api/search", true},
-		{"/api/search/recipe", true},
-		{"/api/user/profile", false},
-		{"/api/recipe/create", false},
+		{"POST", "/api/user/login", true},
+		{"POST", "/api/user/register", true},
+		{"GET", "/api/recipe/list", true},
+		{"GET", "/api/search", true},
+		{"GET", "/api/search/recipe", true},
+		{"GET", "/api/recipe/123", true},
+		{"POST", "/api/recipe/publish", false},
+		{"GET", "/api/user/profile", false},
 	}
 
 	for _, test := range tests {
-		result := isWhitelisted(test.path)
+		result := isWhitelisted(test.method, test.path)
 		if result != test.expected {
-			t.Errorf("isWhitelisted(%s) = %v; expected %v", test.path, result, test.expected)
+			t.Errorf("isWhitelisted(%s %s) = %v; expected %v", test.method, test.path, result, test.expected)
 		}
 	}
 }

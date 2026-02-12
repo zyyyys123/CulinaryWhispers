@@ -1,83 +1,95 @@
-import axios from 'axios'
 import type { Result } from '@/types/recipe'
 import type { UserProfileVO, UserStatsVO } from '@/types/user'
+import { http } from './http'
 
-const api = axios.create({
-  baseURL: '/api',
-  timeout: 10000,
-})
+type BackendResult<T> = { code: number; message: string; data: T }
 
-// Mock Delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+type BackendUserProfileVO = {
+  id: number
+  username: string
+  nickname: string
+  avatarUrl?: string
+  signature?: string
+  city?: string
+  isMasterChef?: boolean
+}
+
+type BackendUserStatsVO = {
+  userId: number
+  level: number
+  experience: number
+  nextLevelExperience: number
+  isMasterChef?: boolean
+  masterTitle?: string
+  badges?: string[]
+  totalRecipes?: number
+  totalLikesReceived?: number
+  totalFans?: number
+}
 
 export const UserAPI = {
-  // 获取个人资料
-  getProfile: async (userId?: string): Promise<Result<UserProfileVO>> => {
-    // return api.get('/user/profile', { params: { userId } })
-    
-    await delay(500)
+  register: async (payload: { username: string; password: string; nickname: string }): Promise<Result<string>> => {
+    const res = await http.post<BackendResult<number>>('/user/register', payload)
+    return { code: res.data.code, message: res.data.message, data: String(res.data.data ?? '') }
+  },
+
+  login: async (payload: { username: string; password: string }): Promise<Result<string>> => {
+    const res = await http.post<BackendResult<string>>('/user/login', payload)
+    if (res.data.code === 200 && res.data.data) {
+      localStorage.setItem('cw_token', res.data.data)
+    }
+    return { code: res.data.code, message: res.data.message, data: res.data.data }
+  },
+
+  getProfile: async (): Promise<Result<UserProfileVO>> => {
+    const res = await http.get<BackendResult<BackendUserProfileVO>>('/user/profile')
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: null as any }
+    }
+    const d = res.data.data
     return {
       code: 200,
-      message: 'success',
+      message: res.data.message,
       data: {
-        userId: userId || 'user_001',
-        username: 'chef_gordon',
-        nickname: 'Gordon Ramsay',
-        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-        signature: 'Cooking is my passion, and perfection is my goal.',
-        totalSpend: 1250.00,
-        isMasterChef: true,
-        masterTitle: 'Michelin 3-Star Chef',
-        bgImageUrl: 'https://images.unsplash.com/photo-1556910103-1c02745a30bf?w=1600&q=80'
+        userId: String(d.id),
+        username: d.username,
+        nickname: d.nickname,
+        avatarUrl: d.avatarUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+        signature: d.signature,
+        totalSpend: 0,
+        isMasterChef: Boolean(d.isMasterChef),
+        masterTitle: undefined,
+        bgImageUrl: undefined
       }
     }
   },
 
-  // 获取成长统计
-  getStats: async (userId?: string): Promise<Result<UserStatsVO>> => {
-    // return api.get('/user/stats', { params: { userId } })
-
-    await delay(600)
+  getStats: async (): Promise<Result<UserStatsVO>> => {
+    const res = await http.get<BackendResult<BackendUserStatsVO>>('/user/stats')
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: null as any }
+    }
+    const d = res.data.data
+    const badgeList = (d.badges ?? []).map((name, idx) => ({
+      id: `badge_${idx + 1}`,
+      name,
+      iconUrl: '/badges/chef-hat.png',
+      description: name,
+      isUnlocked: true
+    }))
     return {
       code: 200,
-      message: 'success',
+      message: res.data.message,
       data: {
-        userId: userId || 'user_001',
-        level: 42,
-        currentExp: 8500,
-        nextLevelExp: 10000,
-        followerCount: 1250000,
-        followingCount: 120,
-        likeCount: 5600000,
-        recipeCount: 345,
-        badges: [
-          {
-            id: 'badge_1',
-            name: 'Master Chef',
-            iconUrl: '/badges/chef-hat.png', // Placeholder
-            description: 'Verified as a top-tier culinary expert.',
-            isUnlocked: true,
-            unlockedTime: '2023-10-15',
-            modelUrl: '/models/badge_chef.glb' // Mock 3D model path
-          },
-          {
-            id: 'badge_2',
-            name: 'Trend Setter',
-            iconUrl: '/badges/flame.png',
-            description: 'Created a recipe that reached #1 trending.',
-            isUnlocked: true,
-            unlockedTime: '2024-01-20',
-            modelUrl: '/models/badge_fire.glb'
-          },
-          {
-            id: 'badge_3',
-            name: 'Community Pillar',
-            iconUrl: '/badges/heart.png',
-            description: 'Received over 10,000 likes.',
-            isUnlocked: true,
-            modelUrl: '/models/badge_heart.glb'
-          }
-        ]
+        userId: String(d.userId),
+        level: d.level ?? 1,
+        currentExp: d.experience ?? 0,
+        nextLevelExp: d.nextLevelExperience ?? 0,
+        badges: badgeList,
+        followerCount: d.totalFans ?? 0,
+        followingCount: 0,
+        likeCount: d.totalLikesReceived ?? 0,
+        recipeCount: d.totalRecipes ?? 0
       }
     }
   }

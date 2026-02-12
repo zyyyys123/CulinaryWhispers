@@ -9,6 +9,7 @@ import com.zyyyys.culinarywhispers.module.recipe.vo.RecipeDetailVO;
 import com.zyyyys.culinarywhispers.module.recipe.vo.RecipePageVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import com.zyyyys.culinarywhispers.common.utils.SecurityUtil;
 
 /**
  * 食谱控制器
@@ -26,8 +27,7 @@ public class RecipeController {
      */
     @PostMapping("/publish")
     public Result<Long> publish(@RequestBody RecipePublishDTO publishDTO) {
-        // TODO: 从安全上下文获取当前用户ID (暂定 Mock ID)
-        Long userId = 1L; 
+        Long userId = SecurityUtil.getUserId();
         Long recipeId = recipeService.publish(userId, publishDTO);
         return Result.success(recipeId);
     }

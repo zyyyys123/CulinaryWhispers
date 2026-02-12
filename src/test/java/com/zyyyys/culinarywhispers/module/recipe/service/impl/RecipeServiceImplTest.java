@@ -17,6 +17,7 @@ import com.zyyyys.culinarywhispers.module.social.entity.Comment;
 import com.zyyyys.culinarywhispers.module.social.service.CommentService;
 import com.zyyyys.culinarywhispers.module.user.entity.User;
 import com.zyyyys.culinarywhispers.module.user.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,6 +57,8 @@ class RecipeServiceImplTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
     @Mock
+    private ObjectMapper objectMapper;
+    @Mock
     private StringRedisTemplate redisTemplate;
     @Mock
     private HashOperations<String, Object, Object> hashOperations;
@@ -66,13 +69,14 @@ class RecipeServiceImplTest {
     private RecipeServiceImpl recipeService;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         // 为 MyBatis-Plus ServiceImpl 注入 baseMapper
         ReflectionTestUtils.setField(recipeService, "baseMapper", infoMapper);
         
         // Mock Redis ops
         lenient().when(redisTemplate.opsForHash()).thenReturn(hashOperations);
         lenient().when(redisTemplate.opsForSet()).thenReturn(setOperations);
+        lenient().doReturn("[]").when(objectMapper).writeValueAsString(any());
     }
 
     @Test
@@ -259,7 +263,7 @@ class RecipeServiceImplTest {
         assertEquals(1, vo.getWorks().size());
         
         // Verify Redis Write-Back (View Count)
-        verify(hashOperations).increment(anyString(), eq("view_count"), eq(1));
+        verify(hashOperations).increment(anyString(), eq("view_count"), eq(1L));
     }
 
     @Test

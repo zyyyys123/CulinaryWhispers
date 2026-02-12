@@ -16,6 +16,8 @@ import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import cn.hutool.core.util.StrUtil;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
@@ -37,6 +39,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(value = "cw.search.type", havingValue = "elasticsearch", matchIfMissing = true)
+@ConditionalOnBean({RecipeSearchRepository.class, ElasticsearchOperations.class})
 public class SearchServiceImpl implements SearchService {
 
     private final RecipeSearchRepository recipeSearchRepository;

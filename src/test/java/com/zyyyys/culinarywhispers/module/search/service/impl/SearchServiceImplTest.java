@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeInfo;
 import com.zyyyys.culinarywhispers.module.recipe.mapper.RecipeInfoMapper;
 import com.zyyyys.culinarywhispers.module.recipe.mapper.RecipeStatsMapper;
+import com.zyyyys.culinarywhispers.module.recipe.mapper.RecipeTagMapper;
 import com.zyyyys.culinarywhispers.module.search.entity.RecipeDocument;
 import com.zyyyys.culinarywhispers.module.search.repository.RecipeSearchRepository;
 import com.zyyyys.culinarywhispers.module.user.entity.User;
@@ -17,7 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.query.StringQuery;
 
 import java.util.Collections;
 
@@ -35,6 +36,8 @@ class SearchServiceImplTest {
     private ElasticsearchOperations elasticsearchOperations;
     @Mock
     private RecipeInfoMapper recipeInfoMapper;
+    @Mock
+    private RecipeTagMapper recipeTagMapper;
     @Mock
     private UserService userService;
     @Mock
@@ -56,6 +59,7 @@ class SearchServiceImplTest {
 
         when(recipeInfoMapper.selectById(recipeId)).thenReturn(info);
         when(userService.getById(1L)).thenReturn(author);
+        when(recipeTagMapper.selectTagNamesByRecipeId(recipeId)).thenReturn(Collections.emptyList());
         // statsMapper mock default return null, which is handled
 
         searchService.syncRecipe(recipeId);
@@ -87,7 +91,7 @@ class SearchServiceImplTest {
         when(hits.getSearchHits()).thenReturn(Collections.singletonList(hit));
         when(hits.getTotalHits()).thenReturn(1L);
 
-        when(elasticsearchOperations.search(any(CriteriaQuery.class), eq(RecipeDocument.class)))
+        when(elasticsearchOperations.search(any(StringQuery.class), eq(RecipeDocument.class)))
                 .thenReturn(hits);
 
         Page<RecipeDocument> result = searchService.searchRecipe(keyword, 1, 10);

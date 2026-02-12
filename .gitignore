@@ -37,9 +37,34 @@ logs/
 *.log
 tmp/
 temp/
+*.pid
+*.pid.lock
+
+### OS ###
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+### Env ###
+.env
+.env.*
+docker-compose.override.yml
+
+### Java ###
+*.hprof
+hs_err_pid*
+replay_pid*
 
 ### Generated Data ###
 scripts/data/*.sql
+
+### Local Tools ###
+.tools/
+
+### Docs ###
+docs/
+docs_main/
+docs2.0/
 
 ### Frontend ###
 fronted/node_modules/
@@ -50,3 +75,8 @@ fronted/npm-debug.log*
 fronted/yarn-debug.log*
 fronted/yarn-error.log*
 
+### Go ###
+go-edge/**/gateway-server
+go-edge/**/im-server
+go-edge/**/*.test
+go-edge/**/vendor/

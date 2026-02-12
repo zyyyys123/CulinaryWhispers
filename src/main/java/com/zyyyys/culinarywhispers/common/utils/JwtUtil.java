@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import com.zyyyys.culinarywhispers.common.security.token.TokenStore;
 
 import jakarta.annotation.PostConstruct;
 import java.security.Key;
@@ -35,10 +35,7 @@ public class JwtUtil {
 
     private Key key;
 
-    private static final String KEY_USER_TOKEN = "login:token:";
-    private static final String KEY_TOKEN_USER = "login:jwt:";
-
-    private final StringRedisTemplate stringRedisTemplate;
+    private final TokenStore tokenStore;
 
     @PostConstruct
     public void init() {
@@ -53,10 +50,7 @@ public class JwtUtil {
         claims.put("userId", userId);
         claims.put("username", username);
         String token = createToken(claims);
-        String userKey = KEY_USER_TOKEN + userId;
-        String tokenKey = KEY_TOKEN_USER + token;
-        stringRedisTemplate.opsForValue().set(userKey, token, Duration.ofMillis(expiration));
-        stringRedisTemplate.opsForValue().set(tokenKey, String.valueOf(userId), Duration.ofMillis(expiration));
+        tokenStore.save(userId, token, Duration.ofMillis(expiration));
         return token;
     }
 
@@ -93,20 +87,13 @@ public class JwtUtil {
     public boolean validateToken(String token) {
         try {
             parseToken(token);
-            String tokenKey = KEY_TOKEN_USER + token;
-            Boolean exists = stringRedisTemplate.hasKey(tokenKey);
-            return Boolean.TRUE.equals(exists);
+            return tokenStore.getUserIdByToken(token).isPresent();
         } catch (Exception e) {
             return false;
         }
     }
 
     public void revokeToken(String token) {
-        String tokenKey = KEY_TOKEN_USER + token;
-        String userId = stringRedisTemplate.opsForValue().get(tokenKey);
-        if (userId != null) {
-            stringRedisTemplate.delete(KEY_USER_TOKEN + userId);
-        }
-        stringRedisTemplate.delete(tokenKey);
+        tokenStore.revoke(token);
     }
 }

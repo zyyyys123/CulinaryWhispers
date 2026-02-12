@@ -7,6 +7,7 @@ import com.zyyyys.culinarywhispers.module.commerce.entity.Product;
 import com.zyyyys.culinarywhispers.module.commerce.mapper.OrderItemMapper;
 import com.zyyyys.culinarywhispers.module.commerce.mapper.OrderMapper;
 import com.zyyyys.culinarywhispers.module.commerce.service.ProductService;
+import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +34,8 @@ class OrderServiceImplTest {
     private OrderItemMapper orderItemMapper;
     @Mock
     private ProductService productService;
+    @Mock
+    private UserService userService;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -89,6 +92,8 @@ class OrderServiceImplTest {
         Long orderId = 1L;
         Order order = new Order();
         order.setId(orderId);
+        order.setUserId(1L);
+        order.setTotalAmount(new BigDecimal("10.00"));
         order.setStatus(0); // Created
 
         when(orderMapper.selectById(orderId)).thenReturn(order);
@@ -98,5 +103,6 @@ class OrderServiceImplTest {
 
         assertEquals(1, order.getStatus()); // Paid
         assertNotNull(order.getPayTime());
+        verify(userService).updateTotalSpend(eq(1L), any(BigDecimal.class));
     }
 }
