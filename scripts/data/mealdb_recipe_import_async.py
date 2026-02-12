@@ -41,6 +41,110 @@ class MysqlConfig:
 IP_LOCATIONS = ["北京", "上海", "广州", "深圳", "杭州", "成都", "重庆", "武汉", "西安", "南京", "苏州", "青岛"]
 DEVICE_POOL = ["iPhone 15", "Android 14 Pixel", "HarmonyOS", "Windows Web", "Mac Safari", "iPad", "Android Tablet"]
 
+AREA_ZH: Dict[str, str] = {
+    "Chinese": "中式",
+    "Japanese": "日式",
+    "Thai": "泰式",
+    "British": "英式",
+    "French": "法式",
+    "Italian": "意式",
+    "Spanish": "西班牙风味",
+    "Greek": "希腊风味",
+    "Turkish": "土耳其风味",
+    "Moroccan": "摩洛哥风味",
+    "Mexican": "墨西哥风味",
+    "American": "美式",
+    "Canadian": "加拿大风味",
+    "Jamaican": "牙买加风味",
+    "Filipino": "菲律宾风味",
+    "Malaysian": "马来西亚风味",
+    "Russian": "俄式",
+    "Polish": "波兰风味",
+    "Australian": "澳洲风味",
+    "Saudi Arabian": "阿拉伯风味",
+    "Algerian": "阿尔及利亚风味",
+}
+
+CATEGORY_ZH: Dict[str, str] = {
+    "Beef": "牛肉",
+    "Chicken": "鸡肉",
+    "Seafood": "海鲜",
+    "Lamb": "羊肉",
+    "Pork": "猪肉",
+    "Vegetarian": "素食",
+    "Vegan": "纯素",
+    "Dessert": "甜品",
+    "Pasta": "意面",
+    "Side": "配菜",
+    "Starter": "前菜",
+    "Breakfast": "早餐",
+    "Miscellaneous": "综合",
+    "Goat": "羊肉",
+}
+
+INGREDIENT_ZH: Dict[str, str] = {
+    "Olive Oil": "橄榄油",
+    "Vegetable Oil": "植物油",
+    "Sesame Seed Oil": "芝麻油",
+    "Butter": "黄油",
+    "Garlic": "大蒜",
+    "Garlic Clove": "蒜瓣",
+    "Ginger": "生姜",
+    "Onion": "洋葱",
+    "Red Onions": "红洋葱",
+    "Spring Onions": "葱",
+    "Green Pepper": "青椒",
+    "Red Pepper": "红椒",
+    "Chilli": "辣椒",
+    "Red Chilli": "红辣椒",
+    "Salt": "盐",
+    "Pepper": "黑胡椒",
+    "Soy Sauce": "酱油",
+    "Oyster Sauce": "蚝油",
+    "Sugar": "白糖",
+    "Flour": "面粉",
+    "Egg": "鸡蛋",
+    "Eggs": "鸡蛋",
+    "Milk": "牛奶",
+    "Tomato": "番茄",
+    "Tomato Sauce": "番茄酱",
+    "Lime": "青柠",
+    "Lemon": "柠檬",
+    "Cabbage": "卷心菜",
+    "Mushrooms": "蘑菇",
+    "Shiitake Mushrooms": "香菇",
+    "Rice": "大米",
+    "Rice Noodles": "米粉",
+    "Spaghetti": "意大利面",
+    "Parmesan Cheese": "帕玛森奶酪",
+    "Salmon": "三文鱼",
+    "Prawns": "虾",
+    "Shrimp": "虾",
+    "Beef": "牛肉",
+    "Chicken Thighs": "鸡腿肉",
+    "Carrots": "胡萝卜",
+    "Potatoes": "土豆",
+    "Sweet Potato": "红薯",
+    "Celery": "芹菜",
+    "Parsley": "欧芹",
+    "Cilantro": "香菜",
+}
+
+COOKING_METHOD_ZH: List[Tuple[str, str]] = [
+    ("steamed", "清蒸"),
+    ("stir fry", "快炒"),
+    ("stir-fry", "快炒"),
+    ("fried", "香煎"),
+    ("roast", "烤制"),
+    ("baked", "烘烤"),
+    ("grill", "炙烤"),
+    ("soup", "炖煮"),
+    ("salad", "凉拌"),
+    ("noodles", "拌面"),
+    ("cake", "蛋糕"),
+    ("bread", "面包"),
+]
+
 
 def _ms(dt: datetime.datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
@@ -95,6 +199,153 @@ def _sanitize_one_line(text: str, limit: int) -> str:
     t = text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ")
     t = re.sub(r"\s{2,}", " ", t).strip()
     return t[:limit]
+
+
+def _contains_ascii_letters(text: str) -> bool:
+    return bool(re.search(r"[A-Za-z]", text or ""))
+
+
+def _area_to_zh(area: Optional[str]) -> str:
+    if not area:
+        return "海外风味"
+    area = str(area).strip()
+    return AREA_ZH.get(area, "海外风味")
+
+
+def _category_to_zh(category: Optional[str]) -> str:
+    if not category:
+        return "家常"
+    category = str(category).strip()
+    return CATEGORY_ZH.get(category, "家常")
+
+
+def _ingredient_to_zh(name: str) -> str:
+    if not name:
+        return ""
+    raw = str(name).strip()
+    if raw in INGREDIENT_ZH:
+        return INGREDIENT_ZH[raw]
+
+    lowered = raw.lower()
+    tokens = re.split(r"[\s\-/]+", lowered)
+    mapping = {
+        "oil": "油",
+        "olive": "橄榄",
+        "sesame": "芝麻",
+        "butter": "黄油",
+        "garlic": "大蒜",
+        "ginger": "生姜",
+        "onion": "洋葱",
+        "pepper": "胡椒",
+        "salt": "盐",
+        "sugar": "糖",
+        "flour": "面粉",
+        "egg": "鸡蛋",
+        "eggs": "鸡蛋",
+        "milk": "牛奶",
+        "tomato": "番茄",
+        "sauce": "酱",
+        "lemon": "柠檬",
+        "lime": "青柠",
+        "rice": "米",
+        "noodles": "面",
+        "beef": "牛肉",
+        "chicken": "鸡肉",
+        "pork": "猪肉",
+        "lamb": "羊肉",
+        "fish": "鱼",
+        "salmon": "三文鱼",
+        "shrimp": "虾",
+        "prawns": "虾",
+        "mushroom": "蘑菇",
+        "mushrooms": "蘑菇",
+        "cabbage": "卷心菜",
+        "carrot": "胡萝卜",
+        "carrots": "胡萝卜",
+        "potato": "土豆",
+        "potatoes": "土豆",
+    }
+    zh_parts: List[str] = []
+    for t in tokens:
+        if not t:
+            continue
+        if t in mapping:
+            zh_parts.append(mapping[t])
+    zh = "".join(zh_parts).strip()
+    if zh and not _contains_ascii_letters(zh):
+        return zh[:16]
+    return ""
+
+
+def _guess_method_zh(title: str, category_zh: str) -> str:
+    t = (title or "").lower()
+    for k, v in COOKING_METHOD_ZH:
+        if k in t:
+            return v
+    if category_zh in ("甜品",):
+        return "烘焙"
+    if category_zh in ("海鲜",):
+        return random.choice(["清蒸", "香煎", "红烧"])
+    if category_zh in ("牛肉", "羊肉"):
+        return random.choice(["炖煮", "红烧", "香煎"])
+    if category_zh in ("鸡肉", "猪肉"):
+        return random.choice(["炖煮", "快炒", "烤制"])
+    if category_zh in ("素食", "纯素"):
+        return random.choice(["清炒", "凉拌", "炖煮"])
+    return random.choice(["家常", "快手", "下饭"])
+
+
+def _device_to_zh(device: str) -> str:
+    d = (device or "").strip()
+    mapping = {
+        "Windows Web": "Windows 网页端",
+        "Mac Safari": "Mac 浏览器",
+        "Android Tablet": "安卓平板",
+        "Android 14 Pixel": "安卓手机",
+        "iPhone 15": "iPhone",
+        "iPad": "iPad",
+        "HarmonyOS": "HarmonyOS"
+    }
+    return mapping.get(d, "移动端")
+
+
+def _build_cn_recipe(meal: Dict[str, Any]) -> Tuple[str, str, List[str], List[str]]:
+    area_zh = _area_to_zh(meal.get("strArea"))
+    category_zh = _category_to_zh(meal.get("strCategory"))
+    ingredients = _extract_ingredients(meal)
+    ing_zh_list = []
+    for ing, _ in ingredients:
+        zh = _ingredient_to_zh(ing)
+        if zh:
+            ing_zh_list.append(zh)
+    ing_zh_list = list(dict.fromkeys(ing_zh_list))[:6]
+    main_ing = ing_zh_list[0] if ing_zh_list else category_zh
+
+    title_raw = str(meal.get("strMeal") or "")
+    method_zh = _guess_method_zh(title_raw, category_zh)
+    title_zh = f"{area_zh}{main_ing}{method_zh}"
+    title_zh = title_zh.replace("风味风味", "风味")[:128]
+
+    extra = "、".join(ing_zh_list[1:4])
+    if extra:
+        desc = f"{area_zh}{category_zh}风味，主料以{main_ing}为主，搭配{extra}，口感层次丰富。"
+    else:
+        desc = f"{area_zh}{category_zh}风味，主料以{main_ing}为主，适合日常家常烹饪。"
+    desc = _sanitize_one_line(desc, 800)
+
+    steps: List[str] = []
+    steps.append(f"准备食材：{('、'.join(ing_zh_list) if ing_zh_list else '常用食材')}。")
+    steps.append(f"{main_ing}处理干净并切配备用，辅料按需切丝/切丁。")
+    steps.append("调制基础调味汁：酱油、盐、少许糖（可按口味调整）。")
+    steps.append(f"热锅少油，下主料{main_ing}{'快炒' if method_zh in ('快炒', '清炒') else '煎至'}熟香。")
+    steps.append("加入辅料与调味汁翻拌均匀，小火收汁入味。")
+    steps.append("装盘点缀，趁热享用。")
+
+    tags = [area_zh, category_zh, main_ing, method_zh, random.choice(["家常", "快手", "下饭", "清爽", "解馋"])]
+    tags = [t for t in tags if t and not _contains_ascii_letters(t)]
+    tags = list(dict.fromkeys(tags))[:12]
+
+    return title_zh, desc, steps, tags
 
 
 def _extract_tags(meal: Dict[str, Any]) -> List[str]:
@@ -220,17 +471,10 @@ def build_sql(meals: List[Dict[str, Any]], recipe_id_start: int, author_id_pool:
     for idx, meal in enumerate(meals):
         recipe_id = recipe_id_start + idx
         author_id = int(random.choice(list(author_id_pool))) if author_id_pool else 1
-        title = str(meal.get("strMeal") or f"Meal {recipe_id}")[:128]
+        title, desc, steps, tags = _build_cn_recipe(meal)
         cover_url = str(meal.get("strMealThumb") or "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1800&q=80")[:512]
         video_url = str(meal.get("strYoutube") or "")[:512]
-        desc = _sanitize_one_line(str(meal.get("strInstructions") or ""), 800)
         cat_id = _category_id(meal.get("strCategory"))
-
-        steps = _split_steps(str(meal.get("strInstructions") or ""))
-        if not steps:
-            steps = [f"将食材准备好（{title}）", "按照个人口味进行烹饪", "装盘即可"]
-
-        tags = _extract_tags(meal)
         tags_json = json.dumps(tags, ensure_ascii=False)
 
         difficulty = _difficulty(len(steps))
@@ -281,7 +525,7 @@ def build_sql(meals: List[Dict[str, Any]], recipe_id_start: int, author_id_pool:
             "price": str(Decimal(str(round(float(np.clip(np.random.normal(6, 5), 0, 49.9)), 2)))),
             "publish_time": _ms(gmt_create),
             "ip_location": random.choice(IP_LOCATIONS),
-            "device_info": random.choice(DEVICE_POOL),
+            "device_info": _device_to_zh(random.choice(DEVICE_POOL)),
             "gmt_create": _ms(gmt_create),
             "gmt_modified": _ms(gmt_modified),
             "is_deleted": 0,
@@ -362,7 +606,7 @@ def build_sql(meals: List[Dict[str, Any]], recipe_id_start: int, author_id_pool:
             _sql_num(r["is_deleted"]),
             _sql_num(r["version"]),
         ]
-        lines.append(f"INSERT INTO t_rcp_info ({', '.join(cols)}) VALUES ({', '.join(values)});")
+        lines.append(f"REPLACE INTO t_rcp_info ({', '.join(cols)}) VALUES ({', '.join(values)});")
 
     lines.append("")
 
@@ -380,7 +624,7 @@ def build_sql(meals: List[Dict[str, Any]], recipe_id_start: int, author_id_pool:
             _sql_escape(s["voice_url"]),
             _sql_escape(s["gmt_create"]),
         ]
-        lines.append(f"INSERT INTO t_rcp_step ({', '.join(cols)}) VALUES ({', '.join(values)});")
+        lines.append(f"REPLACE INTO t_rcp_step ({', '.join(cols)}) VALUES ({', '.join(values)});")
 
     lines.append("")
 
@@ -397,7 +641,7 @@ def build_sql(meals: List[Dict[str, Any]], recipe_id_start: int, author_id_pool:
             _sql_num(st["score"]),
             _sql_escape(st["gmt_modified"]),
         ]
-        lines.append(f"INSERT INTO t_rcp_stats ({', '.join(cols)}) VALUES ({', '.join(values)});")
+        lines.append(f"REPLACE INTO t_rcp_stats ({', '.join(cols)}) VALUES ({', '.join(values)});")
 
     lines.append("")
 
