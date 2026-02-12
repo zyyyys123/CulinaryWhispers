@@ -154,6 +154,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             profile.setSignature(updateDTO.getSignature());
             profile.setCity(updateDTO.getCity());
             profile.setOccupation(updateDTO.getJob());
+            profile.setCookAge(updateDTO.getCookAge());
+            profile.setFavoriteCuisine(updateDTO.getFavoriteCuisine());
+            profile.setTastePreference(updateDTO.getTastePreference());
+            profile.setDietaryRestrictions(updateDTO.getDietaryRestrictions());
             profileMapper.insert(profile);
         } else {
             if (updateDTO.getGender() != null) {
@@ -167,6 +171,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
             if (updateDTO.getJob() != null) {
                 profile.setOccupation(updateDTO.getJob());
+            }
+            if (updateDTO.getCookAge() != null) {
+                profile.setCookAge(updateDTO.getCookAge());
+            }
+            if (updateDTO.getFavoriteCuisine() != null) {
+                profile.setFavoriteCuisine(updateDTO.getFavoriteCuisine());
+            }
+            if (updateDTO.getTastePreference() != null) {
+                profile.setTastePreference(updateDTO.getTastePreference());
+            }
+            if (updateDTO.getDietaryRestrictions() != null) {
+                profile.setDietaryRestrictions(updateDTO.getDietaryRestrictions());
             }
             profileMapper.updateById(profile);
         }

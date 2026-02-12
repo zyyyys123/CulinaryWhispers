@@ -45,9 +45,7 @@ public class SearchController {
     public Result<Page<RecipeDocument>> searchPersonalized(@RequestParam(required = false) String keyword,
                                                            @RequestParam(defaultValue = "1") int page,
                                                            @RequestParam(defaultValue = "10") int size) {
-        Long userId = SecurityUtil.getUserId(); // 可能抛出异常如果未登录，或者返回null
-        // 假设 SecurityUtil.getUserId() 在未登录时抛出异常或返回null。
-        // 如果未登录，降级为普通搜索
+        Long userId = SecurityUtil.getOptionalUserId();
         if (userId == null) {
             return Result.success(searchService.searchRecipe(keyword != null ? keyword : "", page, size));
         }

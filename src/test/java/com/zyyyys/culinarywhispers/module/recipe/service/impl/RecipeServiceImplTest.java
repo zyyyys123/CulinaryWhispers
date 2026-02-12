@@ -16,6 +16,7 @@ import com.zyyyys.culinarywhispers.module.recipe.vo.RecipePageVO;
 import com.zyyyys.culinarywhispers.module.social.entity.Comment;
 import com.zyyyys.culinarywhispers.module.social.service.CommentService;
 import com.zyyyys.culinarywhispers.module.user.entity.User;
+import com.zyyyys.culinarywhispers.module.user.entity.UserProfile;
 import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,9 +37,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -264,6 +267,76 @@ class RecipeServiceImplTest {
         
         // Verify Redis Write-Back (View Count)
         verify(hashOperations).increment(anyString(), eq("view_count"), eq(1L));
+    }
+
+    @Test
+    void pageListPersonalized_FiltersRestrictionsAndBoostsPreferences() throws Exception {
+        RecipeQueryDTO queryDTO = new RecipeQueryDTO();
+        queryDTO.setPage(1);
+        queryDTO.setSize(2);
+
+        UserProfile profile = new UserProfile();
+        profile.setUserId(1L);
+        profile.setDietaryRestrictions("花生");
+        profile.setFavoriteCuisine("川菜");
+        profile.setTastePreference("辣");
+        when(userService.getUserProfile(1L)).thenReturn(profile);
+
+        RecipeInfo r1 = new RecipeInfo();
+        r1.setId(1L);
+        r1.setAuthorId(10L);
+        r1.setTitle("花生酱面");
+        r1.setDescription("好吃");
+        r1.setTags("[\"花生\"]");
+
+        RecipeInfo r2 = new RecipeInfo();
+        r2.setId(2L);
+        r2.setAuthorId(11L);
+        r2.setTitle("麻辣鸡");
+        r2.setDescription("川菜经典");
+        r2.setTags("[\"川菜\",\"辣\"]");
+
+        RecipeInfo r3 = new RecipeInfo();
+        r3.setId(3L);
+        r3.setAuthorId(12L);
+        r3.setTitle("清蒸鱼");
+        r3.setDescription("清淡");
+        r3.setTags("[\"清淡\"]");
+
+        when(infoMapper.selectPage(any(Page.class), any())).thenAnswer(invocation -> {
+            Page<RecipeInfo> p = invocation.getArgument(0);
+            p.setRecords(List.of(r1, r2, r3));
+            p.setTotal(3);
+            return p;
+        });
+
+        when(objectMapper.readValue(eq("[\"花生\"]"), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(List.of("花生"));
+        when(objectMapper.readValue(eq("[\"川菜\",\"辣\"]"), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(List.of("川菜", "辣"));
+        when(objectMapper.readValue(eq("[\"清淡\"]"), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(List.of("清淡"));
+
+        when(userService.listByIds(any(Set.class))).thenReturn(List.of(
+                userWith(10L, "a"),
+                userWith(11L, "b"),
+                userWith(12L, "c")
+        ));
+
+        Page<RecipePageVO> result = recipeService.pageListPersonalized(1L, queryDTO);
+
+        assertEquals(3, result.getTotal());
+        assertEquals(2, result.getRecords().size());
+        assertEquals(2L, result.getRecords().get(0).getId());
+        assertEquals(3L, result.getRecords().get(1).getId());
+        assertTrue(result.getRecords().stream().noneMatch(vo -> vo.getId().equals(1L)));
+    }
+
+    private User userWith(Long id, String nickname) {
+        User u = new User();
+        u.setId(id);
+        u.setNickname(nickname);
+        return u;
     }
 
     @Test

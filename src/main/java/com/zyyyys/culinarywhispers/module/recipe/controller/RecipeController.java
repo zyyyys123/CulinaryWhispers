@@ -47,4 +47,13 @@ public class RecipeController {
     public Result<Page<RecipePageVO>> list(RecipeQueryDTO queryDTO) {
         return Result.success(recipeService.pageList(queryDTO));
     }
+
+    @GetMapping("/recommend")
+    public Result<Page<RecipePageVO>> recommend(RecipeQueryDTO queryDTO) {
+        Long userId = SecurityUtil.getOptionalUserId();
+        if (userId == null) {
+            return Result.success(recipeService.pageList(queryDTO));
+        }
+        return Result.success(recipeService.pageListPersonalized(userId, queryDTO));
+    }
 }

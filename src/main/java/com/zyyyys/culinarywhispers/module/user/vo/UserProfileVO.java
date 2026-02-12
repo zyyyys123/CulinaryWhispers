@@ -18,7 +18,11 @@ public class UserProfileVO {
     private Integer gender;
     private String signature;
     private String city;
+    private String job;
     private Integer cookAge;
+    private String favoriteCuisine;
+    private String tastePreference;
+    private String dietaryRestrictions;
     private Boolean isMasterChef;
     
     // 静态工厂方法用于合并数据
@@ -36,7 +40,11 @@ public class UserProfileVO {
             vo.setGender(profile.getGender());
             vo.setSignature(profile.getSignature());
             vo.setCity(profile.getCity());
+            vo.setJob(profile.getOccupation());
             vo.setCookAge(profile.getCookAge());
+            vo.setFavoriteCuisine(profile.getFavoriteCuisine());
+            vo.setTastePreference(profile.getTastePreference());
+            vo.setDietaryRestrictions(profile.getDietaryRestrictions());
             vo.setIsMasterChef(profile.getIsMasterChef());
         }
         return vo;

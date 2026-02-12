@@ -21,4 +21,8 @@ public class SecurityUtil {
         }
         return userId;
     }
+
+    public static Long getOptionalUserId() {
+        return UserContext.getUserId();
+    }
 }

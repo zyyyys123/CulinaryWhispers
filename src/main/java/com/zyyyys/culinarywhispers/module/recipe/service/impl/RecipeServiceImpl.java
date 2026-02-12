@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zyyyys.culinarywhispers.common.constant.RedisKeyConstant;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
@@ -25,7 +26,9 @@ import com.zyyyys.culinarywhispers.module.recipe.vo.RecipeDetailVO;
 import com.zyyyys.culinarywhispers.module.recipe.vo.RecipePageVO;
 import com.zyyyys.culinarywhispers.module.social.service.CommentService;
 import com.zyyyys.culinarywhispers.module.user.entity.User;
+import com.zyyyys.culinarywhispers.module.user.entity.UserProfile;
 import com.zyyyys.culinarywhispers.module.user.service.UserService;
+import cn.hutool.core.util.StrUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -36,9 +39,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 /**
@@ -322,6 +329,169 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
 
         return resultPage;
     }
+
+    @Override
+    public Page<RecipePageVO> pageListPersonalized(Long userId, RecipeQueryDTO queryDTO) {
+        if (userId == null) {
+            return pageList(queryDTO);
+        }
+
+        UserProfile profile = userService.getUserProfile(userId);
+        if (profile == null) {
+            return pageList(queryDTO);
+        }
+
+        int fetchSize = Math.max(queryDTO.getSize() * 3, queryDTO.getSize());
+        Page<RecipeInfo> page = new Page<>(queryDTO.getPage(), fetchSize);
+        LambdaQueryWrapper<RecipeInfo> wrapper = new LambdaQueryWrapper<>();
+
+        wrapper.eq(RecipeInfo::getStatus, 2);
+
+        if (StringUtils.hasText(queryDTO.getKeyword())) {
+            wrapper.and(w -> w.like(RecipeInfo::getTitle, queryDTO.getKeyword())
+                    .or()
+                    .like(RecipeInfo::getDescription, queryDTO.getKeyword()));
+        }
+
+        if (queryDTO.getCategoryId() != null) {
+            wrapper.eq(RecipeInfo::getCategoryId, queryDTO.getCategoryId());
+        }
+
+        if (queryDTO.getAuthorId() != null) {
+            wrapper.eq(RecipeInfo::getAuthorId, queryDTO.getAuthorId());
+        }
+
+        wrapper.orderByDesc(RecipeInfo::getGmtCreate);
+        this.page(page, wrapper);
+
+        List<RecipeInfo> records = page.getRecords();
+        if (records.isEmpty()) {
+            return new Page<>(queryDTO.getPage(), queryDTO.getSize());
+        }
+
+        String[] restrictions = splitKeywords(profile.getDietaryRestrictions());
+        String[] cuisines = splitKeywords(profile.getFavoriteCuisine());
+        String[] tastes = splitKeywords(profile.getTastePreference());
+
+        List<ScoredRecipe> candidates = new ArrayList<>();
+        for (RecipeInfo info : records) {
+            List<String> tags = parseTags(info.getTags());
+            if (containsAnyRestriction(info, tags, restrictions)) {
+                continue;
+            }
+            double score = baseScore(info);
+            score += matchBoost(info, tags, cuisines, 2.0, 1.5, 1.0);
+            score += matchBoost(info, tags, tastes, 1.5, 1.0, 0.5);
+            candidates.add(new ScoredRecipe(info, score));
+        }
+
+        candidates.sort(Comparator.comparingDouble(ScoredRecipe::score).reversed());
+        List<RecipeInfo> picked = candidates.stream()
+                .limit(queryDTO.getSize())
+                .map(ScoredRecipe::recipe)
+                .collect(Collectors.toList());
+
+        Page<RecipePageVO> resultPage = new Page<>(queryDTO.getPage(), queryDTO.getSize());
+        resultPage.setTotal(page.getTotal());
+        resultPage.setRecords(toPageVoList(picked));
+        return resultPage;
+    }
+
+    private List<RecipePageVO> toPageVoList(List<RecipeInfo> records) {
+        if (records == null || records.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<Long> authorIds = records.stream().map(RecipeInfo::getAuthorId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, User> authorMap = authorIds.isEmpty()
+                ? Collections.emptyMap()
+                : userService.listByIds(authorIds).stream().collect(Collectors.toMap(User::getId, user -> user));
+
+        return records.stream().map(info -> {
+            RecipePageVO vo = new RecipePageVO();
+            BeanUtils.copyProperties(info, vo);
+            User author = authorMap.get(info.getAuthorId());
+            if (author != null) {
+                vo.setAuthorName(author.getNickname());
+                vo.setAuthorAvatar(author.getAvatarUrl());
+            }
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    private boolean containsAnyRestriction(RecipeInfo info, List<String> tags, String[] restrictions) {
+        if (restrictions == null || restrictions.length == 0) {
+            return false;
+        }
+        String title = info != null ? info.getTitle() : null;
+        String description = info != null ? info.getDescription() : null;
+        for (String r : restrictions) {
+            if (!StringUtils.hasText(r)) {
+                continue;
+            }
+            if (StringUtils.hasText(title) && StrUtil.containsIgnoreCase(title, r)) {
+                return true;
+            }
+            if (StringUtils.hasText(description) && StrUtil.containsIgnoreCase(description, r)) {
+                return true;
+            }
+            if (tags != null && tags.stream().anyMatch(t -> StrUtil.containsIgnoreCase(t, r))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private double baseScore(RecipeInfo info) {
+        if (info == null || info.getScore() == null) {
+            return 0.0;
+        }
+        return info.getScore().doubleValue();
+    }
+
+    private double matchBoost(RecipeInfo info, List<String> tags, String[] keywords, double tagBoost, double titleBoost, double descBoost) {
+        if (keywords == null || keywords.length == 0 || info == null) {
+            return 0.0;
+        }
+        String title = info.getTitle();
+        String description = info.getDescription();
+        double boost = 0.0;
+        for (String k : keywords) {
+            if (!StringUtils.hasText(k)) {
+                continue;
+            }
+            if (tags != null && tags.stream().anyMatch(t -> StrUtil.containsIgnoreCase(t, k))) {
+                boost += tagBoost;
+            }
+            if (titleBoost > 0.0 && StringUtils.hasText(title) && StrUtil.containsIgnoreCase(title, k)) {
+                boost += titleBoost;
+            }
+            if (descBoost > 0.0 && StringUtils.hasText(description) && StrUtil.containsIgnoreCase(description, k)) {
+                boost += descBoost;
+            }
+        }
+        return boost;
+    }
+
+    private List<String> parseTags(String tagsJson) {
+        if (!StringUtils.hasText(tagsJson)) {
+            return Collections.emptyList();
+        }
+        try {
+            List<String> tags = objectMapper.readValue(tagsJson, new TypeReference<List<String>>() {});
+            return tags != null ? tags : Collections.emptyList();
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private String[] splitKeywords(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return new String[0];
+        }
+        return raw.split("[,，\\s]+");
+    }
+
+    private record ScoredRecipe(RecipeInfo recipe, double score) {}
 
     /**
      * 更新食谱

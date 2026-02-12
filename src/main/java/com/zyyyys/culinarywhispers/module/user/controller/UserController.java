@@ -56,7 +56,7 @@ public class UserController {
      * 更新个人信息
      */
     @PutMapping("/profile")
-    public Result<Void> updateProfile(@RequestBody UserUpdateDTO updateDTO) {
+    public Result<Void> updateProfile(@RequestBody @Valid UserUpdateDTO updateDTO) {
         Long userId = SecurityUtil.getUserId();
         userService.updateProfile(userId, updateDTO);
         return Result.success();
