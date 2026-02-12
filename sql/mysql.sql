@@ -354,3 +354,71 @@ CREATE TABLE `t_fin_settlement` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_settle_no` (`settle_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='结算单表';
+
+-- ================== 2.6 兼容后端实体的补充表结构 ==================
+-- 说明：后端模块使用的表名与原设计稿存在差异，这里以“不破坏原表”的方式补齐缺失表，确保功能可跑通。
+
+-- 2.6.1 社交关注表 t_soc_follow
+CREATE TABLE IF NOT EXISTS `t_soc_follow` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '关注ID',
+  `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
+  `following_id` bigint(20) unsigned NOT NULL COMMENT '被关注用户ID',
+  `gmt_create` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_following` (`user_id`, `following_id`),
+  KEY `idx_following` (`following_id`),
+  KEY `idx_gmt_create` (`gmt_create`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注表';
+
+-- 2.6.2 用户积分流水表 t_points_record
+CREATE TABLE IF NOT EXISTS `t_points_record` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '流水ID',
+  `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
+  `type` int(11) NOT NULL COMMENT '类型: 1-签到,2-发布食谱,3-被点赞,10-兑换商品',
+  `amount` int(11) NOT NULL COMMENT '变动数量(可为负)',
+  `description` varchar(255) DEFAULT NULL COMMENT '说明',
+  `gmt_create` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  KEY `idx_user_time` (`user_id`, `gmt_create`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户积分流水表';
+
+-- 2.6.3 电商商品表 t_comm_product
+CREATE TABLE IF NOT EXISTS `t_comm_product` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '商品ID',
+  `title` varchar(128) NOT NULL COMMENT '标题',
+  `description` text COMMENT '描述',
+  `price` decimal(18,2) NOT NULL DEFAULT 0.00 COMMENT '单价',
+  `stock` int(11) NOT NULL DEFAULT 0 COMMENT '库存',
+  `category_id` int(11) DEFAULT 0 COMMENT '分类ID',
+  `gmt_create` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `gmt_modified` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  KEY `idx_category` (`category_id`),
+  KEY `idx_gmt_create` (`gmt_create`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='电商商品表';
+
+-- 2.6.4 电商订单表 t_comm_order
+CREATE TABLE IF NOT EXISTS `t_comm_order` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '订单ID',
+  `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
+  `total_amount` decimal(18,2) NOT NULL DEFAULT 0.00 COMMENT '总金额',
+  `status` int(11) NOT NULL DEFAULT 0 COMMENT '状态: 0-待支付,1-已支付,2-已发货,3-已完成,4-已取消',
+  `pay_time` datetime(3) DEFAULT NULL COMMENT '支付时间',
+  `gmt_create` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `gmt_modified` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  KEY `idx_user_status` (`user_id`, `status`),
+  KEY `idx_create_time` (`gmt_create`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='电商订单表';
+
+-- 2.6.5 电商订单明细表 t_comm_order_item
+CREATE TABLE IF NOT EXISTS `t_comm_order_item` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '明细ID',
+  `order_id` bigint(20) unsigned NOT NULL COMMENT '订单ID',
+  `product_id` bigint(20) unsigned NOT NULL COMMENT '商品ID',
+  `price` decimal(18,2) NOT NULL DEFAULT 0.00 COMMENT '购买单价',
+  `count` int(11) NOT NULL DEFAULT 1 COMMENT '购买数量',
+  PRIMARY KEY (`id`),
+  KEY `idx_order` (`order_id`),
+  KEY `idx_product` (`product_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='电商订单明细表';

@@ -45,6 +45,14 @@ const onSplashComplete = () => {
 
     <!-- Top Navigation / Profile Link -->
     <nav class="absolute top-0 w-full z-30 p-8 flex justify-end gap-6">
+        <div @click="router.push({ name: 'search' })" class="cursor-pointer group flex items-center gap-2 text-white hover:text-primary transition-colors">
+             <span class="text-xs font-bold uppercase tracking-widest">Search</span>
+        </div>
+
+        <div @click="router.push({ name: 'data-lab' })" class="cursor-pointer group flex items-center gap-2 text-white hover:text-primary transition-colors">
+             <span class="text-xs font-bold uppercase tracking-widest">Data Lab</span>
+        </div>
+
         <div @click="router.push({ name: 'market' })" class="cursor-pointer group flex items-center gap-2 text-white hover:text-primary transition-colors">
              <span class="text-xs font-bold uppercase tracking-widest">Market</span>
         </div>
@@ -55,6 +63,22 @@ const onSplashComplete = () => {
           class="cursor-pointer group flex items-center gap-2 text-white hover:text-primary transition-colors"
         >
           <span class="text-xs font-bold uppercase tracking-widest">Publish</span>
+        </div>
+
+        <div
+          v-if="hasToken"
+          @click="router.push({ name: 'social' })"
+          class="cursor-pointer group flex items-center gap-2 text-white hover:text-primary transition-colors"
+        >
+          <span class="text-xs font-bold uppercase tracking-widest">Social</span>
+        </div>
+
+        <div
+          v-if="hasToken"
+          @click="router.push({ name: 'points' })"
+          class="cursor-pointer group flex items-center gap-2 text-white hover:text-primary transition-colors"
+        >
+          <span class="text-xs font-bold uppercase tracking-widest">Points</span>
         </div>
         
         <div

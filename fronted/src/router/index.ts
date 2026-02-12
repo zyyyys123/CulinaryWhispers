@@ -32,6 +32,28 @@ const router = createRouter({
       component: () => import('@/modules/commerce/MarketPage.vue')
     },
     {
+      path: '/search',
+      name: 'search',
+      component: () => import('@/modules/search/SearchPage.vue')
+    },
+    {
+      path: '/social',
+      name: 'social',
+      component: () => import('@/modules/social/SocialHubPage.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/points',
+      name: 'points',
+      component: () => import('@/modules/user/PointsPage.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/data-lab',
+      name: 'data-lab',
+      component: () => import('@/modules/lab/DataLabPage.vue')
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('@/modules/auth/LoginPage.vue')

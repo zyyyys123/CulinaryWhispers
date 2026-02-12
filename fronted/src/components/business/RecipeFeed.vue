@@ -10,6 +10,7 @@ import RecipeSkeleton from '@/components/feedback/RecipeSkeleton.vue'
 // State
 const recipes = ref<RecipePageVO[]>([])
 const loading = ref(false)
+const errorMessage = ref('')
 const page = ref(1)
 const hasMore = ref(true)
 
@@ -34,10 +35,11 @@ const fetchRecipes = async () => {
   if (loading.value || !hasMore.value) return
   
   loading.value = true
+  errorMessage.value = ''
   try {
     const res = await RecipeAPI.recommend({ page: page.value, size: 6 }) // 6 items per batch
     if (res.code === 200) {
-      const newRecipes = res.data.records
+      const newRecipes = res.data?.records ?? []
       if (newRecipes.length === 0) {
         hasMore.value = false
       } else {
@@ -49,7 +51,11 @@ const fetchRecipes = async () => {
           animateEntrance()
         })
       }
+    } else {
+      errorMessage.value = res.message || '加载失败，请稍后重试'
     }
+  } catch {
+    errorMessage.value = '加载失败，请检查网络或稍后重试'
   } finally {
     loading.value = false
   }
@@ -85,6 +91,16 @@ onMounted(() => {
 
 <template>
   <div class="recipe-feed w-full">
+    <div v-if="errorMessage" class="mb-6 rounded-2xl border border-white/10 bg-black/20 px-6 py-4 flex items-center justify-between gap-4">
+      <div class="text-gray-300 text-sm tracking-wider">{{ errorMessage }}</div>
+      <button
+        @click="fetchRecipes"
+        class="px-5 py-2 rounded-full bg-primary text-black font-bold text-sm"
+      >
+        Retry
+      </button>
+    </div>
+
     <!-- Masonry Grid -->
     <div class="flex gap-6 items-start">
       <div 
@@ -105,9 +121,13 @@ onMounted(() => {
     <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
       <RecipeSkeleton v-for="i in 3" :key="i" />
     </div>
+    
+    <div v-if="!loading && !errorMessage && recipes.length === 0" class="text-center mt-12 text-gray-600 text-sm tracking-widest uppercase">
+      No Recipes
+    </div>
 
     <!-- Load More Trigger (Simple Button for now, IntersectionObserver later) -->
-    <div v-if="!loading && hasMore" class="flex justify-center mt-12">
+    <div v-if="!loading && !errorMessage && hasMore" class="flex justify-center mt-12">
       <button 
         @click="fetchRecipes"
         class="group relative px-8 py-3 bg-transparent border border-gray-700 hover:border-primary text-gray-300 hover:text-primary transition-colors duration-300 rounded-full overflow-hidden"
@@ -117,7 +137,7 @@ onMounted(() => {
       </button>
     </div>
     
-    <div v-if="!hasMore" class="text-center mt-12 text-gray-600 text-sm tracking-widest uppercase">
+    <div v-if="!loading && !errorMessage && !hasMore" class="text-center mt-12 text-gray-600 text-sm tracking-widest uppercase">
       End of Collection
     </div>
   </div>

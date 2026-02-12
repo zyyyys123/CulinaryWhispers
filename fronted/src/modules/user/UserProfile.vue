@@ -65,7 +65,7 @@ const fetchData = async () => {
     if (profileRes.code === 200) profile.value = profileRes.data
     if (statsRes.code === 200) stats.value = statsRes.data
     if (!profile.value || !stats.value) {
-      errorMessage.value = '加载失败，请稍后重试'
+      errorMessage.value = profileRes.message || statsRes.message || '加载失败，请稍后重试'
     }
   } catch (e: any) {
     const status = e?.response?.status
