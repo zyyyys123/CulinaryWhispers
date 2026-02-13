@@ -1,6 +1,5 @@
 package com.zyyyys.culinarywhispers.module.user.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.Result;
 import com.zyyyys.culinarywhispers.common.result.ResultCode;
@@ -39,8 +38,9 @@ public class VipController {
         vip1.setDurationDays(7);
         vip1.setBenefits(new String[]{
                 "专属勋章与个人页标识",
-                "发帖/评论积分加成",
-                "更丰富的推荐权重"
+                "积分兑换限时会员（可续期）",
+                "评论/互动提醒聚合展示（通知中心）",
+                "推荐权重提升（规划）"
         });
 
         VipPlanVO vip2 = new VipPlanVO();
@@ -50,9 +50,10 @@ public class VipController {
         vip2.setDurationDays(30);
         vip2.setBenefits(new String[]{
                 "专属勋章与个人页标识",
-                "发帖/评论积分加成",
-                "更丰富的推荐权重",
-                "AI 助手高级提示占位"
+                "积分兑换限时会员（可续期）",
+                "评论/互动提醒聚合展示（通知中心）",
+                "AI 助手高级能力（预留）",
+                "推荐权重提升（规划）"
         });
 
         VipPlanVO vip3 = new VipPlanVO();
@@ -62,10 +63,11 @@ public class VipController {
         vip3.setDurationDays(90);
         vip3.setBenefits(new String[]{
                 "专属勋章与个人页标识",
-                "发帖/评论积分加成",
-                "更丰富的推荐权重",
-                "AI 助手高级提示占位",
-                "专属活动优先参与"
+                "积分兑换限时会员（可续期）",
+                "评论/互动提醒聚合展示（通知中心）",
+                "AI 助手高级能力（预留）",
+                "专属活动优先参与（规划）",
+                "推荐权重提升（规划）"
         });
 
         return List.of(vip1, vip2, vip3);

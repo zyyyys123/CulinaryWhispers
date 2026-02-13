@@ -46,3 +46,13 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+
+culinary:
+  ai:
+    enabled: ${CULINARY_AI_ENABLED:false}
+    provider: ${CULINARY_AI_PROVIDER:openai}
+    api-key: ${CULINARY_AI_API_KEY:}
+    base-url: ${CULINARY_AI_BASE_URL:https://api.openai.com/v1/chat/completions}
+    model: ${CULINARY_AI_MODEL:gpt-4o-mini}
+    temperature: ${CULINARY_AI_TEMPERATURE:0.3}
+    knowledge-path: ${CULINARY_AI_KNOWLEDGE_PATH:docs2.0/knowledge}

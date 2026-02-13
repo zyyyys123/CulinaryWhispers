@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { RecipePageVO } from '@/types/recipe'
 
@@ -26,18 +26,31 @@ const formattedTime = computed(() => {
 const difficultyLabel = computed(() => {
   return ['简单', '适中', '有点难', '进阶', '大师'][props.data.difficulty - 1] || '适中'
 })
+
+const coverLoadError = ref(false)
+const fallbackCoverUrl =
+  'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=1600&q=80'
+const coverSrc = computed(() => {
+  const url = (props.data.coverUrl ?? '').trim()
+  if (!url || coverLoadError.value) return fallbackCoverUrl
+  return url
+})
+
+const onCoverError = () => {
+  coverLoadError.value = true
+}
 </script>
 
 <template>
   <div @click="goToDetail" class="recipe-card group relative w-full break-inside-avoid mb-6 cursor-pointer">
     <!-- Image Container -->
-    <div class="relative w-full overflow-hidden rounded-2xl bg-gray-800 shadow-lg">
-      <!-- Aspect Ratio Hack or just natural height -->
-      <img 
-        :src="data.coverUrl" 
+    <div class="relative w-full aspect-[4/3] overflow-hidden rounded-2xl bg-gray-800 shadow-lg">
+      <img
+        :src="coverSrc"
         :alt="data.title"
         loading="lazy"
-        class="w-full h-auto object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+        class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+        @error="onCoverError"
       />
       
       <!-- Gradient Overlay (Always present but subtly changes) -->

@@ -6,6 +6,7 @@ import HeroScene from '@/components/visual/HeroScene.vue'
 import StorybookSplash from '@/components/visual/StorybookSplash.vue'
 import RecipeFeed from '@/components/business/RecipeFeed.vue'
 import { useAuthStore } from '@/stores/auth'
+import { AiAPI, type AiChatMessage } from '@/api/ai'
 
 const router = useRouter()
 const titleRef = ref(null)
@@ -13,7 +14,8 @@ const subtitleRef = ref(null)
 const auth = useAuthStore()
 const showAi = ref(false)
 const aiInput = ref('')
-const aiMessages = ref<Array<{ role: 'user' | 'assistant'; content: string }>>([])
+const aiSending = ref(false)
+const aiMessages = ref<Array<{ role: 'user' | 'assistant'; content: string; sources?: string[]; usedRemoteModel?: boolean }>>([])
 
 const hasToken = computed(() => Boolean(auth.token))
 
@@ -40,12 +42,36 @@ const onSplashComplete = () => {
   }, '-=1.2')
 }
 
-const sendAi = () => {
+const sendAi = async () => {
   const q = aiInput.value.trim()
   if (!q) return
+  if (aiSending.value) return
   aiMessages.value.push({ role: 'user', content: q })
-  aiMessages.value.push({ role: 'assistant', content: '我已收到你的问题。当前为占位展示，后续可接入真实 AI 接口。' })
   aiInput.value = ''
+
+  const history: AiChatMessage[] = aiMessages.value
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .slice(-8)
+    .map(m => ({ role: m.role, content: m.content }))
+
+  aiSending.value = true
+  try {
+    const res = await AiAPI.chat({ message: q, history })
+    if (res.code !== 200) {
+      aiMessages.value.push({ role: 'assistant', content: res.message || 'AI 服务暂不可用，请稍后再试。' })
+      return
+    }
+    aiMessages.value.push({
+      role: 'assistant',
+      content: (res.data?.reply ?? '').trim() || '未获取到回答。',
+      sources: res.data?.sources ?? [],
+      usedRemoteModel: Boolean(res.data?.usedRemoteModel)
+    })
+  } catch {
+    aiMessages.value.push({ role: 'assistant', content: 'AI 请求失败，请检查网络或稍后重试。' })
+  } finally {
+    aiSending.value = false
+  }
 }
 </script>
 
@@ -212,26 +238,35 @@ const sendAi = () => {
     <transition name="slide">
       <div v-if="showAi" class="fixed right-0 top-0 bottom-0 z-50 w-[92vw] max-w-md bg-dark-surface border-l border-white/10 p-6 flex flex-col" @click.stop>
         <div class="flex items-center justify-between mb-4">
-          <div class="text-sm tracking-widest text-gray-400">AI 助手（占位）</div>
+          <div class="text-sm tracking-widest text-gray-400">AI 助手</div>
           <button @click="showAi = false" class="text-gray-400 hover:text-white transition-colors">✕</button>
         </div>
         <div class="flex-1 overflow-auto space-y-3 pr-1">
           <div v-if="aiMessages.length === 0" class="text-sm text-gray-500 leading-relaxed">
-            你可以问我：菜谱推荐、食材替换、火候时间、口味调整……（后续可接入真实 AI 接口）
+            你可以问我：菜谱推荐、食材替换、火候时间、口味调整……（支持本地知识库检索与远程模型占位）
           </div>
           <div v-for="(m, i) in aiMessages" :key="i" class="text-sm leading-relaxed">
             <span class="text-primary font-bold mr-2">{{ m.role === 'user' ? '我' : '助手' }}</span>
             <span class="text-gray-200">{{ m.content }}</span>
+            <div v-if="m.role === 'assistant' && m.sources && m.sources.length" class="mt-2 text-[11px] text-gray-500 leading-relaxed">
+              <div class="tracking-widest">参考来源</div>
+              <div class="break-words">{{ m.sources.join(' · ') }}</div>
+            </div>
+            <div v-if="m.role === 'assistant' && m.usedRemoteModel === false" class="mt-1 text-[11px] text-gray-600 tracking-widest">
+              本地知识库占位（未启用远程模型）
+            </div>
           </div>
+          <div v-if="aiSending" class="text-sm text-gray-500 tracking-widest">助手思考中…</div>
         </div>
         <div class="mt-4 flex items-center gap-2">
           <input
             v-model="aiInput"
             @keyup.enter="sendAi"
             placeholder="输入问题…"
-            class="flex-1 px-4 py-2 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none focus:border-primary text-sm"
+            :disabled="aiSending"
+            class="flex-1 px-4 py-2 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none focus:border-primary text-sm disabled:opacity-60"
           />
-          <button @click="sendAi" :disabled="!aiInput.trim()" class="px-4 py-2 rounded-xl bg-primary text-black font-bold text-sm disabled:opacity-60">
+          <button @click="sendAi" :disabled="aiSending || !aiInput.trim()" class="px-4 py-2 rounded-xl bg-primary text-black font-bold text-sm disabled:opacity-60">
             发送
           </button>
         </div>

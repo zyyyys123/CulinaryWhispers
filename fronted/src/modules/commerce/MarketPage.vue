@@ -1,41 +1,93 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { gsap } from 'gsap'
 import { CommerceAPI } from '@/api/commerce'
-import type { ProductVO } from '@/types/commerce'
+import type { CartItem, ProductVO } from '@/types/commerce'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const auth = useAuthStore()
 
 const products = ref<ProductVO[]>([])
-const loading = ref(true)
+const loading = ref(false)
+const errorMessage = ref('')
+const keyword = ref('')
+const selectedCategoryId = ref<number | null>(null)
+const page = ref(1)
+const size = ref(12)
+const total = ref(0)
 
 // Cart Animation State
-const cartCount = ref(0)
 const isCartOpen = ref(false)
 const cartBtnRef = ref<HTMLElement | null>(null)
-const cartItems = ref<ProductVO[]>([])
+const cartItems = ref<CartItem[]>([])
+const cartCount = computed(() => cartItems.value.reduce((acc, it) => acc + it.quantity, 0))
+const cartTotal = computed(() => cartItems.value.reduce((acc, it) => acc + it.product.price * it.quantity, 0))
+
+const categories: Array<{ id: number | null; name: string }> = [
+  { id: null, name: '全部' },
+  { id: 1, name: '厨具' },
+  { id: 2, name: '食材' },
+  { id: 3, name: '调味' },
+  { id: 4, name: '课程' },
+  { id: 5, name: '周边' }
+]
+
+const hasMore = computed(() => (total.value > 0 ? products.value.length < total.value : products.value.length > 0))
 
 // Data Fetching
-const fetchProducts = async () => {
-  const res = await CommerceAPI.getList({ page: 1, size: 8 })
-  if (res.code === 200) {
-    products.value = res.data.records
+const fetchProducts = async (reset = true) => {
+  if (loading.value) return
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    if (reset) {
+      page.value = 1
+      total.value = 0
+      products.value = []
+    }
+    const res = await CommerceAPI.getList({
+      page: page.value,
+      size: size.value,
+      keyword: keyword.value.trim() || undefined,
+      categoryId: selectedCategoryId.value ?? undefined
+    })
+    if (res.code !== 200) {
+      errorMessage.value = res.message || '加载失败'
+      return
+    }
+    total.value = Number(res.data.total ?? 0)
+    const batch = res.data.records ?? []
+    products.value.push(...batch)
+    page.value++
+
+    if (reset) {
+      setTimeout(() => {
+        gsap.from('.product-card', {
+          y: 40,
+          opacity: 0,
+          duration: 0.6,
+          stagger: 0.06,
+          ease: 'power2.out'
+        })
+      }, 80)
+    }
+  } catch {
+    errorMessage.value = '加载失败，请检查网络或稍后重试'
+  } finally {
     loading.value = false
-    // Stagger entrance
-    setTimeout(() => {
-      gsap.from('.product-card', {
-        y: 50,
-        opacity: 0,
-        duration: 0.8,
-        stagger: 0.1,
-        ease: 'power2.out'
-      })
-    }, 100)
   }
 }
 
 // Add to Cart Animation
 const addToCart = (e: MouseEvent, product: ProductVO) => {
-  cartCount.value++
-  cartItems.value.push(product)
+  const existed = cartItems.value.find(it => it.productId === product.id)
+  if (existed) {
+    existed.quantity++
+  } else {
+    cartItems.value.push({ productId: product.id, product, quantity: 1 })
+  }
   
   // 1. Create a flying clone of the product image
   const card = (e.target as HTMLElement).closest('.product-card')
@@ -96,28 +148,53 @@ const addToCart = (e: MouseEvent, product: ProductVO) => {
   }
 }
 
+const inc = (idx: number) => {
+  const it = cartItems.value[idx]
+  if (!it) return
+  it.quantity++
+}
+
+const dec = (idx: number) => {
+  const it = cartItems.value[idx]
+  if (!it) return
+  if (it.quantity <= 1) {
+    cartItems.value.splice(idx, 1)
+    return
+  }
+  it.quantity--
+}
+
 const checkout = async () => {
   if (cartItems.value.length === 0) return
-  
-  // Mock Payment Process
-  const orderId = `ord_${Date.now()}`
-  
-  // 1. Close Cart
-  isCartOpen.value = false
-  
-  // 2. Show Success Message (Mock)
-  // In real app, redirect to payment gateway or show payment modal
-  // Here we just simulate a successful transaction
-  
-  // Reset Cart
-  cartItems.value = []
-  cartCount.value = 0
-  
-  alert(`Order ${orderId} placed successfully! Thank you for your purchase.`)
+  if (!auth.token) {
+    await router.push({ name: 'login', query: { redirect: '/market' } })
+    return
+  }
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    const productCounts: Record<string, number> = {}
+    cartItems.value.forEach(it => {
+      productCounts[it.productId] = (productCounts[it.productId] ?? 0) + it.quantity
+    })
+    const res = await CommerceAPI.createOrder(productCounts)
+    if (res.code !== 200) {
+      errorMessage.value = res.message || '下单失败'
+      return
+    }
+    await CommerceAPI.paymentNotify(res.data)
+    isCartOpen.value = false
+    cartItems.value = []
+    alert(`订单已支付（模拟）：${res.data}`)
+  } catch {
+    errorMessage.value = '下单失败，请稍后重试'
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
-  fetchProducts()
+  fetchProducts(true)
 })
 </script>
 
@@ -127,11 +204,16 @@ onMounted(() => {
     <!-- Header -->
     <header class="sticky top-0 z-40 bg-dark-bg/80 backdrop-blur border-b border-gray-800">
       <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-        <h1 class="text-2xl font-serif text-primary">Chef's Market</h1>
+        <div class="flex items-center gap-4">
+          <h1 class="text-2xl font-serif text-primary">厨友市集</h1>
+          <div class="hidden md:flex items-center gap-2 text-xs tracking-widest text-gray-500">
+            甄选厨具 · 食材 · 调味 · 课程 · 周边（订单支付为模拟流程）
+          </div>
+        </div>
         
         <div class="flex items-center gap-6">
-          <button @click="$router.push('/')" class="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-white transition-colors">
-            Back to Home
+          <button @click="router.push({ name: 'home' })" class="text-xs font-bold tracking-widest text-gray-400 hover:text-white transition-colors">
+            返回首页
           </button>
           
           <!-- Cart Icon -->
@@ -151,25 +233,30 @@ onMounted(() => {
       :class="isCartOpen ? 'translate-x-0' : 'translate-x-full'"
     >
       <div class="flex justify-between items-center mb-8">
-        <h2 class="text-xl font-serif text-primary">Your Cart</h2>
+        <h2 class="text-xl font-serif text-primary">购物车</h2>
         <button @click="isCartOpen = false" class="text-gray-500 hover:text-white">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
       </div>
 
       <div v-if="cartItems.length === 0" class="text-center text-gray-500 mt-20">
-        <p>Your cart is empty.</p>
-        <p class="text-sm mt-2">Start adding some premium tools!</p>
+        <p>购物车还是空的。</p>
+        <p class="text-sm mt-2">从精选商品开始挑选吧！</p>
       </div>
 
       <div v-else class="space-y-4 h-[calc(100vh-200px)] overflow-y-auto">
-        <div v-for="(item, idx) in cartItems" :key="idx" class="flex gap-4 items-center bg-dark-bg p-3 rounded-lg">
-          <img :src="item.coverUrl" class="w-12 h-12 object-cover rounded" />
+        <div v-for="(item, idx) in cartItems" :key="item.productId" class="flex gap-4 items-center bg-dark-bg p-3 rounded-lg">
+          <img :src="item.product.coverUrl" class="w-12 h-12 object-cover rounded" />
           <div class="flex-1 min-w-0">
-            <h4 class="text-sm font-bold text-white truncate">{{ item.name }}</h4>
-            <p class="text-xs text-primary">${{ item.price }}</p>
+            <h4 class="text-sm font-bold text-white truncate">{{ item.product.name }}</h4>
+            <p class="text-xs text-primary">¥{{ item.product.price.toFixed(2) }}</p>
+            <div class="mt-2 flex items-center gap-2">
+              <button @click="dec(idx)" class="w-7 h-7 rounded-lg border border-white/10 text-gray-300 hover:border-primary hover:text-primary transition-colors">-</button>
+              <div class="text-xs text-gray-300 w-8 text-center">{{ item.quantity }}</div>
+              <button @click="inc(idx)" class="w-7 h-7 rounded-lg border border-white/10 text-gray-300 hover:border-primary hover:text-primary transition-colors">+</button>
+            </div>
           </div>
-          <button class="text-gray-500 hover:text-red-500" @click="cartItems.splice(idx, 1); cartCount--">
+          <button class="text-gray-500 hover:text-red-500" @click="cartItems.splice(idx, 1)">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
           </button>
         </div>
@@ -177,21 +264,51 @@ onMounted(() => {
 
       <div v-if="cartItems.length > 0" class="absolute bottom-6 left-6 right-6">
         <div class="flex justify-between mb-4 text-white font-bold">
-          <span>Total</span>
-          <span>${{ cartItems.reduce((acc, item) => acc + item.price, 0).toFixed(2) }}</span>
+          <span>合计</span>
+          <span>¥{{ cartTotal.toFixed(2) }}</span>
         </div>
-        <button @click="checkout" class="w-full py-3 bg-primary text-black font-bold rounded-lg hover:bg-white transition-colors">
-          Checkout
+        <button @click="checkout" :disabled="loading" class="w-full py-3 bg-primary text-black font-bold rounded-lg hover:bg-white transition-colors disabled:opacity-60">
+          去结算（模拟支付）
         </button>
       </div>
     </div>
 
     <!-- Product Grid -->
     <main class="max-w-7xl mx-auto px-6 py-12">
-      <div v-if="loading" class="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div v-for="i in 4" :key="i" class="animate-pulse bg-gray-800 h-80 rounded-xl"></div>
+      <div class="rounded-2xl border border-white/10 bg-black/20 p-5 md:p-6 mb-10">
+        <div class="flex flex-col md:flex-row gap-4 md:items-center">
+          <input
+            v-model="keyword"
+            placeholder="搜索商品（关键词）"
+            class="flex-1 w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none focus:border-primary"
+            @keyup.enter="fetchProducts(true)"
+          />
+          <button
+            @click="fetchProducts(true)"
+            :disabled="loading"
+            class="px-6 py-3 rounded-xl bg-primary text-black font-bold disabled:opacity-60"
+          >
+            搜索
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-4">
+          <button
+            v-for="c in categories"
+            :key="String(c.id)"
+            @click="selectedCategoryId = c.id; fetchProducts(true)"
+            class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
+            :class="selectedCategoryId === c.id ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
+          >
+            {{ c.name }}
+          </button>
+        </div>
+        <div v-if="errorMessage" class="mt-4 text-sm text-red-300">{{ errorMessage }}</div>
       </div>
-      
+
+      <div v-if="loading && products.length === 0" class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div v-for="i in 8" :key="i" class="animate-pulse bg-gray-800 h-80 rounded-xl"></div>
+      </div>
+
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         <div 
           v-for="product in products" 
@@ -216,8 +333,8 @@ onMounted(() => {
             <h3 class="font-serif text-lg text-white mb-1 truncate">{{ product.name }}</h3>
             <div class="flex justify-between items-center">
               <div class="flex flex-col">
-                <span class="text-primary font-bold">${{ product.price }}</span>
-                <span v-if="product.originalPrice" class="text-xs text-gray-500 line-through">${{ product.originalPrice }}</span>
+                <span class="text-primary font-bold">¥{{ product.price.toFixed(2) }}</span>
+                <span v-if="product.originalPrice" class="text-xs text-gray-500 line-through">¥{{ product.originalPrice.toFixed(2) }}</span>
               </div>
               <div class="flex items-center gap-1 text-xs text-gray-400">
                 <svg class="w-3 h-3 text-yellow-500 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -225,6 +342,19 @@ onMounted(() => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div class="flex justify-center mt-10">
+        <button
+          v-if="!loading && hasMore"
+          @click="fetchProducts(false)"
+          class="px-8 py-3 rounded-full border border-gray-700 hover:border-primary text-gray-300 hover:text-primary transition-colors text-sm tracking-widest uppercase"
+        >
+          加载更多
+        </button>
+        <div v-else-if="!loading && products.length > 0" class="text-gray-600 text-sm tracking-widest uppercase">
+          已到底
         </div>
       </div>
     </main>

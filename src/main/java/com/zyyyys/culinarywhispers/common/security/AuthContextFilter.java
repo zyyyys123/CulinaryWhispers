@@ -107,6 +107,9 @@ public class AuthContextFilter extends OncePerRequestFilter {
         if ("GET".equalsIgnoreCase(method) && path.startsWith("/api/user/vip/plans")) {
             return true;
         }
+        if (path.startsWith("/api/ai/chat")) {
+            return true;
+        }
         if (path.equals("/api/log/capture")) {
             return true;
         }

@@ -40,5 +40,47 @@ export const CommerceAPI = {
         }))
       }
     }
+  },
+
+  getProduct: async (productId: string): Promise<Result<ProductVO>> => {
+    const res = await http.get<BackendResult<BackendProduct>>(`/commerce/product/${productId}`)
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: null as any }
+    }
+    const p = res.data.data
+    return {
+      code: 200,
+      message: res.data.message,
+      data: {
+        id: String(p.id),
+        name: p.title,
+        description: p.description,
+        price: Number(p.price ?? 0),
+        coverUrl: 'https://images.unsplash.com/photo-1593618998160-e34015e67502?w=800&q=80',
+        images: [],
+        stock: Number(p.stock ?? 0),
+        categoryId: String(p.categoryId ?? ''),
+        rating: 0,
+        reviewCount: 0
+      }
+    }
+  },
+
+  createOrder: async (productCounts: Record<string, number>): Promise<Result<string>> => {
+    const body: Record<number, number> = {}
+    Object.entries(productCounts).forEach(([k, v]) => {
+      const id = Number(k)
+      if (Number.isFinite(id) && v > 0) body[id] = v
+    })
+    const res = await http.post<BackendResult<number>>('/commerce/order/create', body)
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: '' }
+    }
+    return { code: 200, message: res.data.message, data: String(res.data.data ?? '') }
+  },
+
+  paymentNotify: async (orderId: string): Promise<Result<null>> => {
+    const res = await http.post<BackendResult<null>>('/commerce/payment/notify', null, { params: { orderId } })
+    return { code: res.data.code, message: res.data.message, data: null }
   }
 }

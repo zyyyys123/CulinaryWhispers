@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { VipAPI, type VipPlanVO } from '@/api/vip'
 import { useAuthStore } from '@/stores/auth'
@@ -68,6 +68,10 @@ const exchange = async (level: number) => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  load()
+})
 </script>
 
 <template>
@@ -79,12 +83,20 @@ const exchange = async (level: number) => {
           <h1 class="text-4xl md:text-5xl font-serif text-primary">会员中心</h1>
           <div class="text-sm text-gray-300 mt-3 tracking-wider">当前状态：{{ vipText }}</div>
         </div>
-        <button
-          @click="router.push({ name: 'home' })"
-          class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-sm tracking-widest"
-        >
-          返回首页
-        </button>
+        <div class="flex gap-2">
+          <button
+            @click="router.push({ name: 'points' })"
+            class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-sm tracking-widest"
+          >
+            去积分中心
+          </button>
+          <button
+            @click="router.push({ name: 'home' })"
+            class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-sm tracking-widest"
+          >
+            返回首页
+          </button>
+        </div>
       </div>
 
       <div v-if="errorMessage" class="mb-6 rounded-2xl border border-white/10 bg-black/20 px-6 py-4 flex items-center justify-between gap-4">
@@ -116,7 +128,25 @@ const exchange = async (level: number) => {
       <div class="mt-10 rounded-2xl border border-white/10 bg-black/10 p-6">
         <div class="text-sm tracking-widest text-gray-500 mb-3">说明</div>
         <div class="text-sm text-gray-300 leading-relaxed">
-          VIP 目前用于积分激励与身份展示：后续可以在推荐权重、专属活动、AI 助手能力等方向持续扩展。会员到期后自动恢复为非会员。
+          VIP 采用“积分兑换限时会员”的方式：到期自动失效；同等级可续期；不支持用低等级覆盖高等级。部分权益为已上线能力，部分为后续规划。
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          <div class="rounded-2xl border border-white/10 bg-black/20 p-5">
+            <div class="text-xs tracking-widest text-gray-500 mb-3">已上线</div>
+            <ul class="space-y-2 text-sm text-gray-300">
+              <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span>会员中心与兑换规则（含到期时间）</span></li>
+              <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span>个人主页 VIP 标识/勋章墙扩展入口</span></li>
+              <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span>社交页通知中心：点赞/评论/收藏聚合展示</span></li>
+            </ul>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-black/20 p-5">
+            <div class="text-xs tracking-widest text-gray-500 mb-3">规划中</div>
+            <ul class="space-y-2 text-sm text-gray-300">
+              <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span>推荐权重与个性化推荐强化（按会员等级加成）</span></li>
+              <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span>AI 助手高级能力/额度（按会员等级解锁）</span></li>
+              <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span>市集折扣/专属商品/活动优先参与</span></li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

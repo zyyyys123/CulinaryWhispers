@@ -11,7 +11,7 @@ const router = useRouter()
 const loading = ref(false)
 const errorMessage = ref('')
 
-const activeTab = ref<'following' | 'followers' | 'notifications'>('following')
+const activeTab = ref<'following' | 'followers' | 'notifications'>('notifications')
 const page = ref(1)
 const size = ref(10)
 const total = ref(0)
@@ -23,11 +23,29 @@ const nSize = ref(10)
 const nTotal = ref(0)
 const notifications = ref<NotificationVO[]>([])
 const lastNotifyFetchCount = ref(0)
+const notifyFilter = ref<'all' | 'like' | 'comment' | 'collect'>('all')
 
 const targetUserId = ref('')
 
 const hasMore = computed(() => (total.value > 0 ? list.value.length < total.value : lastFetchCount.value === size.value))
 const hasMoreNotify = computed(() => (nTotal.value > 0 ? notifications.value.length < nTotal.value : lastNotifyFetchCount.value === nSize.value))
+
+const notifyTypeLabel = (t: number) => {
+  if (t === 1) return '回复'
+  if (t === 2) return '评论'
+  if (t === 3) return '点赞'
+  if (t === 4) return '收藏'
+  if (t === 5) return '点赞'
+  return '通知'
+}
+
+const filteredNotifications = computed(() => {
+  if (notifyFilter.value === 'all') return notifications.value
+  if (notifyFilter.value === 'like') return notifications.value.filter(n => n.type === 3 || n.type === 5)
+  if (notifyFilter.value === 'comment') return notifications.value.filter(n => n.type === 1 || n.type === 2)
+  if (notifyFilter.value === 'collect') return notifications.value.filter(n => n.type === 4)
+  return notifications.value
+})
 
 const load = async (reset = true) => {
   if (loading.value) return
@@ -39,6 +57,7 @@ const load = async (reset = true) => {
         nPage.value = 1
         nTotal.value = 0
         notifications.value = []
+        notifyFilter.value = 'all'
       }
       const res = await NotifyAPI.list({ page: nPage.value, size: nSize.value })
       if (res.code !== 200) {
@@ -166,6 +185,13 @@ const openNotification = async (n: NotificationVO) => {
 
         <div class="flex gap-2 mt-4">
           <button
+            @click="activeTab = 'notifications'; load(true)"
+            class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
+            :class="activeTab === 'notifications' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
+          >
+            通知
+          </button>
+          <button
             @click="activeTab = 'following'; load(true)"
             class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
             :class="activeTab === 'following' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
@@ -178,13 +204,6 @@ const openNotification = async (n: NotificationVO) => {
             :class="activeTab === 'followers' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
           >
             Followers
-          </button>
-          <button
-            @click="activeTab = 'notifications'; load(true)"
-            class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
-            :class="activeTab === 'notifications' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
-          >
-            通知
           </button>
         </div>
 
@@ -218,8 +237,39 @@ const openNotification = async (n: NotificationVO) => {
       </div>
 
       <div v-else class="space-y-3">
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button
+            @click="notifyFilter = 'all'"
+            class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
+            :class="notifyFilter === 'all' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
+          >
+            全部
+          </button>
+          <button
+            @click="notifyFilter = 'like'"
+            class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
+            :class="notifyFilter === 'like' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
+          >
+            点赞
+          </button>
+          <button
+            @click="notifyFilter = 'comment'"
+            class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
+            :class="notifyFilter === 'comment' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
+          >
+            评论/回复
+          </button>
+          <button
+            @click="notifyFilter = 'collect'"
+            class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
+            :class="notifyFilter === 'collect' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
+          >
+            收藏
+          </button>
+        </div>
+
         <div
-          v-for="n in notifications"
+          v-for="n in filteredNotifications"
           :key="n.id"
           class="rounded-2xl border border-white/10 bg-black/10 p-5 flex items-center justify-between gap-4 cursor-pointer hover:border-primary/40 transition-colors"
           @click="openNotification(n)"
@@ -230,7 +280,12 @@ const openNotification = async (n: NotificationVO) => {
               <span v-if="!n.isRead" class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary"></span>
             </div>
             <div class="min-w-0">
-              <div class="font-bold truncate">{{ n.fromNickname || `用户 ${n.fromUserId}` }}</div>
+              <div class="flex items-center gap-2 min-w-0">
+                <div class="font-bold truncate">{{ n.fromNickname || `用户 ${n.fromUserId}` }}</div>
+                <div class="px-2 py-0.5 rounded-full border border-white/10 text-[10px] tracking-widest text-gray-400 shrink-0">
+                  {{ notifyTypeLabel(n.type) }}
+                </div>
+              </div>
               <div class="text-sm text-gray-300 mt-1 truncate">{{ n.content }}</div>
               <div class="text-xs text-gray-600 mt-1">{{ n.createTime }}</div>
             </div>
