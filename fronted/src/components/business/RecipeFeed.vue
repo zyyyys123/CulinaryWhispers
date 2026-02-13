@@ -7,6 +7,10 @@ import type { RecipePageVO } from '@/types/recipe'
 import RecipeCard from './RecipeCard.vue'
 import RecipeSkeleton from '@/components/feedback/RecipeSkeleton.vue'
 
+const props = defineProps<{
+  authorId?: string
+}>()
+
 // State
 const recipes = ref<RecipePageVO[]>([])
 const loading = ref(false)
@@ -38,7 +42,9 @@ const fetchRecipes = async () => {
   loading.value = true
   errorMessage.value = ''
   try {
-    const res = await RecipeAPI.recommend({ page: page.value, size: 6 }) // 6 items per batch
+    const res = props.authorId
+      ? await RecipeAPI.getList({ page: page.value, size: 6, authorId: Number(props.authorId) })
+      : await RecipeAPI.recommend({ page: page.value, size: 6 })
     if (res.code === 200) {
       const newRecipes = res.data?.records ?? []
       if (newRecipes.length === 0) {

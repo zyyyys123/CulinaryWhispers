@@ -2,9 +2,11 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { UserAPI } from '@/api/user'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
+const auth = useAuthStore()
 
 const username = ref('')
 const nickname = ref('')
@@ -22,7 +24,14 @@ const submit = async () => {
       errorText.value = res.message || '注册失败'
       return
     }
-    router.replace({ name: 'login', query: route.query })
+    const loginRes = await UserAPI.login({ username: username.value, password: password.value })
+    if (loginRes.code !== 200 || !loginRes.data) {
+      router.replace({ name: 'login', query: route.query })
+      return
+    }
+    auth.setToken(loginRes.data)
+    await auth.loadProfile()
+    router.replace({ name: 'user-profile-setup' })
   } finally {
     loading.value = false
   }
@@ -69,4 +78,3 @@ const submit = async () => {
     </div>
   </div>
 </template>
-

@@ -135,6 +135,7 @@ export const UserAPI = {
     const body = {
       nickname: payload.nickname,
       avatarUrl: payload.avatarUrl,
+      bgImageUrl: payload.bgImageUrl,
       gender: payload.gender,
       signature: payload.signature,
       city: payload.city,

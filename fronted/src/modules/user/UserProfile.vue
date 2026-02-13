@@ -5,11 +5,12 @@ import { gsap } from 'gsap'
 import { UserAPI } from '@/api/user'
 import type { BadgeVO, UserProfileVO, UserStatsVO } from '@/types/user'
 import RecipeFeed from '@/components/business/RecipeFeed.vue'
-import BadgeWall3D from './components/BadgeWall3D.vue'
+import BadgeWall2D from './components/BadgeWall2D.vue'
 import { SocialAPI } from '@/api/social'
 import type { RecipePageVO } from '@/types/recipe'
 import RecipeCard from '@/components/business/RecipeCard.vue'
 import { useAuthStore } from '@/stores/auth'
+import { FileAPI } from '@/api/file'
 
 // State
 const profile = ref<UserProfileVO | null>(null)
@@ -20,6 +21,8 @@ const activeTab = ref('recipes') // 'recipes' | 'likes' | 'about'
 const showBadgeWall = ref(false)
 const showEdit = ref(false)
 const saving = ref(false)
+const uploadingAvatar = ref(false)
+const uploadingBg = ref(false)
 const collectLoading = ref(false)
 const collectError = ref('')
 const collectPage = ref(1)
@@ -37,6 +40,7 @@ const isSelf = computed(() => !isPublicView.value || viewingUserId.value === aut
 const editForm = ref({
   nickname: '',
   avatarUrl: '',
+  bgImageUrl: '',
   gender: 0,
   signature: '',
   city: '',
@@ -130,6 +134,7 @@ const fetchData = async () => {
     editForm.value = {
       nickname: profile.value.nickname ?? '',
       avatarUrl: profile.value.avatarUrl ?? '',
+      bgImageUrl: profile.value.bgImageUrl ?? '',
       gender: profile.value.gender ?? 0,
       signature: profile.value.signature ?? '',
       city: profile.value.city ?? '',
@@ -210,6 +215,7 @@ const saveProfile = async () => {
     const res = await UserAPI.updateProfile({
       nickname: editForm.value.nickname,
       avatarUrl: editForm.value.avatarUrl,
+      bgImageUrl: editForm.value.bgImageUrl,
       gender: editForm.value.gender,
       signature: editForm.value.signature,
       city: editForm.value.city,
@@ -225,6 +231,38 @@ const saveProfile = async () => {
     }
   } finally {
     saving.value = false
+  }
+}
+
+const uploadAvatar = async (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  uploadingAvatar.value = true
+  try {
+    const res = await FileAPI.uploadImage(file)
+    if (res.code === 200 && res.data?.url) {
+      editForm.value.avatarUrl = res.data.url
+    }
+  } finally {
+    uploadingAvatar.value = false
+  }
+}
+
+const uploadBg = async (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  uploadingBg.value = true
+  try {
+    const res = await FileAPI.uploadImage(file)
+    if (res.code === 200 && res.data?.url) {
+      editForm.value.bgImageUrl = res.data.url
+    }
+  } finally {
+    uploadingBg.value = false
   }
 }
 
@@ -347,7 +385,7 @@ const logout = () => {
       <!-- Recipes Tab -->
       <transition name="fade" mode="out-in">
         <div v-if="activeTab === 'recipes'" key="recipes">
-          <RecipeFeed />
+          <RecipeFeed :authorId="profile.userId" />
         </div>
         
         <div v-else-if="activeTab === 'likes'" key="likes">
@@ -448,7 +486,7 @@ const logout = () => {
     </main>
 
     <!-- 3D Badge Wall Modal -->
-    <BadgeWall3D 
+    <BadgeWall2D 
       v-if="showBadgeWall" 
       :badges="badgeWallBadges" 
       @close="showBadgeWall = false" 
@@ -470,6 +508,18 @@ const logout = () => {
           <div class="md:col-span-2">
             <div class="text-xs tracking-widest text-gray-500 mb-1">头像地址</div>
             <input v-model="editForm.avatarUrl" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:border-primary" />
+            <label class="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-xs tracking-widest cursor-pointer">
+              {{ uploadingAvatar ? '头像上传中...' : '上传头像' }}
+              <input type="file" accept="image/*" class="hidden" :disabled="uploadingAvatar" @change="uploadAvatar" />
+            </label>
+          </div>
+          <div class="md:col-span-2">
+            <div class="text-xs tracking-widest text-gray-500 mb-1">背景图地址</div>
+            <input v-model="editForm.bgImageUrl" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:border-primary" />
+            <label class="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-xs tracking-widest cursor-pointer">
+              {{ uploadingBg ? '背景上传中...' : '上传背景图' }}
+              <input type="file" accept="image/*" class="hidden" :disabled="uploadingBg" @change="uploadBg" />
+            </label>
           </div>
           <div>
             <div class="text-xs tracking-widest text-gray-500 mb-1">性别</div>

@@ -174,6 +174,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             profile.setFavoriteCuisine(updateDTO.getFavoriteCuisine());
             profile.setTastePreference(updateDTO.getTastePreference());
             profile.setDietaryRestrictions(updateDTO.getDietaryRestrictions());
+            profile.setBgImageUrl(updateDTO.getBgImageUrl());
             profileMapper.insert(profile);
         } else {
             if (updateDTO.getGender() != null) {
@@ -199,6 +200,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
             if (updateDTO.getDietaryRestrictions() != null) {
                 profile.setDietaryRestrictions(updateDTO.getDietaryRestrictions());
+            }
+            if (updateDTO.getBgImageUrl() != null) {
+                profile.setBgImageUrl(updateDTO.getBgImageUrl());
             }
             profileMapper.updateById(profile);
         }

@@ -17,6 +17,9 @@ public class UserUpdateDTO {
     @Size(max = 512, message = "头像URL长度不能超过512")
     private String avatarUrl;
 
+    @Size(max = 512, message = "背景图URL长度不能超过512")
+    private String bgImageUrl;
+
     @Min(value = 0, message = "性别值非法")
     @Max(value = 2, message = "性别值非法")
     private Integer gender; // 0-Unknown, 1-Male, 2-Female

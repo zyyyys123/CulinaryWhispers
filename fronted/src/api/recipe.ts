@@ -96,7 +96,7 @@ const mapPage = (page: Page<BackendRecipePageVO>, message: string): Result<Page<
 
 export const RecipeAPI = {
   // 获取食谱列表
-  getList: async (params: { page: number; size: number }): Promise<Result<Page<RecipePageVO>>> => {
+  getList: async (params: { page: number; size: number; authorId?: number }): Promise<Result<Page<RecipePageVO>>> => {
     const res = await http.get<BackendResult<Page<BackendRecipePageVO>>>('/recipe/list', { params })
     if (res.data.code !== 200) {
       return { code: res.data.code, message: res.data.message, data: null as any }

@@ -34,6 +34,12 @@ const categories: Array<{ id: number | null; name: string }> = [
   { id: 5, name: '周边' }
 ]
 
+const categoryName = (id: string) => {
+  const n = Number(id)
+  const hit = categories.find(c => c.id === n)
+  return hit?.name ?? `分类 ${id}`
+}
+
 const hasMore = computed(() => (total.value > 0 ? products.value.length < total.value : products.value.length > 0))
 
 // Data Fetching
@@ -82,8 +88,10 @@ const fetchProducts = async (reset = true) => {
 
 // Add to Cart Animation
 const addToCart = (e: MouseEvent, product: ProductVO) => {
+  if ((product.stock ?? 0) <= 0) return
   const existed = cartItems.value.find(it => it.productId === product.id)
   if (existed) {
+    if (existed.quantity >= product.stock) return
     existed.quantity++
   } else {
     cartItems.value.push({ productId: product.id, product, quantity: 1 })
@@ -151,6 +159,8 @@ const addToCart = (e: MouseEvent, product: ProductVO) => {
 const inc = (idx: number) => {
   const it = cartItems.value[idx]
   if (!it) return
+  const max = it.product.stock ?? 0
+  if (max > 0 && it.quantity >= max) return
   it.quantity++
 }
 
@@ -186,6 +196,7 @@ const checkout = async () => {
     isCartOpen.value = false
     cartItems.value = []
     alert(`订单已支付（模拟）：${res.data}`)
+    await fetchProducts(true)
   } catch {
     errorMessage.value = '下单失败，请稍后重试'
   } finally {
@@ -318,11 +329,15 @@ onMounted(() => {
           <!-- Image -->
           <div class="relative aspect-square overflow-hidden bg-white">
             <img :src="product.coverUrl" class="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-500" />
+            <div v-if="product.stock <= 0" class="absolute inset-0 bg-black/60 flex items-center justify-center">
+              <div class="px-4 py-2 rounded-full border border-white/20 text-white text-xs tracking-widest">售罄</div>
+            </div>
             
             <!-- Quick Add Button (Visible on Hover) -->
             <button 
               @click="(e) => addToCart(e, product)"
-              class="absolute bottom-4 right-4 w-10 h-10 bg-black text-white rounded-full flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:bg-primary hover:text-black shadow-lg"
+              :disabled="product.stock <= 0"
+              class="absolute bottom-4 right-4 w-10 h-10 bg-black text-white rounded-full flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:bg-primary hover:text-black shadow-lg disabled:opacity-40 disabled:hover:bg-black disabled:hover:text-white"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
             </button>
@@ -331,6 +346,13 @@ onMounted(() => {
           <!-- Info -->
           <div class="p-4">
             <h3 class="font-serif text-lg text-white mb-1 truncate">{{ product.name }}</h3>
+            <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+              <div class="tracking-widest">{{ categoryName(product.categoryId) }}</div>
+              <div class="tracking-widest">库存 {{ product.stock }}</div>
+            </div>
+            <div class="text-xs text-gray-400 leading-relaxed mb-3 min-h-[32px]">
+              {{ product.description || '—' }}
+            </div>
             <div class="flex justify-between items-center">
               <div class="flex flex-col">
                 <span class="text-primary font-bold">¥{{ product.price.toFixed(2) }}</span>
