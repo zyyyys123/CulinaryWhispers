@@ -59,7 +59,7 @@ public class AiChatService {
             sb.append("\n问题：").append(message).append("\n");
         }
         if (chunks == null || chunks.isEmpty()) {
-            sb.append("\n未检索到匹配的知识库内容。你可以把规范/功能说明放到 docs2.0/knowledge 下（.md/.txt），我会优先引用。");
+            sb.append("\n未检索到匹配的知识库内容。你可以把规范/功能说明放到 ai 模块的 knowledge 目录下（.md/.txt），我会优先引用。");
             return sb.toString();
         }
         sb.append("\n参考要点：\n");
@@ -122,9 +122,14 @@ public class AiChatService {
 
     private String buildSystemPrompt(List<KnowledgeBaseService.KbChunk> chunks) {
         StringBuilder sb = new StringBuilder();
-        sb.append("你是 CulinaryWhispers（一个菜谱与社交平台）的 AI 助手。");
-        sb.append("回答要求：中文；简洁；优先给可执行步骤；不确定时说明不确定。");
-        sb.append("不得编造不存在的接口/页面/字段。");
+        String basePrompt = knowledgeBaseService.getSystemPrompt();
+        if (basePrompt != null && !basePrompt.isBlank()) {
+            sb.append(basePrompt.trim());
+        } else {
+            sb.append("你是 CulinaryWhispers（一个菜谱与社交平台）的 AI 助手。");
+            sb.append("回答要求：中文；简洁；优先给可执行步骤；不确定时说明不确定。");
+            sb.append("不得编造不存在的接口/页面/字段。");
+        }
 
         if (chunks != null && !chunks.isEmpty()) {
             sb.append("\n\n以下为本地知识库片段（优先参考）：\n");
@@ -157,4 +162,3 @@ public class AiChatService {
         return t.substring(0, max) + "...";
     }
 }
-

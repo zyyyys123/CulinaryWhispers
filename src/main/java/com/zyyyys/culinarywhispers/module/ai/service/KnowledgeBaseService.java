@@ -24,6 +24,7 @@ public class KnowledgeBaseService {
 
     private volatile long loadedAtMs = 0;
     private volatile List<KbChunk> chunks = List.of();
+    private volatile String systemPrompt = "";
 
     public List<KbChunk> retrieve(String query) {
         ensureLoaded();
@@ -67,7 +68,13 @@ public class KnowledgeBaseService {
     public void refresh() {
         loadedAtMs = 0;
         chunks = List.of();
+        systemPrompt = "";
         ensureLoaded();
+    }
+
+    public String getSystemPrompt() {
+        ensureLoaded();
+        return systemPrompt == null ? "" : systemPrompt;
     }
 
     private void ensureLoaded() {
@@ -79,9 +86,29 @@ public class KnowledgeBaseService {
             if (now - loadedAtMs < 10_000 && !chunks.isEmpty()) {
                 return;
             }
+            systemPrompt = loadSystemPrompt();
             chunks = loadChunks();
             loadedAtMs = now;
         }
+    }
+
+    private String loadSystemPrompt() {
+        Path root = Paths.get(aiProperties.getKnowledgePath());
+        if (!Files.exists(root)) {
+            return "";
+        }
+        Path p1 = root.resolve("SYSTEM_PROMPT.md");
+        Path p2 = root.resolve("SYSTEM_PROMPT.txt");
+        try {
+            if (Files.exists(p1)) {
+                return Files.readString(p1, StandardCharsets.UTF_8).trim();
+            }
+            if (Files.exists(p2)) {
+                return Files.readString(p2, StandardCharsets.UTF_8).trim();
+            }
+        } catch (IOException ignored) {
+        }
+        return "";
     }
 
     private List<KbChunk> loadChunks() {
@@ -95,6 +122,9 @@ public class KnowledgeBaseService {
             stream.filter(Files::isRegularFile).forEach(p -> {
                 String name = p.getFileName().toString().toLowerCase();
                 if (!(name.endsWith(".md") || name.endsWith(".txt"))) {
+                    return;
+                }
+                if (name.equals("system_prompt.md") || name.equals("system_prompt.txt")) {
                     return;
                 }
                 try {

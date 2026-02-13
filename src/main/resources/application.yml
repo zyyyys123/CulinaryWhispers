@@ -55,4 +55,4 @@ culinary:
     base-url: ${CULINARY_AI_BASE_URL:https://api.openai.com/v1/chat/completions}
     model: ${CULINARY_AI_MODEL:gpt-4o-mini}
     temperature: ${CULINARY_AI_TEMPERATURE:0.3}
-    knowledge-path: ${CULINARY_AI_KNOWLEDGE_PATH:docs2.0/knowledge}
+    knowledge-path: ${CULINARY_AI_KNOWLEDGE_PATH:src/main/java/com/zyyyys/culinarywhispers/module/ai/knowledge}

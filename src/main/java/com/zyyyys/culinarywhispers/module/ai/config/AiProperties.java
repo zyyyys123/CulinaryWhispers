@@ -12,8 +12,7 @@ public class AiProperties {
     private String baseUrl = "https://api.openai.com/v1/chat/completions";
     private String model = "gpt-4o-mini";
     private double temperature = 0.3;
-    private String knowledgePath = "docs2.0/knowledge";
+    private String knowledgePath = "src/main/java/com/zyyyys/culinarywhispers/module/ai/knowledge";
     private int maxContextChars = 3500;
     private int maxChunks = 4;
 }
-
