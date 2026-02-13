@@ -6,6 +6,9 @@ import { UserAPI } from '@/api/user'
 import type { UserProfileVO, UserStatsVO } from '@/types/user'
 import RecipeFeed from '@/components/business/RecipeFeed.vue'
 import BadgeWall3D from './components/BadgeWall3D.vue'
+import { SocialAPI } from '@/api/social'
+import type { RecipePageVO } from '@/types/recipe'
+import RecipeCard from '@/components/business/RecipeCard.vue'
 
 // State
 const profile = ref<UserProfileVO | null>(null)
@@ -16,6 +19,11 @@ const activeTab = ref('recipes') // 'recipes' | 'likes' | 'about'
 const showBadgeWall = ref(false)
 const showEdit = ref(false)
 const saving = ref(false)
+const collectLoading = ref(false)
+const collectError = ref('')
+const collectPage = ref(1)
+const collectHasMore = ref(true)
+const collectedRecipes = ref<RecipePageVO[]>([])
 
 const router = useRouter()
 const route = useRoute()
@@ -43,13 +51,26 @@ const coverUrl = computed(() => {
 const masterLabel = computed(() => {
   if (!profile.value?.isMasterChef) return ''
   const t = profile.value.masterTitle
-  return t && t.trim().length > 0 ? t : 'MASTER CHEF'
+  return t && t.trim().length > 0 ? t : '认证大厨'
 })
 
 const formatCount = (n: number) => {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
-  return String(n)
+  if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}亿`
+  if (n >= 10_000) return `${(n / 10_000).toFixed(1)}万`
+  return String(n ?? 0)
+}
+
+const genderText = computed(() => {
+  const g = profile.value?.gender
+  if (g === 1) return '男'
+  if (g === 2) return '女'
+  return '未知'
+})
+
+const moneyText = (n?: number) => {
+  const v = Number(n ?? 0)
+  if (!Number.isFinite(v)) return '-'
+  return `¥${v.toFixed(2)}`
 }
 
 // Data Fetching
@@ -111,6 +132,42 @@ onMounted(() => {
   fetchData()
 })
 
+const fetchCollected = async (reset = false) => {
+  if (collectLoading.value || (!collectHasMore.value && !reset)) return
+  collectLoading.value = true
+  collectError.value = ''
+  try {
+    if (reset) {
+      collectPage.value = 1
+      collectHasMore.value = true
+      collectedRecipes.value = []
+    }
+    const res = await SocialAPI.getCollectedRecipes({ page: collectPage.value, size: 9 })
+    if (res.code !== 200) {
+      collectError.value = res.message || '加载失败，请稍后重试'
+      return
+    }
+    const records = res.data.records ?? []
+    if (records.length === 0) {
+      collectHasMore.value = false
+      return
+    }
+    collectedRecipes.value.push(...records)
+    collectPage.value++
+  } catch {
+    collectError.value = '加载失败，请检查网络或稍后重试'
+  } finally {
+    collectLoading.value = false
+  }
+}
+
+const setTab = async (tab: 'recipes' | 'likes' | 'about') => {
+  activeTab.value = tab
+  if (tab === 'likes' && collectedRecipes.value.length === 0) {
+    await fetchCollected(true)
+  }
+}
+
 const saveProfile = async () => {
   if (!profile.value || saving.value) return
   saving.value = true
@@ -144,7 +201,7 @@ const logout = () => {
 
 <template>
   <div v-if="loading" class="min-h-screen bg-dark-bg flex items-center justify-center">
-    <div class="text-primary animate-pulse">Loading Profile...</div>
+    <div class="text-primary animate-pulse">正在加载个人资料...</div>
   </div>
 
   <div v-else-if="profile && stats" class="profile-page min-h-screen bg-dark-bg text-white pb-20">
@@ -162,12 +219,12 @@ const logout = () => {
       <!-- User Info Overlay -->
       <div class="absolute bottom-0 left-0 w-full p-8 md:p-12 flex flex-col md:flex-row items-end md:items-center gap-8">
         
-        <!-- Back Home Button (Absolute Top Left of Header) -->
-        <button @click="$router.push('/')" class="absolute top-8 left-8 flex items-center gap-2 text-white/70 hover:text-white transition-colors z-30 group">
-          <div class="w-10 h-10 rounded-full bg-black/20 backdrop-blur flex items-center justify-center border border-white/10 group-hover:bg-primary group-hover:text-black group-hover:border-primary transition-all">
+        <!-- Back Home Button (Moved to top-left of page with z-index) -->
+        <button @click="$router.push({ name: 'home' })" class="absolute top-6 left-6 flex items-center gap-2 text-white/70 hover:text-white transition-colors z-50 group">
+          <div class="w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center border border-white/10 group-hover:bg-primary group-hover:text-black group-hover:border-primary transition-all">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
           </div>
-          <span class="font-bold tracking-wider text-sm">BACK HOME</span>
+          <span class="font-bold tracking-wider text-sm hidden md:block">返回首页</span>
         </button>
 
         <!-- Avatar with Badge Indicator -->
@@ -177,7 +234,7 @@ const logout = () => {
           </div>
           <!-- 3D Badge Indicator -->
           <div class="absolute -bottom-2 -right-2 bg-primary text-black text-xs font-bold px-3 py-1 rounded-full z-20 animate-bounce">
-            View Badges
+            查看勋章
           </div>
           <!-- Glow -->
           <div class="absolute inset-0 bg-primary/30 blur-2xl rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-500"></div>
@@ -191,50 +248,50 @@ const logout = () => {
               {{ masterLabel }}
             </span>
           </div>
-          <p class="text-gray-300 max-w-xl">{{ profile.signature }}</p>
+          <p class="text-gray-300 max-w-xl">{{ profile.signature || '这个人很懒，什么都没写' }}</p>
         </div>
 
         <!-- Action Buttons -->
         <div class="flex gap-4 mb-4">
-          <button @click="showEdit = true" class="px-8 py-3 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors">
-            Edit Profile
+          <button @click="showEdit = true" class="px-7 py-2.5 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors">
+            编辑资料
           </button>
-          <button @click="logout" class="w-12 h-12 rounded-full border border-gray-600 flex items-center justify-center hover:bg-gray-800 transition-colors" title="Logout">
+          <button @click="logout" class="w-11 h-11 rounded-full border border-gray-600 flex items-center justify-center hover:bg-gray-800 transition-colors" title="退出登录">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6A2.25 2.25 0 0015.75 18.75V15M18 15l3-3m0 0l-3-3m3 3H9"></path></svg>
           </button>
         </div>
       </div>
     </header>
 
-    <!-- 2. Stats Bar (Odometer style placeholder) -->
+    <!-- 2. Stats Bar -->
     <div class="border-b border-gray-800 bg-dark-bg/80 backdrop-blur sticky top-0 z-40">
       <div class="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
         <div class="flex gap-12">
           <div class="stat-item text-center cursor-pointer hover:text-primary transition-colors">
             <div class="text-xl font-bold font-serif">{{ stats.recipeCount }}</div>
-            <div class="text-xs text-gray-500 uppercase tracking-widest">Recipes</div>
+            <div class="text-xs text-gray-500 tracking-widest">食谱</div>
           </div>
           <div class="stat-item text-center cursor-pointer hover:text-primary transition-colors">
             <div class="text-xl font-bold font-serif">{{ formatCount(stats.followerCount) }}</div>
-            <div class="text-xs text-gray-500 uppercase tracking-widest">Followers</div>
+            <div class="text-xs text-gray-500 tracking-widest">粉丝</div>
           </div>
           <div class="stat-item text-center cursor-pointer hover:text-primary transition-colors">
             <div class="text-xl font-bold font-serif">{{ formatCount(stats.likeCount) }}</div>
-            <div class="text-xs text-gray-500 uppercase tracking-widest">Likes</div>
+            <div class="text-xs text-gray-500 tracking-widest">获赞</div>
           </div>
         </div>
         
         <!-- Tabs -->
         <div class="flex gap-8 text-sm font-medium">
           <button 
-            v-for="tab in ['recipes', 'likes', 'about']" 
-            :key="tab"
-            @click="activeTab = tab"
+            v-for="tab in [{ key: 'recipes', label: '食谱' }, { key: 'likes', label: '收藏' }, { key: 'about', label: '关于' }]" 
+            :key="tab.key"
+            @click="setTab(tab.key as any)"
             class="capitalize relative py-4 transition-colors"
-            :class="activeTab === tab ? 'text-white' : 'text-gray-500 hover:text-gray-300'"
+            :class="activeTab === tab.key ? 'text-white' : 'text-gray-500 hover:text-gray-300'"
           >
-            {{ tab }}
-            <span v-if="activeTab === tab" class="absolute bottom-0 left-0 w-full h-0.5 bg-primary layout-id='active-tab'"></span>
+            {{ tab.label }}
+            <span v-if="activeTab === tab.key" class="absolute bottom-0 left-0 w-full h-0.5 bg-primary layout-id='active-tab'"></span>
           </button>
         </div>
       </div>
@@ -248,40 +305,95 @@ const logout = () => {
           <RecipeFeed />
         </div>
         
-        <div v-else-if="activeTab === 'likes'" key="likes" class="text-center py-20 text-gray-600">
-          Likes list placeholder...
+        <div v-else-if="activeTab === 'likes'" key="likes">
+          <div v-if="collectError" class="mb-6 rounded-2xl border border-white/10 bg-black/20 px-6 py-4 flex items-center justify-between gap-4">
+            <div class="text-gray-300 text-sm tracking-wider">{{ collectError }}</div>
+            <button @click="fetchCollected(true)" class="px-5 py-2 rounded-full bg-primary text-black font-bold text-sm">
+              重试
+            </button>
+          </div>
+
+          <div v-if="!collectLoading && !collectError && collectedRecipes.length === 0" class="text-center py-20 text-gray-600 text-sm tracking-widest">
+            暂无收藏
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <RecipeCard v-for="r in collectedRecipes" :key="r.id" :data="r" />
+          </div>
+
+          <div class="flex justify-center mt-10">
+            <button
+              v-if="collectHasMore && !collectLoading && collectedRecipes.length > 0"
+              @click="fetchCollected(false)"
+              class="px-8 py-3 rounded-full border border-gray-700 hover:border-primary text-gray-300 hover:text-primary transition-colors text-sm tracking-widest"
+            >
+              加载更多
+            </button>
+            <div v-else-if="collectLoading" class="text-gray-500 text-sm tracking-widest">加载中...</div>
+            <div v-else-if="!collectHasMore && collectedRecipes.length > 0" class="text-gray-600 text-sm tracking-widest">
+              已到底
+            </div>
+          </div>
         </div>
         
         <div v-else key="about" class="max-w-2xl mx-auto">
           <div class="bg-black/20 border border-white/10 rounded-2xl p-6 md:p-8">
-            <div class="text-sm tracking-widest uppercase text-gray-500 mb-6">About</div>
+            <div class="text-sm tracking-widest text-gray-500 mb-6">关于我</div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">City</div>
-                <div class="text-gray-200">{{ profile.city || '-' }}</div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">账号</div>
+                <div class="text-gray-200">{{ profile.username || '-' }}</div>
               </div>
               <div>
-                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Job</div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">昵称</div>
+                <div class="text-gray-200">{{ profile.nickname || '-' }}</div>
+              </div>
+              <div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">手机号</div>
+                <div class="text-gray-200">{{ profile.mobile || '-' }}</div>
+              </div>
+              <div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">邮箱</div>
+                <div class="text-gray-200">{{ profile.email || '-' }}</div>
+              </div>
+              <div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">性别</div>
+                <div class="text-gray-200">{{ genderText }}</div>
+              </div>
+              <div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">厨龄</div>
+                <div class="text-gray-200">{{ profile.cookAge ?? '-' }} 年</div>
+              </div>
+              <div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">所在地</div>
+                <div class="text-gray-200">{{ [profile.country, profile.province, profile.city].filter(Boolean).join(' / ') || '-' }}</div>
+              </div>
+              <div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">职业</div>
                 <div class="text-gray-200">{{ profile.job || '-' }}</div>
               </div>
               <div>
-                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Cook Age</div>
-                <div class="text-gray-200">{{ profile.cookAge ?? '-' }}</div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">VIP 等级</div>
+                <div class="text-gray-200">Lv.{{ profile.vipLevel ?? 0 }}</div>
               </div>
               <div>
-                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Gender</div>
-                <div class="text-gray-200">{{ profile.gender === 1 ? 'Male' : profile.gender === 2 ? 'Female' : 'Unknown' }}</div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">总消费</div>
+                <div class="text-gray-200">{{ moneyText(profile.totalSpend) }}</div>
               </div>
               <div class="md:col-span-2">
-                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Favorite Cuisine</div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">兴趣</div>
+                <div class="text-gray-200 whitespace-pre-wrap">{{ profile.interests || '-' }}</div>
+              </div>
+              <div class="md:col-span-2">
+                <div class="text-xs tracking-widest text-gray-500 mb-1">喜欢菜系</div>
                 <div class="text-gray-200 whitespace-pre-wrap">{{ profile.favoriteCuisine || '-' }}</div>
               </div>
               <div class="md:col-span-2">
-                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Taste Preference</div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">口味偏好</div>
                 <div class="text-gray-200 whitespace-pre-wrap">{{ profile.tastePreference || '-' }}</div>
               </div>
               <div class="md:col-span-2">
-                <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Dietary Restrictions</div>
+                <div class="text-xs tracking-widest text-gray-500 mb-1">忌口/限制</div>
                 <div class="text-gray-200 whitespace-pre-wrap">{{ profile.dietaryRestrictions || '-' }}</div>
               </div>
             </div>
@@ -297,66 +409,67 @@ const logout = () => {
       @close="showBadgeWall = false" 
     />
 
-    <div v-if="showEdit" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur">
-      <div class="w-[92vw] max-w-2xl bg-dark-bg border border-white/10 rounded-2xl p-6 md:p-8">
-        <div class="flex items-center justify-between mb-6">
-          <div class="text-sm tracking-widest uppercase text-gray-400">Edit Profile</div>
+    <!-- Edit Profile Modal -->
+    <div v-if="showEdit" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur p-4">
+      <div class="w-full max-w-md bg-dark-bg border border-white/10 rounded-2xl p-5 md:p-6 shadow-2xl">
+        <div class="flex items-center justify-between mb-5">
+          <div class="text-sm tracking-widest text-gray-400 font-bold">编辑资料</div>
           <button @click="showEdit = false" class="text-gray-400 hover:text-white transition-colors">✕</button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Nickname</div>
-            <input v-model="editForm.nickname" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+          <div class="md:col-span-2">
+            <div class="text-xs tracking-widest text-gray-500 mb-1">昵称</div>
+            <input v-model="editForm.nickname" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:border-primary" />
+          </div>
+          <div class="md:col-span-2">
+            <div class="text-xs tracking-widest text-gray-500 mb-1">头像地址</div>
+            <input v-model="editForm.avatarUrl" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:border-primary" />
           </div>
           <div>
-            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Avatar URL</div>
-            <input v-model="editForm.avatarUrl" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
-          </div>
-          <div>
-            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Gender</div>
-            <select v-model.number="editForm.gender" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary">
-              <option :value="0">Unknown</option>
-              <option :value="1">Male</option>
-              <option :value="2">Female</option>
+            <div class="text-xs tracking-widest text-gray-500 mb-1">性别</div>
+            <select v-model.number="editForm.gender" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:border-primary">
+              <option :value="0">未知</option>
+              <option :value="1">男</option>
+              <option :value="2">女</option>
             </select>
           </div>
           <div>
-            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">City</div>
-            <input v-model="editForm.city" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+            <div class="text-xs tracking-widest text-gray-500 mb-1">城市</div>
+            <input v-model="editForm.city" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:border-primary" />
           </div>
           <div>
-            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Job</div>
-            <input v-model="editForm.job" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+            <div class="text-xs tracking-widest text-gray-500 mb-1">职业</div>
+            <input v-model="editForm.job" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:border-primary" />
           </div>
           <div>
-            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Cook Age</div>
-            <input v-model.number="editForm.cookAge" type="number" min="0" max="80" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+            <div class="text-xs tracking-widest text-gray-500 mb-1">厨龄 (年)</div>
+            <input v-model.number="editForm.cookAge" type="number" min="0" max="80" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:border-primary" />
           </div>
           <div class="md:col-span-2">
-            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Signature</div>
-            <textarea v-model="editForm.signature" rows="2" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary"></textarea>
+            <div class="text-xs tracking-widest text-gray-500 mb-1">个性签名</div>
+            <textarea v-model="editForm.signature" rows="2" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:border-primary"></textarea>
           </div>
           <div class="md:col-span-2">
-            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Favorite Cuisine</div>
-            <input v-model="editForm.favoriteCuisine" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+            <div class="text-xs tracking-widest text-gray-500 mb-1">喜欢菜系</div>
+            <input v-model="editForm.favoriteCuisine" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:border-primary" placeholder="如：川菜、日料" />
           </div>
           <div class="md:col-span-2">
-            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Taste Preference</div>
-            <input v-model="editForm.tastePreference" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+            <div class="text-xs tracking-widest text-gray-500 mb-1">口味偏好</div>
+            <input v-model="editForm.tastePreference" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:border-primary" placeholder="如：辣、甜" />
           </div>
           <div class="md:col-span-2">
-            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Dietary Restrictions</div>
-            <input v-model="editForm.dietaryRestrictions" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+            <div class="text-xs tracking-widest text-gray-500 mb-1">忌口/限制</div>
+            <input v-model="editForm.dietaryRestrictions" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:border-primary" placeholder="如：花生过敏" />
           </div>
         </div>
 
-        <div class="flex justify-end gap-3 mt-8">
-          <button @click="showEdit = false" class="px-6 py-3 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors">
-            Cancel
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-white/5">
+          <button @click="showEdit = false" class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-sm">
+            取消
           </button>
-          <button @click="saveProfile" :disabled="saving" class="px-6 py-3 rounded-full bg-primary text-black font-bold disabled:opacity-60">
-            {{ saving ? 'Saving...' : 'Save' }}
+          <button @click="saveProfile" :disabled="saving" class="px-5 py-2 rounded-full bg-primary text-black font-bold disabled:opacity-60 text-sm">
+            {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
       </div>
@@ -365,14 +478,14 @@ const logout = () => {
   </div>
   
   <div v-else class="min-h-screen bg-dark-bg flex flex-col items-center justify-center text-white px-6">
-    <div class="text-lg font-bold mb-2">User Profile</div>
+    <div class="text-lg font-bold mb-2">个人主页</div>
     <div class="text-gray-400 mb-6">{{ errorMessage || '加载失败' }}</div>
     <div class="flex gap-3">
       <button @click="fetchData" class="px-6 py-3 rounded-full bg-primary text-black font-bold">
-        Retry
+        重试
       </button>
       <button @click="router.replace({ name: 'login', query: { redirect: route.fullPath } })" class="px-6 py-3 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors">
-        Go Login
+        去登录
       </button>
     </div>
   </div>
@@ -386,5 +499,15 @@ const logout = () => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
 }
 </style>

@@ -9,12 +9,16 @@ export interface UserProfileVO {
 
   gender?: number
   signature?: string
+  country?: string
+  province?: string
   city?: string
   job?: string
   cookAge?: number
   favoriteCuisine?: string
   tastePreference?: string
   dietaryRestrictions?: string
+  interests?: string
+  vipLevel?: number
 
   totalSpend?: number
   isMasterChef: boolean // 认证大厨标识

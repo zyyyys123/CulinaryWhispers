@@ -3,6 +3,7 @@ package com.zyyyys.culinarywhispers.module.social.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zyyyys.culinarywhispers.common.result.Result;
 import com.zyyyys.culinarywhispers.common.utils.SecurityUtil;
+import com.zyyyys.culinarywhispers.module.recipe.vo.RecipePageVO;
 import com.zyyyys.culinarywhispers.module.social.entity.Comment;
 import com.zyyyys.culinarywhispers.module.social.entity.Follow;
 import com.zyyyys.culinarywhispers.module.social.service.CommentService;
@@ -130,5 +131,15 @@ public class SocialController {
                                                 @RequestParam(defaultValue = "10") int size) {
         Long userId = SecurityUtil.getUserId();
         return Result.success(followService.listFollowing(userId, page, size));
+    }
+
+    /**
+     * 获取我的收藏食谱列表
+     */
+    @GetMapping("/collect/recipes")
+    public Result<Page<RecipePageVO>> listMyCollectedRecipes(@RequestParam(defaultValue = "1") int page,
+                                                             @RequestParam(defaultValue = "10") int size) {
+        Long userId = SecurityUtil.getUserId();
+        return Result.success(interactionService.pageCollectedRecipes(userId, page, size));
     }
 }

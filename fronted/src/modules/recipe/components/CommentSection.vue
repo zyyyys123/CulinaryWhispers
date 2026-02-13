@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { gsap } from 'gsap'
 import { SocialAPI } from '@/api/social'
 import type { CommentVO } from '@/types/social'
+import { useAuthStore } from '@/stores/auth'
+import { useRoute, useRouter } from 'vue-router'
 
 const props = defineProps<{
   recipeId: string
@@ -11,6 +13,12 @@ const props = defineProps<{
 const comments = ref<CommentVO[]>([])
 const loading = ref(true)
 const newComment = ref('')
+const replyTo = ref<CommentVO | null>(null)
+const inputEl = ref<HTMLTextAreaElement | null>(null)
+
+const auth = useAuthStore()
+const router = useRouter()
+const route = useRoute()
 
 // Fetch
 const fetchComments = async () => {
@@ -32,31 +40,54 @@ const fetchComments = async () => {
   }
 }
 
+const startReply = async (comment: CommentVO) => {
+  replyTo.value = comment
+  await nextTick()
+  if (inputEl.value) {
+    inputEl.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    inputEl.value.focus()
+  }
+}
+
+const cancelReply = () => {
+  replyTo.value = null
+}
+
 // Post
 const submitComment = async () => {
   if (!newComment.value.trim()) return
+  if (!auth.token) {
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
   
   // Optimistic UI Update
+  if (!auth.profile) {
+    auth.loadProfile()
+  }
   const tempComment: CommentVO = {
     id: `temp_${Date.now()}`,
     recipeId: props.recipeId,
     content: newComment.value,
+    parentId: replyTo.value?.id,
     author: {
-      userId: 'me',
-      username: 'me',
-      nickname: 'You',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-      totalSpend: 0,
-      isMasterChef: false
+      userId: auth.profile?.userId ?? 'me',
+      username: auth.profile?.username ?? 'me',
+      nickname: auth.profile?.nickname ?? '我',
+      avatarUrl: auth.profile?.avatarUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=me',
+      totalSpend: auth.profile?.totalSpend ?? 0,
+      isMasterChef: Boolean(auth.profile?.isMasterChef)
     },
-    createTime: 'Just now',
+    createTime: '刚刚',
     likeCount: 0,
     isLiked: false
   }
   
   comments.value.unshift(tempComment)
   const content = newComment.value
+  const parentId = replyTo.value?.id
   newComment.value = ''
+  replyTo.value = null
   
   // Animate the new item
   setTimeout(() => {
@@ -68,10 +99,17 @@ const submitComment = async () => {
   }, 10)
 
   // Real API call
-  await SocialAPI.postComment({ recipeId: props.recipeId, content })
+  const res = await SocialAPI.postComment({ recipeId: props.recipeId, content, parentId })
+  if (res.code === 200) {
+    fetchComments()
+  }
 }
 
 const toggleLike = async (comment: CommentVO) => {
+  if (!auth.token) {
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
   // Optimistic UI
   comment.isLiked = !comment.isLiked
   comment.likeCount += comment.isLiked ? 1 : -1
@@ -91,17 +129,22 @@ onMounted(() => {
 
 <template>
   <div class="comments-section mt-12 pt-12 border-t border-gray-800">
-    <h3 class="text-2xl font-serif text-primary mb-8">Discussion ({{ comments.length }})</h3>
+    <h3 class="text-2xl font-serif text-primary mb-8">评论区（{{ comments.length }}）</h3>
     
     <!-- Input Area -->
     <div class="flex gap-4 mb-10">
       <div class="w-10 h-10 rounded-full bg-gray-700 overflow-hidden shrink-0">
-        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="w-full h-full object-cover" />
+        <img :src="auth.profile?.avatarUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=me'" class="w-full h-full object-cover" />
       </div>
       <div class="flex-1 relative">
+        <div v-if="replyTo" class="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-black/20 text-xs text-gray-300">
+          <span>回复 {{ replyTo.author.nickname }}</span>
+          <button @click="cancelReply" class="text-gray-400 hover:text-white transition-colors">✕</button>
+        </div>
         <textarea 
           v-model="newComment"
-          placeholder="Share your thoughts or ask a question..." 
+          ref="inputEl"
+          placeholder="说点什么…（支持回复）" 
           class="w-full bg-dark-surface border border-gray-700 rounded-xl p-4 text-white placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none h-24"
         ></textarea>
         <button 
@@ -109,7 +152,7 @@ onMounted(() => {
           class="absolute bottom-3 right-3 px-4 py-1.5 bg-primary text-black text-xs font-bold rounded-lg hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           :disabled="!newComment.trim()"
         >
-          POST
+          发布
         </button>
       </div>
     </div>
@@ -126,11 +169,14 @@ onMounted(() => {
         <div class="flex-1">
           <div class="flex items-center gap-2 mb-1">
             <span class="font-bold text-white">{{ comment.author.nickname }}</span>
-            <span v-if="comment.author.isMasterChef" class="w-3 h-3 bg-primary rounded-full" title="Master Chef"></span>
+            <span v-if="comment.author.isMasterChef" class="w-3 h-3 bg-primary rounded-full" title="认证大厨"></span>
             <span class="text-xs text-gray-500">• {{ comment.createTime }}</span>
           </div>
           
-          <p class="text-gray-300 text-sm leading-relaxed mb-2">{{ comment.content }}</p>
+          <p class="text-gray-300 text-sm leading-relaxed mb-2">
+            <span v-if="comment.parentId" class="text-primary mr-1">@回复</span>
+            {{ comment.content }}
+          </p>
           
           <!-- Actions -->
           <div class="flex items-center gap-4 text-xs text-gray-500">
@@ -142,7 +188,7 @@ onMounted(() => {
               <svg class="w-4 h-4 group-hover:fill-current" :class="{ 'fill-current': comment.isLiked }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
               {{ comment.likeCount }}
             </button>
-            <button class="hover:text-white transition-colors">Reply</button>
+            <button @click="startReply(comment)" class="hover:text-white transition-colors">回复</button>
           </div>
         </div>
       </div>

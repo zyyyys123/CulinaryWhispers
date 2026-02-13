@@ -13,13 +13,20 @@ type BackendUserProfileVO = {
   email?: string
   gender?: number
   signature?: string
+  country?: string
+  province?: string
   city?: string
   job?: string
   cookAge?: number
   favoriteCuisine?: string
   tastePreference?: string
   dietaryRestrictions?: string
+  interests?: string
+  vipLevel?: number
   isMasterChef?: boolean
+  masterTitle?: string
+  bgImageUrl?: string
+  totalSpend?: number
 }
 
 type BackendUserStatsVO = {
@@ -67,16 +74,20 @@ export const UserAPI = {
         email: d.email,
         gender: d.gender,
         signature: d.signature,
+        country: d.country,
+        province: d.province,
         city: d.city,
         job: d.job,
         cookAge: d.cookAge,
         favoriteCuisine: d.favoriteCuisine,
         tastePreference: d.tastePreference,
         dietaryRestrictions: d.dietaryRestrictions,
-        totalSpend: 0,
+        interests: d.interests,
+        vipLevel: d.vipLevel,
+        totalSpend: Number(d.totalSpend ?? 0),
         isMasterChef: Boolean(d.isMasterChef),
-        masterTitle: undefined,
-        bgImageUrl: undefined
+        masterTitle: d.masterTitle,
+        bgImageUrl: d.bgImageUrl
       }
     }
   },

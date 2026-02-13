@@ -361,13 +361,15 @@ CREATE TABLE `t_fin_settlement` (
 -- 2.6.1 社交关注表 t_soc_follow
 CREATE TABLE IF NOT EXISTS `t_soc_follow` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '关注ID',
-  `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
-  `following_id` bigint(20) unsigned NOT NULL COMMENT '被关注用户ID',
+  `follower_id` bigint(20) unsigned NOT NULL COMMENT '关注者ID',
+  `following_id` bigint(20) unsigned NOT NULL COMMENT '被关注者ID',
+  `status` int(11) NOT NULL DEFAULT 1 COMMENT '关注状态: 1-关注,0-取消',
   `gmt_create` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `gmt_modified` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_user_following` (`user_id`, `following_id`),
+  UNIQUE KEY `uk_follower_following` (`follower_id`, `following_id`),
   KEY `idx_following` (`following_id`),
-  KEY `idx_gmt_create` (`gmt_create`)
+  KEY `idx_follower` (`follower_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注表';
 
 -- 2.6.2 用户积分流水表 t_points_record

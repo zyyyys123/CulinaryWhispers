@@ -4,7 +4,7 @@ WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 ARG SKIP_TESTS=false
-RUN mvn clean package -DskipTests=${SKIP_TESTS}
+RUN mvn clean package -DskipTests=${SKIP_TESTS} -Djacoco.skip=true
 
 # Run Stage
 FROM eclipse-temurin:21-jre

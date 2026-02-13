@@ -4,6 +4,8 @@ import com.zyyyys.culinarywhispers.module.user.entity.User;
 import com.zyyyys.culinarywhispers.module.user.entity.UserProfile;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Data
 public class UserProfileVO {
     // 基础信息
@@ -24,6 +26,13 @@ public class UserProfileVO {
     private String tastePreference;
     private String dietaryRestrictions;
     private Boolean isMasterChef;
+    private String masterTitle;
+    private String bgImageUrl;
+    private BigDecimal totalSpend;
+    private String country;
+    private String province;
+    private String interests;
+    private Integer vipLevel;
     
     // 静态工厂方法用于合并数据
     public static UserProfileVO from(User user, UserProfile profile) {
@@ -46,6 +55,13 @@ public class UserProfileVO {
             vo.setTastePreference(profile.getTastePreference());
             vo.setDietaryRestrictions(profile.getDietaryRestrictions());
             vo.setIsMasterChef(profile.getIsMasterChef());
+            vo.setMasterTitle(profile.getMasterTitle());
+            vo.setBgImageUrl(profile.getBgImageUrl());
+            vo.setTotalSpend(profile.getTotalSpend());
+            vo.setCountry(profile.getCountry());
+            vo.setProvince(profile.getProvince());
+            vo.setInterests(profile.getInterests());
+            vo.setVipLevel(profile.getVipLevel());
         }
         return vo;
     }

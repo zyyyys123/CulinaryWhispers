@@ -20,11 +20,11 @@ const goToDetail = () => {
 const formattedTime = computed(() => {
   const h = Math.floor(props.data.timeCost / 60)
   const m = props.data.timeCost % 60
-  return h > 0 ? `${h}h ${m}m` : `${m}m`
+  return h > 0 ? `${h}小时${m}分钟` : `${m}分钟`
 })
 
 const difficultyLabel = computed(() => {
-  return ['Easy', 'Medium', 'Hard', 'Expert', 'Master'][props.data.difficulty - 1] || 'Medium'
+  return ['简单', '适中', '有点难', '进阶', '大师'][props.data.difficulty - 1] || '适中'
 })
 </script>
 

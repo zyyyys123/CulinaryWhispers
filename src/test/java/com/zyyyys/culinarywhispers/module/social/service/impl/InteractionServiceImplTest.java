@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.ResultCode;
+import com.zyyyys.culinarywhispers.module.recipe.mapper.RecipeInfoMapper;
 import com.zyyyys.culinarywhispers.module.social.entity.Interaction;
 import com.zyyyys.culinarywhispers.module.social.event.InteractionEvent;
 import com.zyyyys.culinarywhispers.module.social.mapper.InteractionMapper;
+import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,12 +32,18 @@ class InteractionServiceImplTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private RecipeInfoMapper recipeInfoMapper;
+
+    @Mock
+    private UserService userService;
+
     private InteractionServiceImpl interactionService;
 
     @BeforeEach
     void setUp() {
         // 使用 Spy 来部分模拟 ServiceImpl 的行为 (绕过 MyBatis-Plus 的复杂 Wrapper 匹配)
-        interactionService = spy(new InteractionServiceImpl(eventPublisher));
+        interactionService = spy(new InteractionServiceImpl(eventPublisher, recipeInfoMapper, userService));
         // 注入 baseMapper 以支持 save/remove 等操作
         ReflectionTestUtils.setField(interactionService, "baseMapper", interactionMapper);
     }

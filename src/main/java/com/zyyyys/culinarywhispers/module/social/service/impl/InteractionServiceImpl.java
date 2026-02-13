@@ -1,22 +1,35 @@
 package com.zyyyys.culinarywhispers.module.social.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.ResultCode;
+import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeInfo;
+import com.zyyyys.culinarywhispers.module.recipe.mapper.RecipeInfoMapper;
+import com.zyyyys.culinarywhispers.module.recipe.vo.RecipePageVO;
 import com.zyyyys.culinarywhispers.module.social.entity.Interaction;
 import com.zyyyys.culinarywhispers.module.social.event.InteractionEvent;
 import com.zyyyys.culinarywhispers.module.social.mapper.InteractionMapper;
 import com.zyyyys.culinarywhispers.module.social.service.InteractionService;
 import com.zyyyys.culinarywhispers.module.social.vo.InteractionStatusVO;
+import com.zyyyys.culinarywhispers.module.user.entity.User;
+import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 互动服务实现类
@@ -28,6 +41,8 @@ import java.util.List;
 public class InteractionServiceImpl extends ServiceImpl<InteractionMapper, Interaction> implements InteractionService {
 
     private final ApplicationEventPublisher eventPublisher;
+    private final RecipeInfoMapper recipeInfoMapper;
+    private final UserService userService;
 
     /**
      * 切换互动状态（点赞/取消点赞、收藏/取消收藏）
@@ -104,5 +119,70 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionMapper, Inter
             }
         }
         return vo;
+    }
+
+    @Override
+    public Page<RecipePageVO> pageCollectedRecipes(Long userId, int page, int size) {
+        if (userId == null) {
+            return new Page<>(page, size);
+        }
+        Page<Interaction> itPage = new Page<>(page, size);
+        LambdaQueryWrapper<Interaction> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Interaction::getUserId, userId)
+                .eq(Interaction::getTargetType, 1)
+                .eq(Interaction::getActionType, 2)
+                .orderByDesc(Interaction::getGmtCreate);
+        this.page(itPage, wrapper);
+
+        List<Long> recipeIds = itPage.getRecords().stream()
+                .map(Interaction::getTargetId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        if (recipeIds.isEmpty()) {
+            return new Page<>(page, size);
+        }
+
+        List<RecipeInfo> infos = recipeInfoMapper.selectBatchIds(recipeIds);
+        Map<Long, RecipeInfo> infoMap = new HashMap<>();
+        for (RecipeInfo info : infos) {
+            if (info != null && info.getId() != null) {
+                infoMap.put(info.getId(), info);
+            }
+        }
+
+        List<RecipeInfo> ordered = new ArrayList<>();
+        for (Long id : recipeIds) {
+            RecipeInfo info = infoMap.get(id);
+            if (info != null) {
+                ordered.add(info);
+            }
+        }
+
+        Set<Long> authorIds = ordered.stream()
+                .map(RecipeInfo::getAuthorId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, User> authorMap = authorIds.isEmpty()
+                ? Map.of()
+                : userService.listByIds(authorIds).stream().collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
+
+        List<RecipePageVO> voList = ordered.stream().map(info -> {
+            RecipePageVO vo = new RecipePageVO();
+            BeanUtils.copyProperties(info, vo);
+            User author = authorMap.get(info.getAuthorId());
+            if (author != null) {
+                vo.setAuthorName(author.getNickname());
+                vo.setAuthorAvatar(author.getAvatarUrl());
+            }
+            return vo;
+        }).collect(Collectors.toList());
+
+        Page<RecipePageVO> result = new Page<>(page, size);
+        result.setTotal(itPage.getTotal());
+        result.setRecords(voList);
+        result.setCurrent(itPage.getCurrent());
+        result.setPages(itPage.getPages());
+        result.setSize(itPage.getSize());
+        return result;
     }
 }
