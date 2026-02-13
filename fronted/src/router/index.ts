@@ -27,6 +27,11 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/user/:id',
+      name: 'user-public',
+      component: () => import('@/modules/user/UserProfile.vue')
+    },
+    {
       path: '/market',
       name: 'market',
       component: () => import('@/modules/commerce/MarketPage.vue')
@@ -41,6 +46,11 @@ const router = createRouter({
       name: 'social',
       component: () => import('@/modules/social/SocialHubPage.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/vip',
+      name: 'vip',
+      component: () => import('@/modules/user/VipCenterPage.vue')
     },
     {
       path: '/points',

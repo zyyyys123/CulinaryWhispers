@@ -42,6 +42,12 @@ const fetchComments = async () => {
 
 const startReply = async (comment: CommentVO) => {
   replyTo.value = comment
+  const mention = `@${comment.author.userId} `
+  if (!newComment.value.trim()) {
+    newComment.value = mention
+  } else if (!newComment.value.startsWith(mention)) {
+    newComment.value = mention + newComment.value.trimStart()
+  }
   await nextTick()
   if (inputEl.value) {
     inputEl.value.scrollIntoView({ behavior: 'smooth', block: 'center' })

@@ -3,44 +3,74 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { SocialAPI } from '@/api/social'
 import type { FollowVO } from '@/types/social'
+import { NotifyAPI } from '@/api/notify'
+import type { NotificationVO } from '@/types/notify'
 
 const router = useRouter()
 
 const loading = ref(false)
 const errorMessage = ref('')
 
-const activeTab = ref<'following' | 'followers'>('following')
+const activeTab = ref<'following' | 'followers' | 'notifications'>('following')
 const page = ref(1)
 const size = ref(10)
 const total = ref(0)
 const list = ref<FollowVO[]>([])
+const lastFetchCount = ref(0)
+
+const nPage = ref(1)
+const nSize = ref(10)
+const nTotal = ref(0)
+const notifications = ref<NotificationVO[]>([])
+const lastNotifyFetchCount = ref(0)
 
 const targetUserId = ref('')
 
-const hasMore = computed(() => list.value.length < total.value)
+const hasMore = computed(() => (total.value > 0 ? list.value.length < total.value : lastFetchCount.value === size.value))
+const hasMoreNotify = computed(() => (nTotal.value > 0 ? notifications.value.length < nTotal.value : lastNotifyFetchCount.value === nSize.value))
 
 const load = async (reset = true) => {
   if (loading.value) return
   loading.value = true
   errorMessage.value = ''
   try {
-    if (reset) {
-      page.value = 1
-      total.value = 0
-      list.value = []
-    }
-    const res =
-      activeTab.value === 'following'
-        ? await SocialAPI.getFollowing({ page: page.value, size: size.value })
-        : await SocialAPI.getFollowers({ page: page.value, size: size.value })
+    if (activeTab.value === 'notifications') {
+      if (reset) {
+        nPage.value = 1
+        nTotal.value = 0
+        notifications.value = []
+      }
+      const res = await NotifyAPI.list({ page: nPage.value, size: nSize.value })
+      if (res.code !== 200) {
+        errorMessage.value = res.message || '加载失败'
+        return
+      }
+      nTotal.value = Number(res.data.total ?? 0)
+      const batch = res.data.records ?? []
+      notifications.value.push(...batch)
+      lastNotifyFetchCount.value = batch.length
+      nPage.value++
+    } else {
+      if (reset) {
+        page.value = 1
+        total.value = 0
+        list.value = []
+      }
+      const res =
+        activeTab.value === 'following'
+          ? await SocialAPI.getFollowing({ page: page.value, size: size.value })
+          : await SocialAPI.getFollowers({ page: page.value, size: size.value })
 
-    if (res.code !== 200) {
-      errorMessage.value = res.message || '加载失败'
-      return
+      if (res.code !== 200) {
+        errorMessage.value = res.message || '加载失败'
+        return
+      }
+      total.value = Number(res.data.total ?? 0)
+      const batch = res.data.records ?? []
+      list.value.push(...batch)
+      lastFetchCount.value = batch.length
+      page.value++
     }
-    total.value = Number(res.data.total ?? 0)
-    list.value.push(...(res.data.records ?? []))
-    page.value++
   } catch {
     errorMessage.value = '加载失败，请检查网络或稍后重试'
   } finally {
@@ -87,6 +117,19 @@ const unfollow = async (uid: string) => {
 onMounted(() => {
   load(true)
 })
+
+const openNotification = async (n: NotificationVO) => {
+  try {
+    if (!n.isRead) {
+      await NotifyAPI.markRead(n.id)
+      n.isRead = true
+    }
+  } finally {
+    if (n.targetType === 1) {
+      router.push({ name: 'recipe-detail', params: { id: n.targetId } })
+    }
+  }
+}
 </script>
 
 <template>
@@ -136,12 +179,19 @@ onMounted(() => {
           >
             Followers
           </button>
+          <button
+            @click="activeTab = 'notifications'; load(true)"
+            class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
+            :class="activeTab === 'notifications' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
+          >
+            通知
+          </button>
         </div>
 
         <div v-if="errorMessage" class="mt-4 text-sm text-red-300">{{ errorMessage }}</div>
       </div>
 
-      <div class="space-y-3">
+      <div v-if="activeTab !== 'notifications'" class="space-y-3">
         <div
           v-for="item in list"
           :key="item.userId"
@@ -167,19 +217,50 @@ onMounted(() => {
         </div>
       </div>
 
+      <div v-else class="space-y-3">
+        <div
+          v-for="n in notifications"
+          :key="n.id"
+          class="rounded-2xl border border-white/10 bg-black/10 p-5 flex items-center justify-between gap-4 cursor-pointer hover:border-primary/40 transition-colors"
+          @click="openNotification(n)"
+        >
+          <div class="flex items-center gap-4 min-w-0">
+            <div class="relative">
+              <img :src="n.fromAvatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${n.fromUserId}`" class="w-12 h-12 rounded-full border border-white/10" />
+              <span v-if="!n.isRead" class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary"></span>
+            </div>
+            <div class="min-w-0">
+              <div class="font-bold truncate">{{ n.fromNickname || `用户 ${n.fromUserId}` }}</div>
+              <div class="text-sm text-gray-300 mt-1 truncate">{{ n.content }}</div>
+              <div class="text-xs text-gray-600 mt-1">{{ n.createTime }}</div>
+            </div>
+          </div>
+          <div class="text-xs tracking-widest text-gray-500 shrink-0">查看</div>
+        </div>
+      </div>
+
       <div class="flex justify-center mt-10">
         <button
-          v-if="hasMore && !loading"
+          v-if="activeTab !== 'notifications' && hasMore && !loading"
           @click="load(false)"
           class="px-8 py-3 rounded-full border border-gray-700 hover:border-primary text-gray-300 hover:text-primary transition-colors text-sm tracking-widest uppercase"
         >
           Load More
         </button>
-        <div v-else-if="!loading && list.length > 0" class="text-gray-600 text-sm tracking-widest uppercase">
+        <button
+          v-else-if="activeTab === 'notifications' && hasMoreNotify && !loading"
+          @click="load(false)"
+          class="px-8 py-3 rounded-full border border-gray-700 hover:border-primary text-gray-300 hover:text-primary transition-colors text-sm tracking-widest uppercase"
+        >
+          Load More
+        </button>
+        <div v-else-if="!loading && activeTab !== 'notifications' && list.length > 0" class="text-gray-600 text-sm tracking-widest uppercase">
+          End of List
+        </div>
+        <div v-else-if="!loading && activeTab === 'notifications' && notifications.length > 0" class="text-gray-600 text-sm tracking-widest uppercase">
           End of List
         </div>
       </div>
     </div>
   </div>
 </template>
-

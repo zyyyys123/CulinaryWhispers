@@ -17,6 +17,7 @@ import com.zyyyys.culinarywhispers.module.social.entity.Comment;
 import com.zyyyys.culinarywhispers.module.social.service.CommentService;
 import com.zyyyys.culinarywhispers.module.user.entity.User;
 import com.zyyyys.culinarywhispers.module.user.entity.UserProfile;
+import com.zyyyys.culinarywhispers.module.user.service.UserPointsService;
 import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,6 +58,8 @@ class RecipeServiceImplTest {
     private UserService userService;
     @Mock
     private CommentService commentService;
+    @Mock
+    private UserPointsService pointsService;
     @Mock
     private ApplicationEventPublisher eventPublisher;
     @Mock

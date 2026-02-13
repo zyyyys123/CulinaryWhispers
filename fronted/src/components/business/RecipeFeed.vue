@@ -17,8 +17,9 @@ const hasMore = ref(true)
 // Masonry Logic
 const { width } = useWindowSize()
 const columnCount = computed(() => {
-  if (width.value < 640) return 1
-  if (width.value < 1024) return 2
+  const w = width.value || (typeof window !== 'undefined' ? window.innerWidth : 1024)
+  if (w < 640) return 1
+  if (w < 1024) return 2
   return 3
 })
 

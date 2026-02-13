@@ -5,10 +5,15 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.ResultCode;
+import com.zyyyys.culinarywhispers.module.notify.entity.Notification;
+import com.zyyyys.culinarywhispers.module.notify.service.NotificationService;
+import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeInfo;
+import com.zyyyys.culinarywhispers.module.recipe.mapper.RecipeInfoMapper;
 import com.zyyyys.culinarywhispers.module.social.entity.Comment;
 import com.zyyyys.culinarywhispers.module.social.event.CommentEvent;
 import com.zyyyys.culinarywhispers.module.social.mapper.CommentMapper;
 import com.zyyyys.culinarywhispers.module.social.service.CommentService;
+import com.zyyyys.culinarywhispers.module.user.service.UserPointsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -28,6 +33,9 @@ import java.time.LocalDateTime;
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
 
     private final ApplicationEventPublisher eventPublisher;
+    private final NotificationService notificationService;
+    private final RecipeInfoMapper recipeInfoMapper;
+    private final UserPointsService pointsService;
 
     /**
      * 添加评论
@@ -58,8 +66,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         comment.setGmtCreate(LocalDateTime.now());
         
         // 处理 rootId
+        Comment parent = null;
         if (parentId != null && parentId > 0) {
-            Comment parent = this.getById(parentId);
+            parent = this.getById(parentId);
             if (parent == null) {
                 throw new BusinessException(ResultCode.DATA_NOT_FOUND);
             }
@@ -71,6 +80,41 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         // 3. 保存入库
         this.save(comment);
+
+        String shortContent = content.trim();
+        if (shortContent.length() > 80) {
+            shortContent = shortContent.substring(0, 80) + "...";
+        }
+
+        if (parent != null && parent.getUserId() != null && !parent.getUserId().equals(userId)) {
+            Notification n = new Notification();
+            n.setFromUserId(userId);
+            n.setToUserId(parent.getUserId());
+            n.setType(1);
+            n.setTargetType(1);
+            n.setTargetId(recipeId);
+            n.setContent("回复了你：" + shortContent);
+            n.setIsRead(0);
+            n.setGmtCreate(LocalDateTime.now());
+            notificationService.save(n);
+            pointsService.addPoints(userId, 1, 4, "回复评论");
+        }
+
+        RecipeInfo info = recipeInfoMapper.selectById(recipeId);
+        if (info != null && info.getAuthorId() != null && !info.getAuthorId().equals(userId) && (parentId == null || parentId <= 0)) {
+            Notification n = new Notification();
+            n.setFromUserId(userId);
+            n.setToUserId(info.getAuthorId());
+            n.setType(2);
+            n.setTargetType(1);
+            n.setTargetId(recipeId);
+            n.setContent("评论了你的食谱：" + shortContent);
+            n.setIsRead(0);
+            n.setGmtCreate(LocalDateTime.now());
+            notificationService.save(n);
+            pointsService.addPoints(userId, 2, 4, "发表评论");
+            pointsService.addPoints(info.getAuthorId(), 3, 7, "食谱被评论");
+        }
 
         // 4. 发布事件 (增加评论数)
         eventPublisher.publishEvent(new CommentEvent(this, recipeId, true));

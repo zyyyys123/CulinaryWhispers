@@ -2,9 +2,13 @@ package com.zyyyys.culinarywhispers.module.social.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
+import com.zyyyys.culinarywhispers.module.notify.service.NotificationService;
+import com.zyyyys.culinarywhispers.module.recipe.entity.RecipeInfo;
+import com.zyyyys.culinarywhispers.module.recipe.mapper.RecipeInfoMapper;
 import com.zyyyys.culinarywhispers.module.social.entity.Comment;
 import com.zyyyys.culinarywhispers.module.social.event.CommentEvent;
 import com.zyyyys.culinarywhispers.module.social.mapper.CommentMapper;
+import com.zyyyys.culinarywhispers.module.user.service.UserPointsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,12 +34,21 @@ class CommentServiceImplTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private RecipeInfoMapper recipeInfoMapper;
+
+    @Mock
+    private UserPointsService pointsService;
+
     private CommentServiceImpl commentService;
 
     @BeforeEach
     void setUp() {
         // 使用 Spy 来模拟 ServiceImpl
-        commentService = spy(new CommentServiceImpl(eventPublisher));
+        commentService = spy(new CommentServiceImpl(eventPublisher, notificationService, recipeInfoMapper, pointsService));
         ReflectionTestUtils.setField(commentService, "baseMapper", commentMapper);
     }
 
@@ -70,6 +83,11 @@ class CommentServiceImplTest {
         Long userId = 1L;
         Long recipeId = 100L;
         String content = "Delicious!";
+
+        RecipeInfo info = new RecipeInfo();
+        info.setId(recipeId);
+        info.setAuthorId(2L);
+        when(recipeInfoMapper.selectById(recipeId)).thenReturn(info);
         
         doReturn(true).when(commentService).save(any(Comment.class));
 
@@ -94,9 +112,11 @@ class CommentServiceImplTest {
         Comment parent = new Comment();
         parent.setId(parentId);
         parent.setRootId(0L);
+        parent.setUserId(2L);
         
         // 模拟 getById
         doReturn(parent).when(commentService).getById(parentId);
+        when(recipeInfoMapper.selectById(recipeId)).thenReturn(new RecipeInfo());
         doReturn(true).when(commentService).save(any(Comment.class));
 
         commentService.addComment(userId, recipeId, content, parentId);

@@ -29,8 +29,10 @@ public class SchemaPatchRunner implements ApplicationRunner {
         }
         try {
             ensureTotalSpendColumn();
+            ensureVipColumns();
             ensureFollowTable();
             ensurePointsRecordTable();
+            ensureNotifyTable();
         } catch (Exception e) {
             // 启动补丁不应阻断应用启动；失败时保留日志便于排查
             log.error("Schema patch failed", e);
@@ -55,6 +57,37 @@ public class SchemaPatchRunner implements ApplicationRunner {
         // 修复字段缺失：避免 UserProfile 映射 select * 时出现 Unknown column
         jdbcTemplate.execute("ALTER TABLE t_usr_profile ADD COLUMN total_spend DECIMAL(12,2) DEFAULT 0.00 COMMENT '用户总消费金额' AFTER contact_email");
         log.info("Schema patch applied: added t_usr_profile.total_spend");
+    }
+
+    private void ensureVipColumns() {
+        String schema = jdbcTemplate.queryForObject("SELECT DATABASE()", String.class);
+        if (schema == null || schema.isBlank()) {
+            return;
+        }
+
+        Integer vipLevelCol = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+                Integer.class,
+                schema,
+                "t_usr_profile",
+                "vip_level"
+        );
+        if (vipLevelCol == null || vipLevelCol == 0) {
+            jdbcTemplate.execute("ALTER TABLE t_usr_profile ADD COLUMN vip_level INT DEFAULT 0 COMMENT 'VIP 等级' AFTER dietary_restrictions");
+            log.info("Schema patch applied: added t_usr_profile.vip_level");
+        }
+
+        Integer vipExpireCol = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+                Integer.class,
+                schema,
+                "t_usr_profile",
+                "vip_expire_time"
+        );
+        if (vipExpireCol == null || vipExpireCol == 0) {
+            jdbcTemplate.execute("ALTER TABLE t_usr_profile ADD COLUMN vip_expire_time DATETIME(3) DEFAULT NULL COMMENT 'VIP 到期时间' AFTER vip_level");
+            log.info("Schema patch applied: added t_usr_profile.vip_expire_time");
+        }
     }
 
     private void ensureFollowTable() {
@@ -90,6 +123,26 @@ public class SchemaPatchRunner implements ApplicationRunner {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户积分流水表'
                 """;
         ensureTable("t_points_record", ddl);
+    }
+
+    private void ensureNotifyTable() {
+        String ddl = """
+                CREATE TABLE IF NOT EXISTS t_notify (
+                  id BIGINT UNSIGNED NOT NULL COMMENT '通知ID',
+                  from_user_id BIGINT UNSIGNED NOT NULL COMMENT '触发者ID',
+                  to_user_id BIGINT UNSIGNED NOT NULL COMMENT '接收者ID',
+                  type INT NOT NULL COMMENT '类型: 1-评论回复,2-评论食谱,3-点赞食谱,4-收藏食谱,5-点赞评论',
+                  target_type INT NOT NULL COMMENT '目标类型: 1-食谱,2-评论',
+                  target_id BIGINT UNSIGNED NOT NULL COMMENT '目标ID',
+                  content VARCHAR(512) NOT NULL COMMENT '内容',
+                  is_read TINYINT NOT NULL DEFAULT 0 COMMENT '是否已读: 0-未读,1-已读',
+                  gmt_create DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                  PRIMARY KEY (id),
+                  KEY idx_to_time (to_user_id, gmt_create),
+                  KEY idx_read (to_user_id, is_read)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站内通知'
+                """;
+        ensureTable("t_notify", ddl);
     }
 
     private void ensureFollowTableColumnsAndIndexes() {

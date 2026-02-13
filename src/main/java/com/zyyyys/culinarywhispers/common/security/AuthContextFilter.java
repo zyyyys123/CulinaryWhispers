@@ -101,6 +101,12 @@ public class AuthContextFilter extends OncePerRequestFilter {
         if (path.equals("/api/user/login") || path.equals("/api/user/register")) {
             return true;
         }
+        if ("GET".equalsIgnoreCase(method) && (path.startsWith("/api/user/profile/") || path.startsWith("/api/user/stats/"))) {
+            return true;
+        }
+        if ("GET".equalsIgnoreCase(method) && path.startsWith("/api/user/vip/plans")) {
+            return true;
+        }
         if (path.equals("/api/log/capture")) {
             return true;
         }
@@ -114,6 +120,9 @@ public class AuthContextFilter extends OncePerRequestFilter {
             return true;
         }
         if (path.startsWith("/api/social/interact/status")) {
+            return true;
+        }
+        if ("GET".equalsIgnoreCase(method) && path.startsWith("/api/social/comment/list")) {
             return true;
         }
         return "GET".equalsIgnoreCase(method) && path.startsWith("/api/recipe/");

@@ -5,6 +5,7 @@ import com.zyyyys.culinarywhispers.module.user.entity.UserProfile;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 public class UserProfileVO {
@@ -33,6 +34,7 @@ public class UserProfileVO {
     private String province;
     private String interests;
     private Integer vipLevel;
+    private LocalDateTime vipExpireTime;
     
     // 静态工厂方法用于合并数据
     public static UserProfileVO from(User user, UserProfile profile) {
@@ -62,6 +64,7 @@ public class UserProfileVO {
             vo.setProvince(profile.getProvince());
             vo.setInterests(profile.getInterests());
             vo.setVipLevel(profile.getVipLevel());
+            vo.setVipExpireTime(profile.getVipExpireTime());
         }
         return vo;
     }

@@ -3,12 +3,13 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { gsap } from 'gsap'
 import { UserAPI } from '@/api/user'
-import type { UserProfileVO, UserStatsVO } from '@/types/user'
+import type { BadgeVO, UserProfileVO, UserStatsVO } from '@/types/user'
 import RecipeFeed from '@/components/business/RecipeFeed.vue'
 import BadgeWall3D from './components/BadgeWall3D.vue'
 import { SocialAPI } from '@/api/social'
 import type { RecipePageVO } from '@/types/recipe'
 import RecipeCard from '@/components/business/RecipeCard.vue'
+import { useAuthStore } from '@/stores/auth'
 
 // State
 const profile = ref<UserProfileVO | null>(null)
@@ -27,6 +28,11 @@ const collectedRecipes = ref<RecipePageVO[]>([])
 
 const router = useRouter()
 const route = useRoute()
+const auth = useAuthStore()
+
+const viewingUserId = computed(() => (route.params.id ? String(route.params.id) : ''))
+const isPublicView = computed(() => Boolean(viewingUserId.value))
+const isSelf = computed(() => !isPublicView.value || viewingUserId.value === auth.profile?.userId)
 
 const editForm = ref({
   nickname: '',
@@ -73,15 +79,34 @@ const moneyText = (n?: number) => {
   return `¥${v.toFixed(2)}`
 }
 
+const badgeWallBadges = computed<BadgeVO[]>(() => {
+  const level = stats.value?.level ?? 1
+  const vip = Number(profile.value?.vipLevel ?? 0)
+  const base = stats.value?.badges ?? []
+  const baseNames = new Set(base.filter(b => b.isUnlocked).map(b => b.name))
+
+  const extra: BadgeVO[] = [
+    { id: 'lvl_5', name: '等级 Lv.5', iconUrl: '/badges/chef-hat.png', description: '等级达到 5', isUnlocked: level >= 5 },
+    { id: 'lvl_10', name: '等级 Lv.10', iconUrl: '/badges/chef-hat.png', description: '等级达到 10', isUnlocked: level >= 10 },
+    { id: 'vip_1', name: 'VIP 青铜', iconUrl: '/badges/chef-hat.png', description: '积分兑换获得（限时）', isUnlocked: vip >= 1 },
+    { id: 'vip_2', name: 'VIP 白银', iconUrl: '/badges/chef-hat.png', description: '积分兑换获得（限时）', isUnlocked: vip >= 2 },
+    { id: 'vip_3', name: 'VIP 黄金', iconUrl: '/badges/chef-hat.png', description: '积分兑换获得（限时）', isUnlocked: vip >= 3 },
+    { id: 'event_only', name: '活动限定勋章', iconUrl: '/badges/chef-hat.png', description: '参与活动渠道获取', isUnlocked: baseNames.has('活动限定勋章') }
+  ]
+
+  return [...extra, ...base]
+})
+
 // Data Fetching
 const fetchData = async () => {
   loading.value = true
   errorMessage.value = ''
   try {
-    const [profileRes, statsRes] = await Promise.all([
-      UserAPI.getProfile(),
-      UserAPI.getStats()
-    ])
+    const [profileRes, statsRes] = await Promise.all(
+      isPublicView.value
+        ? [UserAPI.getProfileById(viewingUserId.value), UserAPI.getStatsById(viewingUserId.value)]
+        : [UserAPI.getProfile(), UserAPI.getStats()]
+    )
     
     if (profileRes.code === 200) profile.value = profileRes.data
     if (statsRes.code === 200) stats.value = statsRes.data
@@ -90,7 +115,7 @@ const fetchData = async () => {
     }
   } catch (e: any) {
     const status = e?.response?.status
-    if (status === 401) {
+    if (status === 401 && !isPublicView.value) {
       localStorage.removeItem('cw_token')
       errorMessage.value = '登录已失效，请重新登录'
       await router.replace({ name: 'login', query: { redirect: route.fullPath } })
@@ -129,6 +154,7 @@ const fetchData = async () => {
 }
 
 onMounted(() => {
+  if (auth.token && !auth.profile) auth.loadProfile()
   fetchData()
 })
 
@@ -166,6 +192,15 @@ const setTab = async (tab: 'recipes' | 'likes' | 'about') => {
   if (tab === 'likes' && collectedRecipes.value.length === 0) {
     await fetchCollected(true)
   }
+}
+
+const followTarget = async () => {
+  if (!profile.value) return
+  if (!auth.token) {
+    await router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
+  await SocialAPI.follow(profile.value.userId)
 }
 
 const saveProfile = async () => {
@@ -220,8 +255,8 @@ const logout = () => {
       <div class="absolute bottom-0 left-0 w-full p-8 md:p-12 flex flex-col md:flex-row items-end md:items-center gap-8">
         
         <!-- Back Home Button (Moved to top-left of page with z-index) -->
-        <button @click="$router.push({ name: 'home' })" class="absolute top-6 left-6 flex items-center gap-2 text-white/70 hover:text-white transition-colors z-50 group">
-          <div class="w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center border border-white/10 group-hover:bg-primary group-hover:text-black group-hover:border-primary transition-all">
+        <button @click="$router.push({ name: 'home' })" class="absolute top-4 left-4 md:top-6 md:left-6 flex items-center gap-2 text-white/70 hover:text-white transition-colors z-30 group">
+          <div class="w-10 h-10 rounded-full bg-black/20 backdrop-blur flex items-center justify-center border border-white/10 group-hover:bg-primary group-hover:text-black group-hover:border-primary transition-all">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
           </div>
           <span class="font-bold tracking-wider text-sm hidden md:block">返回首页</span>
@@ -253,12 +288,22 @@ const logout = () => {
 
         <!-- Action Buttons -->
         <div class="flex gap-4 mb-4">
-          <button @click="showEdit = true" class="px-7 py-2.5 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors">
-            编辑资料
-          </button>
-          <button @click="logout" class="w-11 h-11 rounded-full border border-gray-600 flex items-center justify-center hover:bg-gray-800 transition-colors" title="退出登录">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6A2.25 2.25 0 0015.75 18.75V15M18 15l3-3m0 0l-3-3m3 3H9"></path></svg>
-          </button>
+          <template v-if="isSelf">
+            <button @click="showEdit = true" class="px-7 py-2.5 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors">
+              编辑资料
+            </button>
+            <button @click="logout" class="w-11 h-11 rounded-full border border-gray-600 flex items-center justify-center hover:bg-gray-800 transition-colors" title="退出登录">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6A2.25 2.25 0 0015.75 18.75V15M18 15l3-3m0 0l-3-3m3 3H9"></path></svg>
+            </button>
+          </template>
+          <template v-else>
+            <button
+              @click="followTarget"
+              class="px-7 py-2.5 bg-primary text-black font-bold rounded-full hover:bg-white transition-colors"
+            >
+              关注
+            </button>
+          </template>
         </div>
       </div>
     </header>
@@ -405,7 +450,7 @@ const logout = () => {
     <!-- 3D Badge Wall Modal -->
     <BadgeWall3D 
       v-if="showBadgeWall" 
-      :badges="stats.badges" 
+      :badges="badgeWallBadges" 
       @close="showBadgeWall = false" 
     />
 

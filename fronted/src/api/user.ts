@@ -23,6 +23,7 @@ type BackendUserProfileVO = {
   dietaryRestrictions?: string
   interests?: string
   vipLevel?: number
+  vipExpireTime?: string
   isMasterChef?: boolean
   masterTitle?: string
   bgImageUrl?: string
@@ -84,6 +85,44 @@ export const UserAPI = {
         dietaryRestrictions: d.dietaryRestrictions,
         interests: d.interests,
         vipLevel: d.vipLevel,
+        vipExpireTime: d.vipExpireTime,
+        totalSpend: Number(d.totalSpend ?? 0),
+        isMasterChef: Boolean(d.isMasterChef),
+        masterTitle: d.masterTitle,
+        bgImageUrl: d.bgImageUrl
+      }
+    }
+  },
+
+  getProfileById: async (userId: string): Promise<Result<UserProfileVO>> => {
+    const res = await http.get<BackendResult<BackendUserProfileVO>>(`/user/profile/${userId}`)
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: null as any }
+    }
+    const d = res.data.data
+    return {
+      code: 200,
+      message: res.data.message,
+      data: {
+        userId: String(d.id),
+        username: d.username,
+        nickname: d.nickname,
+        avatarUrl: d.avatarUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+        mobile: d.mobile,
+        email: d.email,
+        gender: d.gender,
+        signature: d.signature,
+        country: d.country,
+        province: d.province,
+        city: d.city,
+        job: d.job,
+        cookAge: d.cookAge,
+        favoriteCuisine: d.favoriteCuisine,
+        tastePreference: d.tastePreference,
+        dietaryRestrictions: d.dietaryRestrictions,
+        interests: d.interests,
+        vipLevel: d.vipLevel,
+        vipExpireTime: d.vipExpireTime,
         totalSpend: Number(d.totalSpend ?? 0),
         isMasterChef: Boolean(d.isMasterChef),
         masterTitle: d.masterTitle,
@@ -111,6 +150,36 @@ export const UserAPI = {
 
   getStats: async (): Promise<Result<UserStatsVO>> => {
     const res = await http.get<BackendResult<BackendUserStatsVO>>('/user/stats')
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: null as any }
+    }
+    const d = res.data.data
+    const badgeList = (d.badges ?? []).map((name, idx) => ({
+      id: `badge_${idx + 1}`,
+      name,
+      iconUrl: '/badges/chef-hat.png',
+      description: name,
+      isUnlocked: true
+    }))
+    return {
+      code: 200,
+      message: res.data.message,
+      data: {
+        userId: String(d.userId),
+        level: d.level ?? 1,
+        currentExp: d.experience ?? 0,
+        nextLevelExp: d.nextLevelExperience ?? 0,
+        badges: badgeList,
+        followerCount: d.totalFans ?? 0,
+        followingCount: 0,
+        likeCount: d.totalLikesReceived ?? 0,
+        recipeCount: d.totalRecipes ?? 0
+      }
+    }
+  },
+
+  getStatsById: async (userId: string): Promise<Result<UserStatsVO>> => {
+    const res = await http.get<BackendResult<BackendUserStatsVO>>(`/user/stats/${userId}`)
     if (res.data.code !== 200) {
       return { code: res.data.code, message: res.data.message, data: null as any }
     }

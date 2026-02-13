@@ -19,6 +19,7 @@ export interface UserProfileVO {
   dietaryRestrictions?: string
   interests?: string
   vipLevel?: number
+  vipExpireTime?: string
 
   totalSpend?: number
   isMasterChef: boolean // 认证大厨标识

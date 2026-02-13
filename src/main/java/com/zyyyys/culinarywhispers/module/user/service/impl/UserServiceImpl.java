@@ -108,14 +108,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         
         UserProfile profile = profileMapper.selectById(userId);
-        // 如果没有画像，返回空对象或初始化
         if (profile == null) {
             profile = new UserProfile();
             profile.setUserId(userId);
-            // 这里可以选择插入一条默认记录，或者直接返回空
+            profileMapper.insert(profile);
+        }
+
+        if (profile.getVipExpireTime() != null
+                && profile.getVipExpireTime().isBefore(java.time.LocalDateTime.now())
+                && profile.getVipLevel() != null
+                && profile.getVipLevel() > 0) {
+            profile.setVipLevel(0);
+            profile.setVipExpireTime(null);
+            profileMapper.updateById(profile);
         }
         
         return UserProfileVO.from(user, profile);
+    }
+
+    @Override
+    public UserProfileVO getPublicProfile(Long userId) {
+        UserProfileVO vo = getProfile(userId);
+        vo.setMobile(null);
+        vo.setEmail(null);
+        return vo;
     }
 
     /**

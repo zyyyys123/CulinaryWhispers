@@ -51,6 +51,11 @@ public class UserController {
         Long userId = SecurityUtil.getUserId();
         return Result.success(userService.getProfile(userId));
     }
+
+    @GetMapping("/profile/{userId}")
+    public Result<UserProfileVO> getPublicProfile(@PathVariable Long userId) {
+        return Result.success(userService.getPublicProfile(userId));
+    }
     
     /**
      * 更新个人信息
@@ -68,6 +73,11 @@ public class UserController {
     @GetMapping("/stats")
     public Result<UserStatsVO> getUserStats() {
         Long userId = SecurityUtil.getUserId();
+        return Result.success(userStatsService.getUserStats(userId));
+    }
+
+    @GetMapping("/stats/{userId}")
+    public Result<UserStatsVO> getUserStatsById(@PathVariable Long userId) {
         return Result.success(userStatsService.getUserStats(userId));
     }
 }

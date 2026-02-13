@@ -82,9 +82,18 @@ const toZhStep = (text: string, stepNo: number) => {
   ]
   let out = t
   for (const [re, rep] of dict) out = out.replace(re, rep)
-  // Remove remaining long english words if mixed
-  // out = out.replace(/[A-Za-z]{3,}/g, '') 
-  out = out.replace(/\s{2,}/g, ' ').trim()
+  out = out
+    .replace(/\b(tbsp|tablespoon|tablespoons)\b/gi, '汤匙')
+    .replace(/\b(tsp|teaspoon|teaspoons)\b/gi, '茶匙')
+    .replace(/\b(cups?)\b/gi, '杯')
+    .replace(/\b(kg)\b/gi, '千克')
+    .replace(/\b(g)\b/gi, '克')
+    .replace(/\b(l)\b/gi, '升')
+    .replace(/\b(ml)\b/gi, '毫升')
+    .replace(/[A-Za-z]+/g, '')
+    .replace(/\s*([,.;:!?])\s*/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
   
   if (!out || out.length < 6) {
     return `第${stepNo}步：按提示完成该步骤（建议使用中文数据源重新生成步骤）。`
@@ -198,6 +207,11 @@ const toggleZenMode = async () => {
   }
 }
 
+const goAuthorProfile = () => {
+  if (!recipe.value?.authorId) return
+  router.push({ name: 'user-public', params: { id: recipe.value.authorId } })
+}
+
 const openZenModeAt = async (index: number) => {
   if (!recipe.value?.steps?.length) return
   zenStepIndex.value = Math.min(Math.max(index, 0), recipe.value.steps.length - 1)
@@ -290,10 +304,10 @@ onUnmounted(() => {
 
           <!-- Meta Row -->
           <div class="flex items-center gap-8 text-sm md:text-base font-medium text-gray-200">
-            <div class="flex items-center gap-2">
+            <button @click="goAuthorProfile" class="flex items-center gap-2 hover:text-primary transition-colors">
               <img :src="recipe.authorAvatar" class="w-8 h-8 rounded-full border border-primary/50" />
               <span>作者 {{ recipe.authorName }}</span>
-            </div>
+            </button>
             <div class="flex items-center gap-2">
               <NRate readonly :default-value="recipe.score" size="small" allow-half />
               <span>{{ recipe.score }}</span>
@@ -326,6 +340,30 @@ onUnmounted(() => {
       <button @click="router.back()" class="absolute top-8 left-8 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/20 backdrop-blur hover:bg-primary hover:text-black transition-all">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
       </button>
+
+      <div class="absolute top-8 right-8 z-20 flex items-center gap-3">
+        <button @click="router.push({ name: 'home' })" class="w-10 h-10 rounded-full bg-black/20 backdrop-blur border border-white/10 hover:border-primary hover:text-primary transition-colors" title="首页">
+          <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1v-10.5z"/></svg>
+        </button>
+        <button @click="router.push({ name: 'search' })" class="w-10 h-10 rounded-full bg-black/20 backdrop-blur border border-white/10 hover:border-primary hover:text-primary transition-colors" title="搜索">
+          <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </button>
+        <button @click="router.push({ name: 'vip' })" class="w-10 h-10 rounded-full bg-black/20 backdrop-blur border border-white/10 hover:border-primary hover:text-primary transition-colors" title="VIP">
+          <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l2.4 6.9H22l-5.8 4.2L18.6 20 12 15.7 5.4 20l2.4-6.7L2 8.9h7.6L12 2z"/></svg>
+        </button>
+        <button v-if="auth.token" @click="router.push({ name: 'points' })" class="w-10 h-10 rounded-full bg-black/20 backdrop-blur border border-white/10 hover:border-primary hover:text-primary transition-colors" title="积分">
+          <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-4.4 0-8 1.8-8 4s3.6 4 8 4 8-1.8 8-4-3.6-4-8-4zm0 0V4m-4 12v4m8-4v4"/></svg>
+        </button>
+        <button v-if="auth.token" @click="router.push({ name: 'social' })" class="w-10 h-10 rounded-full bg-black/20 backdrop-blur border border-white/10 hover:border-primary hover:text-primary transition-colors" title="社交">
+          <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-4-4h-1m-4 6H2v-2a4 4 0 014-4h3m4-4a4 4 0 10-8 0 4 4 0 008 0zm6 2a3 3 0 10-6 0 3 3 0 006 0z"/></svg>
+        </button>
+        <button v-if="auth.token" @click="router.push({ name: 'user-profile' })" class="w-10 h-10 rounded-full bg-black/20 backdrop-blur border border-white/10 hover:border-primary hover:text-primary transition-colors" title="我的主页">
+          <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        </button>
+        <button v-else @click="router.push({ name: 'login', query: { redirect: route.fullPath } })" class="px-4 h-10 rounded-full bg-black/20 backdrop-blur border border-white/10 hover:border-primary hover:text-primary transition-colors text-xs tracking-widest font-bold" title="登录">
+          登录
+        </button>
+      </div>
     </header>
 
     <!-- 2. Main Content -->
@@ -430,13 +468,13 @@ onUnmounted(() => {
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
 
-        <div class="text-center max-w-3xl space-y-8">
+        <div class="text-center max-w-3xl space-y-6 -mt-6">
           <h2 class="text-primary text-sm tracking-[0.35em]">第 {{ (activeStep?.stepNo ?? 1) }} 步 / 共 {{ recipe.steps.length }} 步</h2>
-          <p class="text-4xl md:text-6xl font-serif leading-tight text-white">
+          <p class="text-3xl md:text-6xl font-serif leading-tight text-white max-h-[40vh] overflow-auto px-2 custom-scrollbar">
             "{{ toZhStep(activeStep?.desc ?? '', activeStep?.stepNo ?? 1) }}"
           </p>
           
-          <div class="flex justify-center gap-8 mt-12">
+          <div class="flex justify-center gap-8 mt-8">
              <button
                class="w-16 h-16 rounded-full border border-gray-700 flex items-center justify-center hover:bg-white hover:text-black transition-all disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-white"
                :disabled="zenStepIndex <= 0"

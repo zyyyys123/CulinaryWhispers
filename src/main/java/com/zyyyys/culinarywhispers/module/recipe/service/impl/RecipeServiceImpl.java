@@ -25,6 +25,7 @@ import com.zyyyys.culinarywhispers.module.recipe.service.RecipeService;
 import com.zyyyys.culinarywhispers.module.recipe.vo.RecipeDetailVO;
 import com.zyyyys.culinarywhispers.module.recipe.vo.RecipePageVO;
 import com.zyyyys.culinarywhispers.module.social.service.CommentService;
+import com.zyyyys.culinarywhispers.module.user.service.UserPointsService;
 import com.zyyyys.culinarywhispers.module.user.entity.User;
 import com.zyyyys.culinarywhispers.module.user.entity.UserProfile;
 import com.zyyyys.culinarywhispers.module.user.service.UserService;
@@ -61,6 +62,7 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
     private final RecipeStatsMapper statsMapper;
     private final UserService userService;
     private final CommentService commentService;
+    private final UserPointsService pointsService;
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
@@ -111,6 +113,8 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
         // 4. 发布事件 (处理统计初始化、标签关联等副作用)
         // 使用观察者模式解耦核心流程与辅助逻辑
         eventPublisher.publishEvent(new RecipePublishedEvent(this, recipeId, userId, publishDTO.getTags()));
+
+        pointsService.addPoints(userId, 20, 2, "发布食谱");
 
         log.info("Recipe published successfully. ID: {}, Author: {}", recipeId, userId);
         return recipeId;

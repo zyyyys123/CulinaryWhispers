@@ -48,6 +48,8 @@ public interface UserService extends IService<User> {
      */
     UserProfileVO getProfile(Long userId);
 
+    UserProfileVO getPublicProfile(Long userId);
+
     /**
      * 更新用户信息
      * @param userId 用户ID
