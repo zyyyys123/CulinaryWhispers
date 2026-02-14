@@ -319,19 +319,185 @@ def reset_mysql_schema_and_seed():
         except Exception:
             pass
 
-_TASTE_TAGS = ["清淡", "微辣", "中辣", "特辣", "甜口", "咸鲜", "酸甜", "麻辣", "蒜香", "孜然", "番茄味", "咖喱味", "奶香", "巧克力味"]
-_DIET_TAGS = ["低脂", "高蛋白", "低糖", "低盐", "素食", "无麸质", "不吃辣", "不吃香菜", "乳糖不耐受", "海鲜过敏"]
-_SCENE_TAGS = ["早餐", "午餐", "晚餐", "夜宵", "便当", "聚会", "露营", "加班", "宿舍", "一人食", "家庭餐"]
-_EQUIPMENT_TAGS = ["空气炸锅", "电饭煲", "烤箱", "微波炉", "平底锅", "砂锅", "蒸锅", "料理机", "破壁机", "电磁炉", "炒锅", "面包机"]
-_COOK_METHODS = ["清蒸", "红烧", "香煎", "爆炒", "焗烤", "凉拌", "炖煮", "烤制", "油炸", "免烤", "免揉", "低温慢煮", "快手"]
-_ADJ = ["秘制", "升级版", "爆款", "经典", "家庭版", "高颜值", "低脂", "无油", "超快手", "餐厅同款", "零失败", "随手做", "一锅出", "高复购", "超下饭"]
+_TASTE_TAGS = [
+    "清淡", "微甜", "微辣", "中辣", "特辣", "甜口", "咸鲜", "酸甜", "麻辣", "蒜香", "葱香", "姜香", "椒麻", "孜然",
+    "番茄味", "咖喱味", "奶香", "巧克力味", "黑胡椒", "芥末", "柠檬香", "烟熏", "香草风味", "焦糖风味", "蜂蜜风味",
+    "鲜辣", "酸辣", "香辣", "酱香", "椒盐", "麻酱", "花椒香", "豆豉香", "芝士风味", "抹茶风味", "椰香", "玫瑰香",
+]
+_DIET_TAGS = [
+    "低脂", "高蛋白", "低糖", "低盐", "低卡", "高纤", "素食", "蛋奶素", "无麸质", "不吃辣", "不吃香菜", "不吃葱", "不吃蒜",
+    "乳糖不耐受", "海鲜过敏", "坚果过敏", "控碳", "健身餐", "宝宝辅食", "老人友好",
+]
+_SCENE_TAGS = [
+    "早餐", "早午餐", "午餐", "下午茶", "晚餐", "夜宵", "便当", "聚会", "露营", "加班", "宿舍", "一人食", "家庭餐", "带饭",
+    "节日", "生日", "周末", "懒人", "减脂期", "增肌期",
+]
+_EQUIPMENT_TAGS = [
+    "空气炸锅", "电饭煲", "烤箱", "微波炉", "平底锅", "砂锅", "蒸锅", "压力锅", "料理机", "破壁机", "电磁炉", "炒锅",
+    "面包机", "搅拌机", "打蛋器", "厨师机", "温度计", "电子秤", "刀具", "不粘锅", "铸铁锅",
+]
+_COOK_METHODS = [
+    "清蒸", "红烧", "香煎", "爆炒", "焗烤", "凉拌", "炖煮", "烤制", "油炸", "煮", "煎", "烤", "蒸", "焖", "煨", "煮炖",
+    "低温慢煮", "快手", "免烤", "免揉", "免打发", "无油", "少油",
+]
+_ADJ = [
+    "秘制", "升级版", "爆款", "经典", "家庭版", "高颜值", "低脂", "无油", "超快手", "餐厅同款", "零失败", "随手做",
+    "一锅出", "高复购", "超下饭", "新手友好", "低预算", "高性价比", "懒人版", "轻食", "轻奢", "硬核", "深夜治愈",
+    "低卡", "控糖", "控盐", "高蛋白", "营养均衡",
+]
 
 _INGREDIENT_POOLS = {
-    "家常菜": ["鸡蛋", "番茄", "土豆", "青椒", "茄子", "豆腐", "西兰花", "胡萝卜", "洋葱", "香菇", "虾仁", "鸡胸肉", "牛肉", "五花肉", "鸡腿", "白菜", "黄瓜", "玉米", "金针菇"],
-    "烘焙": ["低筋面粉", "鸡蛋", "黄油", "牛奶", "淡奶油", "细砂糖", "可可粉", "泡打粉", "酵母", "芝士", "香草精", "蜂蜜", "草莓", "蓝莓"],
-    "西餐": ["牛排", "意面", "番茄", "蘑菇", "奶油", "黑胡椒", "芝士", "橄榄油", "鸡胸肉", "三文鱼", "土豆", "西兰花", "洋葱", "蒜"],
-    "饮品": ["咖啡", "红茶", "绿茶", "柠檬", "橙子", "草莓", "蓝莓", "牛奶", "酸奶", "蜂蜜", "椰奶", "冰块", "薄荷叶", "百香果", "葡萄"],
+    "家常菜": [
+        "鸡蛋", "番茄", "土豆", "青椒", "茄子", "豆腐", "西兰花", "胡萝卜", "洋葱", "香菇", "金针菇", "杏鲍菇", "木耳",
+        "虾仁", "鱿鱼", "带鱼", "三文鱼", "鸡胸肉", "鸡腿", "牛肉", "猪里脊", "五花肉", "培根", "腊肠", "午餐肉",
+        "白菜", "生菜", "黄瓜", "玉米", "四季豆", "花菜", "芦笋", "秋葵", "青菜", "菠菜",
+        "粉丝", "年糕", "豆芽", "豆皮", "腐竹", "米饭", "面条",
+    ],
+    "烘焙": [
+        "低筋面粉", "高筋面粉", "鸡蛋", "黄油", "无盐黄油", "牛奶", "淡奶油", "酸奶", "细砂糖", "红糖", "蜂蜜", "枫糖浆",
+        "可可粉", "抹茶粉", "泡打粉", "小苏打", "酵母", "盐", "香草精", "肉桂粉",
+        "芝士", "奶油奶酪", "巧克力", "黑巧克力", "坚果", "葡萄干", "蔓越莓干", "椰蓉",
+        "草莓", "蓝莓", "香蕉", "柠檬",
+    ],
+    "西餐": [
+        "牛排", "鸡胸肉", "三文鱼", "虾仁", "培根", "意面", "番茄", "蘑菇", "洋葱", "蒜", "奶油", "芝士", "帕玛森",
+        "橄榄油", "黑胡椒", "迷迭香", "百里香", "罗勒", "柠檬", "土豆", "西兰花", "芦笋",
+        "生菜", "牛油果", "黄瓜", "彩椒",
+    ],
+    "饮品": [
+        "咖啡", "红茶", "绿茶", "乌龙茶", "抹茶", "可可", "牛奶", "酸奶", "椰奶", "燕麦奶",
+        "柠檬", "橙子", "草莓", "蓝莓", "葡萄", "百香果", "芒果", "菠萝", "西瓜", "苹果",
+        "蜂蜜", "糖浆", "冰块", "薄荷叶", "苏打水", "气泡水", "炼乳",
+    ],
 }
+
+_CONDIMENTS = [
+    "盐", "白糖", "生抽", "老抽", "蚝油", "料酒", "米醋", "陈醋", "白胡椒", "黑胡椒", "花椒", "辣椒粉", "辣椒面",
+    "豆瓣酱", "番茄酱", "沙拉酱", "芝麻酱", "孜然粉", "咖喱块", "香油", "橄榄油", "黄油", "蒜末", "姜丝", "葱花",
+]
+
+_IP_CN = {
+    "北京": ["北京"],
+    "上海": ["上海"],
+    "广东": ["广州", "深圳", "佛山", "东莞", "珠海", "中山", "惠州"],
+    "浙江": ["杭州", "宁波", "温州", "绍兴", "嘉兴", "金华"],
+    "江苏": ["南京", "苏州", "无锡", "常州", "南通", "徐州"],
+    "四川": ["成都", "绵阳", "德阳", "乐山", "宜宾"],
+    "湖北": ["武汉", "宜昌", "襄阳", "荆州"],
+    "山东": ["济南", "青岛", "烟台", "潍坊", "临沂"],
+    "福建": ["福州", "厦门", "泉州", "漳州"],
+    "重庆": ["重庆"],
+    "湖南": ["长沙", "株洲", "湘潭"],
+    "河南": ["郑州", "洛阳", "开封"],
+    "河北": ["石家庄", "唐山", "保定"],
+    "陕西": ["西安", "咸阳", "宝鸡"],
+    "辽宁": ["沈阳", "大连", "鞍山"],
+    "安徽": ["合肥", "芜湖", "蚌埠"],
+    "江西": ["南昌", "赣州", "九江"],
+}
+
+_IP_OVERSEA = [
+    "海外·美国", "海外·加拿大", "海外·英国", "海外·德国", "海外·法国", "海外·澳大利亚", "海外·新加坡", "海外·日本", "海外·韩国",
+    "海外·马来西亚", "海外·泰国",
+]
+
+_NET_TYPES = ["WiFi", "5G", "4G", "有线", "未知"]
+_APP_CHANNELS = ["AppStore", "Huawei", "Xiaomi", "OPPO", "VIVO", "Tencent", "Web"]
+_IOS_MODELS = ["iPhone 11", "iPhone 12", "iPhone 13", "iPhone 14", "iPhone 15", "iPhone 15 Pro", "iPhone SE", "iPad Pro", "iPad Air"]
+_ANDROID_MODELS = ["MI 13", "MI 14", "Redmi K60", "HUAWEI Mate 60", "HUAWEI P60", "OPPO Find X7", "vivo X100", "OnePlus 12", "Pixel 8"]
+_WEB_BROWSERS = ["Chrome", "Edge", "Safari", "Firefox"]
+
+def _build_ip_location():
+    if random.random() < 0.07:
+        return random.choice(_IP_OVERSEA)
+    prov = random.choice(list(_IP_CN.keys()))
+    city = random.choice(_IP_CN.get(prov) or [prov])
+    if prov == city:
+        return prov
+    if random.random() < 0.6:
+        return f"{prov}·{city}"
+    return prov
+
+def _build_user_region():
+    if random.random() < 0.06:
+        country = random.choice(["日本", "美国", "新加坡", "加拿大", "英国", "德国", "澳大利亚"])
+        if country == "日本":
+            return country, "", random.choice(["东京", "大阪", "名古屋", "福冈"])
+        if country == "美国":
+            return country, "", random.choice(["洛杉矶", "纽约", "旧金山", "西雅图"])
+        if country == "新加坡":
+            return country, "", "新加坡"
+        if country == "加拿大":
+            return country, "", random.choice(["多伦多", "温哥华", "蒙特利尔"])
+        if country == "英国":
+            return country, "", random.choice(["伦敦", "曼彻斯特", "伯明翰"])
+        if country == "德国":
+            return country, "", random.choice(["柏林", "慕尼黑", "法兰克福"])
+        return country, "", random.choice(["悉尼", "墨尔本", "布里斯班"])
+    province = random.choice(list(_IP_CN.keys()))
+    city = random.choice(_IP_CN.get(province) or [province])
+    return "中国", province, city
+
+def _build_device_info():
+    platform = random.choices(["iOS", "Android", "Web"], weights=[42, 45, 13])[0]
+    app_ver = f"{random.randint(1, 5)}.{random.randint(0, 9)}.{random.randint(0, 30)}"
+    net = random.choices(_NET_TYPES, weights=[55, 18, 20, 3, 4])[0]
+    if platform == "iOS":
+        model = random.choice(_IOS_MODELS)
+        os_ver = f"iOS {random.randint(15, 17)}.{random.randint(0, 6)}"
+        ch = "AppStore"
+        return _clamp_str(f"{platform}/{model} {os_ver}; App {app_ver}; {net}; {ch}", 128)
+    if platform == "Android":
+        model = random.choice(_ANDROID_MODELS)
+        os_ver = f"Android {random.randint(10, 14)}"
+        ch = random.choice([c for c in _APP_CHANNELS if c != "AppStore"])
+        return _clamp_str(f"{platform}/{model} {os_ver}; App {app_ver}; {net}; {ch}", 128)
+    br = random.choice(_WEB_BROWSERS)
+    br_ver = f"{random.randint(110, 125)}.{random.randint(0, 9)}"
+    return _clamp_str(f"Web/{br} {br_ver}; {net}", 128)
+
+def _build_tip(theme):
+    pool = theme.get("pool") or "家常菜"
+    main = theme.get("main") or "食材"
+    equip = (theme.get("equipment") or [])
+    equipment = equip[0] if equip else ""
+    method = theme.get("method") or ""
+    taste = (theme.get("taste") or [])
+    taste_hint = random.choice(taste) if taste else "咸鲜"
+    grams = random.randint(120, 380)
+    sec = random.choice([20, 30, 45, 60, 90])
+    temp = random.choice([160, 170, 180, 190, 200])
+    base = [
+        f"调味建议：先少后多，最后按 {taste_hint} 方向微调。",
+        f"口感要点：{main}别切太小，火候更好掌控。",
+        f"收汁小技巧：沿锅边淋少量清水，收至微微挂汁即可。",
+        f"时间管理：关键步骤多给 {sec} 秒，成品更稳。",
+        f"控油建议：用不粘锅小火慢煎，减少额外用油。",
+        f"复刻率提升：调味料提前混匀，按顺序下锅不慌。",
+    ]
+    if pool == "烘焙":
+        base.extend([
+            f"烘焙建议：{temp}°C 先观察上色，再按状态加减时间。",
+            f"面糊状态：翻拌到无干粉即可，避免出筋影响松软。",
+            f"配方尺度：主料约 {grams}g，甜度可按口味调整 10%-20%。",
+            "出炉冷却：完全冷却再切更整齐，口感也更稳定。",
+        ])
+    if pool == "饮品":
+        base.extend([
+            "甜度策略：先加一半糖浆，试味后再补更不翻车。",
+            "风味提升：加一片柠檬或少许薄荷，层次更清爽。",
+            "冰量控制：冰多更清爽，冰少风味更浓。",
+        ])
+    if pool == "西餐":
+        base.extend([
+            "火候建议：先大火上色，再转中小火定型。",
+            "静置要点：出锅静置 2-3 分钟，汁水回流更嫩。",
+        ])
+    if equipment:
+        base.append(f"工具提示：使用 {equipment} 时注意火力，避免糊底或过干。")
+    if method:
+        base.append(f"做法提示：{method}类菜更看重节奏，提前备料更从容。")
+    return _clamp_str(random.choice(base), 180)
 
 _METHOD_POOLS = {
     "家常菜": ["准备食材", "腌制入味", "热锅起油", "爆香调味", "翻炒至熟", "收汁出锅", "装盘点缀"],
@@ -424,11 +590,13 @@ def _build_recipe_desc(theme):
     taste = theme.get("taste") or []
     scene = theme.get("scene") or []
     equip = theme.get("equipment") or []
+    method = theme.get("method") or ""
     seg_a = f"主料：{('、'.join(ingredients[:3]))}" if ingredients else "主料：家常食材"
     seg_b = f"口味：{(' / '.join(taste[:2]))}" if taste else "口味：咸鲜"
     seg_c = f"适合：{('、'.join(scene[:2]))}" if scene else "适合：家庭餐"
     seg_d = f"工具：{('、'.join(equip[:1]))}" if equip else ""
-    out = "；".join([x for x in [seg_a, seg_b, seg_c, seg_d] if x])
+    seg_e = f"做法：{method}" if method else ""
+    out = "；".join([x for x in [seg_a, seg_b, seg_c, seg_d, seg_e] if x])
     return out
 
 def _build_recipe_tags(theme):
@@ -437,12 +605,19 @@ def _build_recipe_tags(theme):
         v = theme.get(k)
         if v:
             tags.append(str(v))
+    for v in (theme.get("ingredients") or [])[:3]:
+        if v:
+            tags.append(str(v))
     for k in ("taste", "scene", "equipment"):
         for v in theme.get(k) or []:
             if v:
                 tags.append(str(v))
     if theme.get("method"):
         tags.append(str(theme.get("method")))
+    for v in _pick_unique(_CONDIMENTS, random.randint(1, 2)):
+        tags.append(v)
+    for v in _pick_unique(_DIET_TAGS, random.randint(0, 1)):
+        tags.append(v)
     for t in _pick_unique(["家常", "下饭", "快手", "低脂", "高蛋白", "养生", "减脂餐", "宝宝辅食", "小白友好", "宵夜", "便当", "聚会"], random.randint(1, 2)):
         tags.append(t)
     uniq = []
@@ -453,7 +628,7 @@ def _build_recipe_tags(theme):
             continue
         seen.add(t)
         uniq.append(t)
-    return uniq[:8]
+    return uniq[:12]
 
 def _build_recipe_steps(theme, n):
     pool = theme.get("pool") or "家常菜"
@@ -462,6 +637,14 @@ def _build_recipe_steps(theme, n):
     methods = theme.get("methods") or _METHOD_POOLS.get(pool, _METHOD_POOLS["家常菜"])
     taste = theme.get("taste") or []
     equip = theme.get("equipment") or []
+    method = theme.get("method") or ""
+    condiments = _pick_unique(_CONDIMENTS, random.randint(3, 5))
+    c1 = condiments[0] if condiments else "盐"
+    c2 = condiments[1] if len(condiments) > 1 else "生抽"
+    c3 = condiments[2] if len(condiments) > 2 else "蚝油"
+    min_a = random.randint(1, 3)
+    min_b = random.randint(2, 8)
+    sec = random.choice([20, 30, 45, 60, 90])
 
     opening = [
         f"准备：将{('、'.join(ingredients[:4]))}备齐，清洗沥干。",
@@ -470,7 +653,7 @@ def _build_recipe_steps(theme, n):
     if pool == "烘焙":
         opening = [
             "预热烤箱至 170°C-180°C，模具铺好油纸或抹油。",
-            f"称量：{('、'.join(ingredients[:4]))}按配方称量备用。",
+            f"称量：{('、'.join(ingredients[:4]))}按配方称量备用，黄油提前回温。",
         ]
     if pool == "饮品":
         opening = [
@@ -482,17 +665,31 @@ def _build_recipe_steps(theme, n):
             f"准备：{main}与配菜处理好，厨房纸吸干表面水分。",
             "调味：撒盐与黑胡椒，静置 10 分钟更入味。",
         ]
+    if pool != "饮品" and random.random() < 0.65:
+        opening.insert(2 if len(opening) > 1 else 1, f"腌制：加入{c1}、{c2}、{c3}拌匀，静置 {min_a}-{min_b} 分钟。")
 
     middle = []
     for m in methods:
         if m == "热锅起油":
-            middle.append("热锅后倒入少量油，油温升至微微冒烟。")
+            middle.append(random.choice([
+                "热锅后倒入少量油，油温升至微微冒烟。",
+                "锅烧热后下油，转中火让油温均匀。",
+            ]))
         elif m == "爆香调味":
-            middle.append("下蒜末/葱花爆香，加入生抽、盐等调味。")
+            middle.append(random.choice([
+                f"下蒜末/葱花爆香，加入{c2}与少许{c1}提味。",
+                f"爆香后加入{c2}、{c3}，快速翻炒让香味释放。",
+            ]))
         elif m == "翻炒至熟":
-            middle.append(f"下入{main}与配菜翻炒至断生，保持大火快炒更香。")
+            middle.append(random.choice([
+                f"下入{main}与配菜翻炒至断生，保持大火快炒更香。",
+                f"{main}先下锅定型，再下配菜同炒，避免出水过多。",
+            ]))
         elif m == "收汁出锅":
-            middle.append("沿锅边淋少量清水，收至略挂汁即可出锅。")
+            middle.append(random.choice([
+                "沿锅边淋少量清水，收至略挂汁即可出锅。",
+                f"收汁到锅底只剩薄薄一层，最后再给 {sec} 秒大火收香。",
+            ]))
         elif m == "预热烤箱":
             middle.append("再次确认烤箱预热到位。")
         elif m == "混合干料":
@@ -530,12 +727,19 @@ def _build_recipe_steps(theme, n):
             middle.append("淋上酱汁，撒少许黑胡椒完成。")
         else:
             middle.append(f"{m}，按口感调整火候与时间。")
+    if pool != "饮品" and random.random() < 0.35:
+        middle.insert(max(1, len(middle) - 1), random.choice([
+            f"中途补少量热水，盖盖焖 {random.randint(1, 4)} 分钟更入味。",
+            f"尝味后按 {random.choice(taste) if taste else '咸鲜'} 方向微调，少量多次更稳。",
+        ]))
 
     closing = []
     if taste:
         closing.append(f"最后尝味：根据口味补少许{random.choice(taste)}方向的调味。")
     if equip:
         closing.append(f"小贴士：使用{equip[0]}时注意火力，避免糊底。")
+    if method and random.random() < 0.5:
+        closing.append(f"做法提示：{method}更看重节奏，提前备料更从容。")
     if not closing:
         closing.append("完成：装盘即可开吃，趁热口感更好。")
 
@@ -545,9 +749,11 @@ def _build_recipe_steps(theme, n):
     while len(steps) < n:
         steps.insert(max(1, len(steps) - 1), random.choice([
             "中途可适当翻动，受热更均匀。",
-            "如果偏干可补少量清水或牛奶。",
-            "喜欢更香可加少许黄油/橄榄油。",
-            "口味重可加少许胡椒或蒜末。",
+            "如果偏干可补少量热水或牛奶，避免糊底。",
+            "喜欢更香可加少许黄油/橄榄油，立刻提香。",
+            "口味重可加少许胡椒或蒜末，别一次下太多。",
+            f"出锅前撒少许{random.choice(['葱花', '白芝麻', '黑胡椒', '辣椒面'])}，香气更立体。",
+            f"调味料先混匀再下锅，复刻更稳定。",
         ]))
     return steps[:n]
 
@@ -646,26 +852,42 @@ class DataFactory:
     def generate_categories(self):
         """生成食谱分类数据"""
         print("正在生成分类数据 (Categories)...")
-        roots = ['家常菜', '烘焙', '西餐', '饮品']
-        subs = {
-            '家常菜': ['川菜', '粤菜', '湘菜', '汤羹'],
-            '烘焙': ['蛋糕', '面包', '饼干'],
-            '西餐': ['牛排', '意面', '沙拉'],
-            '饮品': ['果汁', '茶饮', '咖啡']
-        }
-        
-        id_counter = 1
-        for r in roots:
-            root_id = id_counter
-            self.categories.append({
-                'id': root_id, 'name': r, 'parent_id': 0, 'level': 1, 'sort': id_counter
-            })
-            id_counter += 1
-            for s in subs.get(r, []):
-                self.categories.append({
-                    'id': id_counter, 'name': s, 'parent_id': root_id, 'level': 2, 'sort': id_counter
-                })
-                id_counter += 1
+        base = [
+            {"id": 1, "name": "家常菜", "parent_id": 0, "level": 1, "sort": 1},
+            {"id": 2, "name": "烘焙", "parent_id": 0, "level": 1, "sort": 2},
+            {"id": 3, "name": "西餐", "parent_id": 0, "level": 1, "sort": 3},
+            {"id": 4, "name": "饮品", "parent_id": 0, "level": 1, "sort": 4},
+            {"id": 5, "name": "川菜", "parent_id": 1, "level": 2, "sort": 5},
+            {"id": 6, "name": "粤菜", "parent_id": 1, "level": 2, "sort": 6},
+            {"id": 7, "name": "湘菜", "parent_id": 1, "level": 2, "sort": 7},
+            {"id": 8, "name": "汤羹", "parent_id": 1, "level": 2, "sort": 8},
+            {"id": 9, "name": "蛋糕", "parent_id": 2, "level": 2, "sort": 9},
+            {"id": 10, "name": "面包", "parent_id": 2, "level": 2, "sort": 10},
+            {"id": 11, "name": "饼干", "parent_id": 2, "level": 2, "sort": 11},
+            {"id": 12, "name": "牛排", "parent_id": 3, "level": 2, "sort": 12},
+            {"id": 13, "name": "意面", "parent_id": 3, "level": 2, "sort": 13},
+            {"id": 14, "name": "沙拉", "parent_id": 3, "level": 2, "sort": 14},
+            {"id": 15, "name": "果汁", "parent_id": 4, "level": 2, "sort": 15},
+            {"id": 16, "name": "茶饮", "parent_id": 4, "level": 2, "sort": 16},
+            {"id": 17, "name": "咖啡", "parent_id": 4, "level": 2, "sort": 17},
+        ]
+        extra = [
+            {"id": 18, "name": "轻食", "parent_id": 0, "level": 1, "sort": 18},
+            {"id": 19, "name": "健身餐", "parent_id": 18, "level": 2, "sort": 19},
+            {"id": 20, "name": "低脂沙拉", "parent_id": 18, "level": 2, "sort": 20},
+            {"id": 21, "name": "日料", "parent_id": 0, "level": 1, "sort": 21},
+            {"id": 22, "name": "寿司", "parent_id": 21, "level": 2, "sort": 22},
+            {"id": 23, "name": "拉面", "parent_id": 21, "level": 2, "sort": 23},
+            {"id": 24, "name": "韩餐", "parent_id": 0, "level": 1, "sort": 24},
+            {"id": 25, "name": "拌饭", "parent_id": 24, "level": 2, "sort": 25},
+            {"id": 26, "name": "锅物", "parent_id": 24, "level": 2, "sort": 26},
+            {"id": 27, "name": "小吃", "parent_id": 0, "level": 1, "sort": 27},
+            {"id": 28, "name": "早餐饼", "parent_id": 27, "level": 2, "sort": 28},
+            {"id": 29, "name": "炸物", "parent_id": 27, "level": 2, "sort": 29},
+        ]
+        self.categories.extend(base)
+        if random.random() < 0.85:
+            self.categories.extend(extra)
 
     def generate_users(self):
         """生成用户基础数据"""
@@ -705,9 +927,9 @@ class DataFactory:
                 "gender": random.choices([0, 1, 2], weights=[20, 40, 40])[0],
                 "birthday": fake.date_between(start_date="-60y", end_date="-12y").strftime("%Y-%m-%d"),
                 "signature": "",
-                "country": random.choice(["中国", "日本", "美国", "新加坡", "马来西亚", "韩国"]),
-                "province": random.choice(["北京", "上海", "广东", "浙江", "江苏", "四川", "湖北", "山东", "福建", "重庆"]),
-                "city": random.choice(["北京", "上海", "广州", "深圳", "杭州", "南京", "成都", "武汉", "青岛", "厦门", "重庆"]),
+                "country": "",
+                "province": "",
+                "city": "",
                 "occupation": _clamp_str(random.choice(["学生", "产品经理", "程序员", "设计师", "运营", "厨师", "自由职业", "教师", "医生", "销售"]), 64),
                 "interests": "",
                 "cook_age": random.randint(0, 20),
@@ -725,6 +947,10 @@ class DataFactory:
                 "gmt_create": user["gmt_create"],
                 "gmt_modified": user["gmt_modified"],
             }
+            country, province, city = _build_user_region()
+            profile["country"] = country
+            profile["province"] = province
+            profile["city"] = city
             if profile["vip_level"] > 0:
                 expire = fake.date_time_between_dates(
                     datetime_start=datetime.datetime.combine(SYSTEM_START_DATE, datetime.time(0, 0, 0)),
@@ -875,18 +1101,12 @@ class DataFactory:
                 'version': 1
             }
             rcp["publish_time"] = _dt_to_mysql(publish_time) if publish_time else None
-            rcp["ip_location"] = random.choice(["北京", "上海", "广东", "浙江", "江苏", "四川", "湖北", "山东", "福建", "重庆", "海外"])
-            rcp["device_info"] = random.choice(["iPhone", "Android", "iPad", "Web", "HarmonyOS", "MIUI", "ColorOS"])
+            rcp["ip_location"] = _build_ip_location()
+            rcp["device_info"] = _build_device_info()
             rcp["is_exclusive"] = random.choices([0, 1], weights=[90, 10])[0]
             rcp["is_paid"] = random.choices([0, 1], weights=[95, 5])[0]
             rcp["price"] = float(round(Decimal(np.random.lognormal(mean=3.2, sigma=0.45)), 2)) if rcp["is_paid"] == 1 else 0.00
-            rcp["tips"] = _clamp_str(random.choice([
-                "火候别急，宁可小火多一会儿。",
-                "出锅前再尝味，少量多次加盐更稳。",
-                "食材含水量不同，收汁时注意观察。",
-                "烤箱温差大，建议提前 10 分钟观察上色。",
-                "饮品甜度按个人口味调，先少后多。",
-            ]), 180) if random.random() < 0.85 else ""
+            rcp["tips"] = _build_tip(theme) if random.random() < 0.9 else ""
             rcp["tags"] = json.dumps(_build_recipe_tags(theme), ensure_ascii=False)
             rcp["_theme"] = theme
             self.recipes.append(rcp)
@@ -1157,16 +1377,57 @@ class DataFactory:
         end_dt = datetime.datetime.combine(SYSTEM_END_DATE, datetime.time(23, 59, 59))
         user_ids = [u["id"] for u in self.users]
 
+        brands = ["苏泊尔", "美的", "九阳", "小熊", "松下", "飞利浦", "德龙", "WMF", "双立人", "康宁", "乐扣", "摩飞", "小米", "KitchenAid"]
+        materials = ["304不锈钢", "铸铁", "陶瓷", "钛合金", "麦饭石", "高硼硅玻璃", "食品级硅胶"]
+        sizes = ["20cm", "24cm", "26cm", "28cm", "30cm", "32cm"]
+        watt = ["600W", "800W", "1000W", "1200W", "1500W"]
+        product_types = [
+            ("不粘锅", 1), ("炒锅", 1), ("汤锅", 1), ("砂锅", 1), ("刀具套装", 1), ("砧板", 1),
+            ("空气炸锅", 2), ("烤箱", 2), ("电饭煲", 2), ("电磁炉", 2), ("料理机", 2), ("破壁机", 2), ("厨师机", 2),
+            ("烘焙模具", 3), ("电子秤", 3), ("打蛋器", 3), ("量杯量勺", 3), ("裱花袋", 3), ("硅胶刮刀", 3),
+        ]
+
         products = []
+        used_titles = set()
         for i in range(1, EXTRA_PRODUCT_COUNT + 1):
             pid = base_product_id + i
-            title = random.choice(["不粘锅", "刀具套装", "烤箱", "空气炸锅", "料理机", "搅拌机", "电磁炉", "砧板", "砂锅", "烘焙模具"]) + f" {random.randint(1,99)}号"
-            price = float(round(Decimal(np.random.lognormal(mean=4.3, sigma=0.55)), 2))
+            ptype, category_id = random.choice(product_types)
+            brand = random.choice(brands)
+            model = f"{random.choice(['A', 'B', 'C', 'X', 'Z'])}{random.randint(10, 99)}-{random.randint(100, 999)}"
+            spec = ""
+            if ptype in ("不粘锅", "炒锅", "汤锅", "砂锅"):
+                spec = f"{random.choice(sizes)}/{random.choice(materials)}"
+            elif ptype in ("空气炸锅", "烤箱", "电饭煲", "电磁炉", "料理机", "破壁机", "厨师机"):
+                spec = f"{random.choice(watt)}/{random.choice(['家用', '轻商用'])}"
+            else:
+                spec = random.choice(["入门套装", "进阶套装", "专业版", "家庭版"])
+
+            base_title = f"{brand} {ptype} {spec} {model}"
+            title = _clamp_str(base_title, 128)
+            tries = 0
+            while title in used_titles and tries < 8:
+                tries += 1
+                model = f"{random.choice(['A', 'B', 'C', 'X', 'Z'])}{random.randint(10, 99)}-{random.randint(100, 999)}"
+                spec = spec if random.random() < 0.7 else f"{random.choice(sizes)}/{random.choice(materials)}"
+                title = _clamp_str(f"{brand} {ptype} {spec} {model}", 128)
+            used_titles.add(title)
+
+            price = float(round(Decimal(np.random.lognormal(mean=4.45, sigma=0.65)), 2))
+            if category_id == 3:
+                price = float(round(Decimal(np.random.lognormal(mean=3.65, sigma=0.55)), 2))
             stock = int(max(0, min(np.random.pareto(a=1.35) * 120, 5000)))
-            category_id = random.choice([1, 2, 3, 4])
             gmt_create = fake.date_time_between_dates(datetime_start=start_dt, datetime_end=end_dt)
             gmt_modified = _rand_dt_between(gmt_create, end_dt)
-            products.append((pid, title, fake.text(max_nb_chars=80), price, stock, category_id, _dt_to_mysql(gmt_create), _dt_to_mysql(gmt_modified)))
+            desc = _clamp_str(
+                random.choice([
+                    f"{ptype} {spec}，做工扎实，适合日常高频使用。",
+                    f"{brand} 出品，{ptype} 易清洁，适合{random.choice(['煎炒', '烘焙', '炖煮', '蒸煮'])}场景。",
+                    f"升级材质 {random.choice(materials)}，细节到位，兼顾颜值与实用。",
+                    "支持多场景使用，入门到进阶都适配。",
+                ]),
+                80
+            )
+            products.append((pid, title, desc, price, stock, category_id, _dt_to_mysql(gmt_create), _dt_to_mysql(gmt_modified)))
 
         orders = []
         order_items = []
@@ -1739,17 +2000,295 @@ class DataFactory:
             print(f"ES 批量操作错误: {e}")
 
     def write_sql_files(self):
-        """保留原有的 SQL 文件生成功能，作为备份或手动导入使用"""
-        # ... (简化代码，调用之前的逻辑，或者直接重用数据) ...
-        # 这里为了保持脚本简洁，我们直接重用数据写入文件，逻辑同原脚本
-        pass # 为节省篇幅，此处省略 SQL 文件生成代码，实际项目中应保留以备不时之需
+        """将生成的数据写入 SQL 文件（离线模式）"""
+        print(f"正在写入 SQL 文件: {MYSQL_FILE} ...")
+        
+        # 辅助函数：格式化值为 SQL 字符串
+        def fmt(v):
+            if v is None:
+                return "NULL"
+            if isinstance(v, (int, float, Decimal)):
+                return str(v)
+            # 转义单引号
+            s = str(v).replace("'", "''").replace("\\", "\\\\")
+            return f"'{s}'"
+
+        with open(MYSQL_FILE, "w", encoding="utf-8") as f:
+            f.write("-- Auto-generated by chaos_data_gen.py\n")
+            f.write("SET NAMES utf8mb4;\n\n")
+
+            # 1. t_usr_base
+            if self.users:
+                f.write("-- t_usr_base\n")
+                values = []
+                for u in self.users:
+                    row = [
+                        u['id'], u['username'], u['mobile'], u['email'], u['password_hash'], 
+                        u['salt'], u['nickname'], u['avatar_url'], u['status'], u['register_source'], 
+                        u['register_ip'], u['last_login_time'], u['last_login_ip'], u['gmt_create'], 
+                        u['gmt_modified'], u['is_deleted'], u['version']
+                    ]
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                # 分批写入
+                batch_size = 500
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT INTO t_usr_base (id, username, mobile, email, password_hash, salt, nickname, avatar_url, status, register_source, register_ip, last_login_time, last_login_ip, gmt_create, gmt_modified, is_deleted, version) VALUES \n{',\n'.join(batch)};\n"
+                    f.write(sql)
+                f.write("\n")
+
+            # 1.1 t_usr_profile
+            if self.user_profiles:
+                f.write("-- t_usr_profile\n")
+                values = []
+                for p in self.user_profiles:
+                    row = [
+                        p["user_id"], p["gender"], p["birthday"], p["signature"], p["country"], 
+                        p["province"], p["city"], p["occupation"], p["interests"], p["cook_age"], 
+                        p["favorite_cuisine"], p["taste_preference"], p["dietary_restrictions"], 
+                        p["vip_expire_time"], p["vip_level"], p["is_master_chef"], p["master_title"], 
+                        p["bg_image_url"], p["video_intro_url"], p["contact_email"], p["total_spend"], 
+                        p["gmt_create"], p["gmt_modified"]
+                    ]
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT INTO t_usr_profile (user_id, gender, birthday, signature, country, province, city, occupation, interests, cook_age, favorite_cuisine, taste_preference, dietary_restrictions, vip_expire_time, vip_level, is_master_chef, master_title, bg_image_url, video_intro_url, contact_email, total_spend, gmt_create, gmt_modified) VALUES \n{',\n'.join(batch)} \nON DUPLICATE KEY UPDATE gmt_modified=VALUES(gmt_modified);\n"
+                    f.write(sql)
+                f.write("\n")
+
+            # 1.2 t_usr_stats
+            if self.user_stats:
+                f.write("-- t_usr_stats\n")
+                values = []
+                for s in self.user_stats:
+                    row = [
+                        s["user_id"], s["level"], s["experience"], s["total_recipes"], s["total_moments"], 
+                        s["total_likes_received"], s["total_collects_received"], s["total_fans"], 
+                        s["total_follows"], s["total_views"], s["week_active_days"], s["month_active_days"], 
+                        s["last_publish_time"], s["gmt_modified"]
+                    ]
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT INTO t_usr_stats (user_id, level, experience, total_recipes, total_moments, total_likes_received, total_collects_received, total_fans, total_follows, total_views, week_active_days, month_active_days, last_publish_time, gmt_modified) VALUES \n{',\n'.join(batch)} \nON DUPLICATE KEY UPDATE gmt_modified=VALUES(gmt_modified);\n"
+                    f.write(sql)
+                f.write("\n")
+
+            # 2. t_rcp_category
+            if self.categories:
+                f.write("-- t_rcp_category\n")
+                values = []
+                for c in self.categories:
+                    row = [c['id'], c['name'], c['parent_id'], c['level'], c['sort'], 1]
+                    values.append(f"({', '.join(map(fmt, row))})")
+                sql = f"INSERT INTO t_rcp_category (id, name, parent_id, level, sort, is_visible) VALUES \n{',\n'.join(values)} \nON DUPLICATE KEY UPDATE name=VALUES(name);\n"
+                f.write(sql)
+                f.write("\n")
+
+            # 3. t_rcp_info
+            if self.recipes:
+                f.write("-- t_rcp_info\n")
+                values = []
+                for r in self.recipes:
+                    s = next((x for x in self.stats if x['recipe_id'] == r['id']), None)
+                    v_count = int(s['view_count']) if s else 0
+                    like_count = int(s['like_count']) if s else 0
+                    collect_count = int(s['collect_count']) if s else 0
+                    comment_count = int(r.get("comment_count", 0))
+                    share_count = int(s['share_count']) if s else 0
+                    try_count = int(s['try_count']) if s else 0
+                    tags_json = r.get("tags")
+                    if isinstance(tags_json, (list, tuple)):
+                        tags_json = json.dumps(list(tags_json), ensure_ascii=False)
+                    
+                    row = [
+                        r['id'], r['author_id'], r['title'], r['cover_url'], r.get('video_url'), 
+                        r.get('description'), r['category_id'], r.get('cuisine_id', 0), 
+                        r.get('difficulty', 1), r.get('time_cost', 0), r.get('calories', 0), 
+                        r.get('score', 0), v_count, like_count, collect_count, comment_count, 
+                        share_count, try_count, r.get('status', 0), tags_json, r.get('tips'), 
+                        r.get('is_exclusive', 0), r.get('is_paid', 0), r.get('price', 0), 
+                        r.get('publish_time'), r.get('ip_location'), r.get('device_info'), 
+                        r['gmt_create'], r['gmt_modified'], r['is_deleted'], r['version']
+                    ]
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT INTO t_rcp_info (id, author_id, title, cover_url, video_url, description, category_id, cuisine_id, difficulty, time_cost, calories, score, view_count, like_count, collect_count, comment_count, share_count, try_count, status, tags, tips, is_exclusive, is_paid, price, publish_time, ip_location, device_info, gmt_create, gmt_modified, is_deleted, version) VALUES \n{',\n'.join(batch)};\n"
+                    f.write(sql)
+                f.write("\n")
+
+            # 4. t_rcp_stats
+            if self.stats:
+                f.write("-- t_rcp_stats\n")
+                values = []
+                for s in self.stats:
+                    row = [
+                        s['recipe_id'], s['view_count'], s['like_count'], s['collect_count'], 
+                        s['comment_count'], s['share_count'], s['try_count'], s['score'], s['gmt_modified']
+                    ]
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT INTO t_rcp_stats (recipe_id, view_count, like_count, collect_count, comment_count, share_count, try_count, score, gmt_modified) VALUES \n{',\n'.join(batch)};\n"
+                    f.write(sql)
+                f.write("\n")
+            
+            # 4.1 t_rcp_step
+            if self.recipe_steps:
+                f.write("-- t_rcp_step\n")
+                values = []
+                for x in self.recipe_steps:
+                    row = [
+                        x["id"], x["recipe_id"], x["step_no"], x["desc"], x["img_url"], 
+                        x["video_url"], x["time_cost"], x["is_key_step"], x["voice_url"], x["gmt_create"]
+                    ]
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT INTO t_rcp_step (id, recipe_id, step_no, `desc`, img_url, video_url, time_cost, is_key_step, voice_url, gmt_create) VALUES \n{',\n'.join(batch)};\n"
+                    f.write(sql)
+                f.write("\n")
+
+            # 4.2 t_soc_follow
+            if self.follows:
+                f.write("-- t_soc_follow\n")
+                values = []
+                for follow in self.follows:
+                    row = [follow["follower_id"], follow["following_id"], follow["status"], follow["gmt_create"], follow["gmt_modified"]]
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT IGNORE INTO t_soc_follow (follower_id, following_id, status, gmt_create, gmt_modified) VALUES \n{',\n'.join(batch)};\n"
+                    f.write(sql)
+                f.write("\n")
+
+            # 4.3 t_soc_comment
+            if self.comments:
+                f.write("-- t_soc_comment\n")
+                values = []
+                for c in self.comments:
+                    # c is tuple: (id, user_id, target_type, target_id, content, img_urls, parent_id, root_id, like_count, gmt_create)
+                    row = list(c)
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT INTO t_soc_comment (id, user_id, target_type, target_id, content, img_urls, parent_id, root_id, like_count, gmt_create) VALUES \n{',\n'.join(batch)};\n"
+                    f.write(sql)
+                f.write("\n")
+
+            # 4.4 t_soc_interaction
+            if self.interactions:
+                f.write("-- t_soc_interaction\n")
+                values = []
+                for x in self.interactions:
+                    row = list(x)
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT IGNORE INTO t_soc_interaction (id, user_id, target_type, target_id, action_type, device_id, gmt_create) VALUES \n{',\n'.join(batch)};\n"
+                    f.write(sql)
+                f.write("\n")
+            
+            # 4.5 t_points_record
+            if self.points_records:
+                f.write("-- t_points_record\n")
+                values = []
+                for x in self.points_records:
+                    row = list(x)
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT INTO t_points_record (user_id, type, amount, description, gmt_create) VALUES \n{',\n'.join(batch)};\n"
+                    f.write(sql)
+                f.write("\n")
+            
+            # 4.6 t_comm_product
+            if self.products:
+                f.write("-- t_comm_product\n")
+                values = []
+                for x in self.products:
+                    row = list(x)
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT INTO t_comm_product (id, title, description, price, stock, category_id, gmt_create, gmt_modified) VALUES \n{',\n'.join(batch)};\n"
+                    f.write(sql)
+                f.write("\n")
+            
+            # 4.7 t_comm_order
+            if self.orders:
+                f.write("-- t_comm_order\n")
+                values = []
+                for x in self.orders:
+                    row = list(x)
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT INTO t_comm_order (id, user_id, total_amount, status, pay_time, gmt_create, gmt_modified) VALUES \n{',\n'.join(batch)};\n"
+                    f.write(sql)
+                f.write("\n")
+            
+            # 4.8 t_comm_order_item
+            if self.order_items:
+                f.write("-- t_comm_order_item\n")
+                values = []
+                for x in self.order_items:
+                    row = list(x)
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT INTO t_comm_order_item (id, order_id, product_id, price, count) VALUES \n{',\n'.join(batch)};\n"
+                    f.write(sql)
+                f.write("\n")
+
+            # 5. t_fin_transaction_flow
+            if self.transactions:
+                f.write("-- t_fin_transaction_flow\n")
+                values = []
+                for t in self.transactions:
+                    row = [
+                        t['id'], t['transaction_no'], t['account_id'], t['biz_order_no'], t['out_trade_no'], 
+                        t['user_id'], t['account_type'], t['flow_type'], t['biz_type'], t['amount'], 
+                        t['balance_after'], t['status'], t['remark'], t['gmt_create'], t['gmt_modified']
+                    ]
+                    values.append(f"({', '.join(map(fmt, row))})")
+                
+                for i in range(0, len(values), batch_size):
+                    batch = values[i:i+batch_size]
+                    sql = f"INSERT INTO t_fin_transaction_flow (id, transaction_no, account_id, biz_order_no, out_trade_no, user_id, account_type, flow_type, biz_type, amount, balance_after, status, remark, gmt_create, gmt_modified) VALUES \n{',\n'.join(batch)};\n"
+                    f.write(sql)
+                f.write("\n")
+
+        print(f"SQL 文件写入完成: {MYSQL_FILE}")
 
 if __name__ == "__main__":
     print("=== 开始执行混沌数据生成与同步任务 ===")
+    
+    # 尝试重置数据库（如果在离线模式或连接失败，这里会报错或被跳过，需要处理异常）
     if RESET_DB:
-        reset_mysql_schema_and_seed()
+        try:
+            reset_mysql_schema_and_seed()
+        except Exception as e:
+            print(f"数据库重置失败: {e}，将继续执行数据生成（可能生成 SQL 文件）")
+
     factory = DataFactory()
 
+    # 尝试连接数据库获取最大 ID，如果失败则使用默认值
     if MYSQL_AVAILABLE and APPEND_MODE:
         try:
             conn = pymysql.connect(**MYSQL_CONFIG)
@@ -1769,7 +2308,8 @@ if __name__ == "__main__":
             )
             conn.close()
         except Exception as e:
-            print(f"警告: 无法读取现有库的 MAX(id)，将从默认起点生成: {e}")
+            print(f"警告: 无法读取现有库的 MAX(id) 或连接数据库失败: {e}")
+            print("将使用默认 ID 起点。如果目标数据库非空，导入 SQL 可能会主键冲突。")
     
     # 1. 生成内存数据
     factory.generate_users()
@@ -1783,10 +2323,21 @@ if __name__ == "__main__":
     factory.generate_transactions()
     factory.finalize_consistency()
     
-    # 2. 同步到各个数据源 (一键式)
-    # 注意：请确保 docker-compose 已启动相关服务
-    factory.sync_to_mysql()
+    # 2. 同步到各个数据源
+    # 优先尝试直连同步，如果失败则写入 SQL 文件
+    sync_success = False
+    try:
+        factory.sync_to_mysql()
+        sync_success = True
+    except Exception as e:
+        print(f"MySQL 同步过程中出错: {e}")
+    
+    if not sync_success or not _can_connect(MYSQL_CONFIG["host"], MYSQL_CONFIG["port"]):
+        print("检测到无法连接 MySQL，转为写入 SQL 文件...")
+        factory.write_sql_files()
+
     factory.sync_to_doris()
     factory.sync_to_es()
     
     print("=== 所有任务完成 ===")
+
