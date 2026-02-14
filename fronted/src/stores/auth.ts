@@ -24,13 +24,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const loadProfile = async () => {
-    if (!token.value || loadingProfile.value) return
+    if (!token.value || loadingProfile.value) return false
     loadingProfile.value = true
     try {
       const res = await UserAPI.getProfile()
       if (res.code === 200) {
         profile.value = res.data
+        return true
       }
+      return false
+    } catch {
+      return false
     } finally {
       loadingProfile.value = false
     }
@@ -38,4 +42,3 @@ export const useAuthStore = defineStore('auth', () => {
 
   return { token, profile, loadingProfile, isAuthed, setToken, clear, loadProfile }
 })
-

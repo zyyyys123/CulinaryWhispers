@@ -89,8 +89,18 @@ const router = createRouter({
 })
 
 router.beforeEach(async to => {
-  if (to.name === 'login' || to.name === 'register') return true
   const auth = useAuthStore()
+  if (to.name === 'login' || to.name === 'register') {
+    if (auth.token) {
+      if (!auth.profile) {
+        await auth.loadProfile()
+      }
+      if (auth.profile) {
+        return auth.profile.isAdmin ? { name: 'admin' } : { name: 'home' }
+      }
+    }
+    return true
+  }
   if (to.meta?.requiresAuth && !auth.token) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }

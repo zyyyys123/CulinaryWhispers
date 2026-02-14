@@ -24,12 +24,21 @@ const submit = async () => {
       return
     }
     auth.setToken(res.data)
-    await auth.loadProfile()
+    try {
+      await auth.loadProfile()
+    } catch {
+    }
     let redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+    if (!redirect.startsWith('/')) {
+      redirect = '/'
+    }
+    if (redirect.startsWith('/login') || redirect.startsWith('/register')) {
+      redirect = '/'
+    }
     if (auth.profile?.isAdmin && (redirect === '/' || redirect === '/user/profile')) {
       redirect = '/admin'
     }
-    router.replace(redirect)
+    await router.replace(redirect)
   } finally {
     loading.value = false
   }

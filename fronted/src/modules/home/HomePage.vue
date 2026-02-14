@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { gsap } from 'gsap'
 import HeroScene from '@/components/visual/HeroScene.vue'
@@ -18,10 +18,6 @@ const aiSending = ref(false)
 const aiMessages = ref<Array<{ role: 'user' | 'assistant'; content: string; sources?: string[]; usedRemoteModel?: boolean }>>([])
 
 const hasToken = computed(() => Boolean(auth.token))
-
-onMounted(() => {
-  if (auth.token && !auth.profile) auth.loadProfile()
-})
 
 // Called when StorybookSplash finishes its animation
 const onSplashComplete = () => {
