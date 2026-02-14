@@ -1,6 +1,18 @@
 version: '3.8'
 
 services:
+  web:
+    build:
+      context: ./fronted
+      dockerfile: Dockerfile
+    container_name: culinary-web
+    ports:
+      - "5173:80"
+    depends_on:
+      - app
+    networks:
+      - culinary-net
+
   app:
     build: .
     container_name: culinary-backend
