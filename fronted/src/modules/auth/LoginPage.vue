@@ -25,7 +25,10 @@ const submit = async () => {
     }
     auth.setToken(res.data)
     await auth.loadProfile()
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+    let redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+    if (auth.profile?.isAdmin && (redirect === '/' || redirect === '/user/profile')) {
+      redirect = '/admin'
+    }
     router.replace(redirect)
   } finally {
     loading.value = false
@@ -83,4 +86,3 @@ const submit = async () => {
     </div>
   </div>
 </template>
-

@@ -73,7 +73,7 @@ const router = createRouter({
       path: '/admin',
       name: 'admin',
       component: () => import('@/modules/admin/AdminConsolePage.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, requiresAdmin: true }
     },
     {
       path: '/login',
@@ -88,11 +88,19 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach(to => {
+router.beforeEach(async to => {
   if (to.name === 'login' || to.name === 'register') return true
   const auth = useAuthStore()
   if (to.meta?.requiresAuth && !auth.token) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  if (to.meta?.requiresAdmin) {
+    if (!auth.profile && auth.token) {
+      await auth.loadProfile()
+    }
+    if (!auth.profile?.isAdmin) {
+      return { name: 'home' }
+    }
   }
   return true
 })

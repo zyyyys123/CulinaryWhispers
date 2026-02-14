@@ -424,3 +424,19 @@ CREATE TABLE IF NOT EXISTS `t_comm_order_item` (
   KEY `idx_order` (`order_id`),
   KEY `idx_product` (`product_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='电商订单明细表';
+
+-- 2.6.6 通知表 t_notify
+CREATE TABLE IF NOT EXISTS `t_notify` (
+  `id` bigint(20) unsigned NOT NULL COMMENT '通知ID',
+  `from_user_id` bigint(20) unsigned DEFAULT NULL COMMENT '来源用户ID',
+  `to_user_id` bigint(20) unsigned NOT NULL COMMENT '目标用户ID',
+  `type` int(11) NOT NULL COMMENT '类型: 1-回复,2-评论,3-点赞,4-收藏,5-系统',
+  `target_type` int(11) DEFAULT NULL COMMENT '目标类型: 1-食谱,2-评论,3-商品等',
+  `target_id` bigint(20) unsigned DEFAULT NULL COMMENT '目标ID',
+  `content` varchar(512) DEFAULT NULL COMMENT '内容',
+  `is_read` int(11) NOT NULL DEFAULT 0 COMMENT '是否已读: 0-未读,1-已读',
+  `gmt_create` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  KEY `idx_to_user_time` (`to_user_id`, `gmt_create`),
+  KEY `idx_read` (`to_user_id`, `is_read`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通知表';

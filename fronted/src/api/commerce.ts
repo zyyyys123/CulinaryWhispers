@@ -13,6 +13,14 @@ type BackendProduct = {
   categoryId: number
 }
 
+const coverByCategory: Record<number, string> = {
+  1: 'https://www.themealdb.com/images/ingredients/Butter.png',
+  2: 'https://www.themealdb.com/images/ingredients/Chicken.png',
+  3: 'https://www.themealdb.com/images/ingredients/Salt.png',
+  4: 'https://www.themealdb.com/images/ingredients/Eggs.png',
+  5: 'https://www.themealdb.com/images/ingredients/Milk.png'
+}
+
 export const CommerceAPI = {
   // 获取商品列表
   getList: async (params: { page: number; size: number; keyword?: string; categoryId?: number }): Promise<Result<Page<ProductVO>>> => {
@@ -31,7 +39,7 @@ export const CommerceAPI = {
           name: p.title,
           description: p.description,
           price: Number(p.price ?? 0),
-          coverUrl: 'https://images.unsplash.com/photo-1593618998160-e34015e67502?w=800&q=80',
+          coverUrl: coverByCategory[p.categoryId] ?? coverByCategory[1],
           images: [],
           stock: Number(p.stock ?? 0),
           categoryId: String(p.categoryId ?? ''),
@@ -56,7 +64,7 @@ export const CommerceAPI = {
         name: p.title,
         description: p.description,
         price: Number(p.price ?? 0),
-        coverUrl: 'https://images.unsplash.com/photo-1593618998160-e34015e67502?w=800&q=80',
+        coverUrl: coverByCategory[p.categoryId] ?? coverByCategory[1],
         images: [],
         stock: Number(p.stock ?? 0),
         categoryId: String(p.categoryId ?? ''),

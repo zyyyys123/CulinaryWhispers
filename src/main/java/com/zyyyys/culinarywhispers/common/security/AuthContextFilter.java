@@ -5,6 +5,7 @@ import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.Result;
 import com.zyyyys.culinarywhispers.common.result.ResultCode;
 import com.zyyyys.culinarywhispers.common.utils.JwtUtil;
+import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -27,11 +28,11 @@ import java.io.IOException;
 public class AuthContextFilter extends OncePerRequestFilter {
 
     private static final String HEADER_AUTHORIZATION = "Authorization";
-    private static final String HEADER_USER_ID = "X-User-Id";
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper;
+    private final UserService userService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -40,20 +41,6 @@ public class AuthContextFilter extends OncePerRequestFilter {
             try {
                 String requestUri = request.getRequestURI();
                 String method = request.getMethod();
-
-                String headerUserId = request.getHeader(HEADER_USER_ID);
-                if (headerUserId != null && !headerUserId.isBlank()) {
-                    try {
-                        long userId = Long.parseLong(headerUserId.trim());
-                        log.info("AuthContextFilter: Set userId from header: {}", userId);
-                        UserContext.setUserId(userId);
-                    } catch (NumberFormatException ignored) {
-                        log.error("AuthContextFilter: Invalid X-User-Id: {}", headerUserId);
-                        throw new BusinessException(ResultCode.UNAUTHORIZED);
-                    }
-                    filterChain.doFilter(request, response);
-                    return;
-                }
 
                 String authHeader = request.getHeader(HEADER_AUTHORIZATION);
                 if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
@@ -67,6 +54,9 @@ public class AuthContextFilter extends OncePerRequestFilter {
                         throw new BusinessException(ResultCode.UNAUTHORIZED);
                     }
                     long userId = Long.parseLong(String.valueOf(userIdObj));
+                    if (userService.getById(userId) == null) {
+                        throw new BusinessException(ResultCode.UNAUTHORIZED);
+                    }
                     log.info("AuthContextFilter: Set userId from token: {}", userId);
                     UserContext.setUserId(userId);
                     filterChain.doFilter(request, response);

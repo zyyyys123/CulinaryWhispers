@@ -11,6 +11,7 @@ type BackendUserProfileVO = {
   avatarUrl?: string
   mobile?: string
   email?: string
+  isAdmin?: boolean
   gender?: number
   signature?: string
   country?: string
@@ -73,6 +74,7 @@ export const UserAPI = {
         avatarUrl: d.avatarUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
         mobile: d.mobile,
         email: d.email,
+        isAdmin: Boolean(d.isAdmin),
         gender: d.gender,
         signature: d.signature,
         country: d.country,
@@ -110,6 +112,7 @@ export const UserAPI = {
         avatarUrl: d.avatarUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
         mobile: d.mobile,
         email: d.email,
+        isAdmin: Boolean(d.isAdmin),
         gender: d.gender,
         signature: d.signature,
         country: d.country,

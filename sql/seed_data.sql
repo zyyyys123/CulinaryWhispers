@@ -3,6 +3,65 @@
 
 USE culinary_user;
 
+-- 内置账号（便于演示/测试）
+INSERT INTO t_usr_base (id, username, mobile, email, password_hash, salt, nickname, avatar_url, status, register_source, register_ip, last_login_time, last_login_ip, is_deleted, version)
+VALUES
+  (9000000001, 'admin', '13000000000', 'admin@cw.local', '$2b$12$l5pFqsziKh1HHvdK76LQrOR44KdB9GSnPV3p71KSI6o7Ac0d8vxDm', 'seed_salt_admin_1234567890123456', '系统管理员', 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin', 1, 'WEB', '127.0.0.1', NOW(3), '127.0.0.1', 0, 1),
+  (9000000002, 'demo',  '13100000001', 'demo@cw.local',  '$2b$12$l5pFqsziKh1HHvdK76LQrOR44KdB9GSnPV3p71KSI6o7Ac0d8vxDm', 'seed_salt_demo__1234567890123456', '演示用户',  'https://api.dicebear.com/7.x/avataaars/svg?seed=demo',  1, 'WEB', '127.0.0.1', NOW(3), '127.0.0.1', 0, 1)
+ON DUPLICATE KEY UPDATE
+  password_hash=VALUES(password_hash),
+  salt=VALUES(salt),
+  nickname=VALUES(nickname),
+  avatar_url=VALUES(avatar_url),
+  status=VALUES(status),
+  last_login_time=VALUES(last_login_time),
+  last_login_ip=VALUES(last_login_ip),
+  is_deleted=VALUES(is_deleted),
+  version=VALUES(version);
+
+INSERT INTO t_usr_profile (user_id, gender, signature, country, province, city, occupation, interests, cook_age, favorite_cuisine, taste_preference, dietary_restrictions, vip_expire_time, vip_level, is_master_chef, master_title, bg_image_url, video_intro_url, contact_email, total_spend)
+VALUES
+  (9000000001, 0, '系统管理员账号', '中国', '北京', '北京', '管理员', '后台,运维,增长', 5, '家常菜', '清淡', '无', NULL, 3, 1, '平台运营官', 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1800&q=80', '', 'admin@cw.local', 0.00),
+  (9000000002, 1, '演示账号：用于体验全站功能', '中国', '上海', '上海', '产品经理', '烘焙,咖啡,轻食', 2, '烘焙', '微甜', '无', NULL, 1, 0, NULL, 'https://images.unsplash.com/photo-1514511547113-baf87d9d6a3a?auto=format&fit=crop&w=1800&q=80', '', 'demo@cw.local', 0.00)
+ON DUPLICATE KEY UPDATE
+  gender=VALUES(gender),
+  signature=VALUES(signature),
+  country=VALUES(country),
+  province=VALUES(province),
+  city=VALUES(city),
+  occupation=VALUES(occupation),
+  interests=VALUES(interests),
+  cook_age=VALUES(cook_age),
+  favorite_cuisine=VALUES(favorite_cuisine),
+  taste_preference=VALUES(taste_preference),
+  dietary_restrictions=VALUES(dietary_restrictions),
+  vip_expire_time=VALUES(vip_expire_time),
+  vip_level=VALUES(vip_level),
+  is_master_chef=VALUES(is_master_chef),
+  master_title=VALUES(master_title),
+  bg_image_url=VALUES(bg_image_url),
+  video_intro_url=VALUES(video_intro_url),
+  contact_email=VALUES(contact_email),
+  total_spend=VALUES(total_spend);
+
+INSERT INTO t_usr_stats (user_id, level, experience, total_recipes, total_moments, total_likes_received, total_collects_received, total_fans, total_follows, total_views, week_active_days, month_active_days, last_publish_time)
+VALUES
+  (9000000001, 30, 250000, 12, 40, 8800, 4200, 5600, 120, 900000, 7, 30, NOW(3)),
+  (9000000002, 8,  4200,   6,  12,  320,  180,  56,   18,  12000, 4,  12, NOW(3))
+ON DUPLICATE KEY UPDATE
+  level=VALUES(level),
+  experience=VALUES(experience),
+  total_recipes=VALUES(total_recipes),
+  total_moments=VALUES(total_moments),
+  total_likes_received=VALUES(total_likes_received),
+  total_collects_received=VALUES(total_collects_received),
+  total_fans=VALUES(total_fans),
+  total_follows=VALUES(total_follows),
+  total_views=VALUES(total_views),
+  week_active_days=VALUES(week_active_days),
+  month_active_days=VALUES(month_active_days),
+  last_publish_time=VALUES(last_publish_time);
+
 -- 食谱分类（与脚本 chaos_data_gen.py 的分类口径保持一致）
 INSERT INTO t_rcp_category (id, name, parent_id, level, sort, is_visible)
 VALUES
@@ -64,4 +123,8 @@ VALUES
   ('空气炸锅 4L', '低油烹饪，适合薯条/鸡翅/烘焙。', 299.00, 120, 2),
   ('电子秤 5kg', '烘焙称重，0.1g 精度。', 39.90, 650, 2),
   ('咖啡手冲壶', '细口壶控流稳定，适合手冲。', 79.00, 260, 3),
-  ('料理机 1000W', '多档搅拌，制作奶昔/辅食。', 199.00, 180, 3);
+  ('料理机 1000W', '多档搅拌，制作奶昔/辅食。', 199.00, 180, 3),
+  ('零基础家常菜入门课', '30 天打卡：刀工/火候/调味系统训练。', 99.00, 9999, 4),
+  ('烘焙进阶课程 · 司康&面包', '从配方到发酵：一次掌握烘焙底层逻辑。', 199.00, 9999, 4),
+  ('CulinaryWhispers 围裙', '加厚帆布防油污，双口袋。', 59.00, 800, 5),
+  ('厨房贴纸套装', '16 张防水贴，装饰冰箱/杯子。', 19.90, 2000, 5);

@@ -1,6 +1,8 @@
 package com.zyyyys.culinarywhispers.module.user.controller;
 
+import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.Result;
+import com.zyyyys.culinarywhispers.common.result.ResultCode;
 import com.zyyyys.culinarywhispers.common.utils.SecurityUtil;
 import com.zyyyys.culinarywhispers.module.user.dto.UserLoginDTO;
 import com.zyyyys.culinarywhispers.module.user.dto.UserRegisterDTO;
@@ -49,6 +51,9 @@ public class UserController {
     @GetMapping("/profile")
     public Result<UserProfileVO> getProfile() {
         Long userId = SecurityUtil.getUserId();
+        if (userId == null) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED);
+        }
         return Result.success(userService.getProfile(userId));
     }
 
@@ -73,6 +78,9 @@ public class UserController {
     @GetMapping("/stats")
     public Result<UserStatsVO> getUserStats() {
         Long userId = SecurityUtil.getUserId();
+        if (userId == null) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED);
+        }
         return Result.success(userStatsService.getUserStats(userId));
     }
 

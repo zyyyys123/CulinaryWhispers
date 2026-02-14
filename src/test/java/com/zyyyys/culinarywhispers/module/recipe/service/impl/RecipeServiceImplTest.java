@@ -90,7 +90,9 @@ class RecipeServiceImplTest {
         // 准备数据
         RecipePublishDTO dto = new RecipePublishDTO();
         dto.setTitle("Test Recipe");
-        dto.setSteps(Collections.singletonList(new RecipePublishDTO.StepDTO()));
+        RecipePublishDTO.StepDTO step = new RecipePublishDTO.StepDTO();
+        step.setDesc("Step 1");
+        dto.setSteps(Collections.singletonList(step));
         dto.setTags(Collections.singletonList("Tag1"));
         dto.setCategoryId(1);
         dto.setDifficulty(1);

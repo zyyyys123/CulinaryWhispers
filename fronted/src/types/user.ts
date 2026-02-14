@@ -6,6 +6,7 @@ export interface UserProfileVO {
   avatarUrl: string
   mobile?: string
   email?: string
+  isAdmin?: boolean
 
   gender?: number
   signature?: string

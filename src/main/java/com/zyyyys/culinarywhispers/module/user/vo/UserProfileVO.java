@@ -35,6 +35,7 @@ public class UserProfileVO {
     private String interests;
     private Integer vipLevel;
     private LocalDateTime vipExpireTime;
+    private Boolean isAdmin;
     
     // 静态工厂方法用于合并数据
     public static UserProfileVO from(User user, UserProfile profile) {
@@ -46,6 +47,7 @@ public class UserProfileVO {
             vo.setAvatarUrl(user.getAvatarUrl());
             vo.setMobile(user.getMobile()); // 实际场景中需脱敏处理
             vo.setEmail(user.getEmail());
+            vo.setIsAdmin("admin".equals(user.getUsername()));
         }
         if (profile != null) {
             vo.setGender(profile.getGender());

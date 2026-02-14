@@ -7,6 +7,8 @@ import time
 import socket
 import urllib.request
 import urllib.error
+import urllib.parse
+import re
 from decimal import Decimal, getcontext
 import faker
 import numpy as np
@@ -62,12 +64,21 @@ def _clamp_str(s, max_len):
         return s
     return s[:max_len]
 
-def _can_connect(host, port, timeout_sec=1.5):
+def _can_connect(host, port, timeout_sec=5.0):
     try:
         with socket.create_connection((host, int(port)), timeout=timeout_sec):
             return True
     except Exception:
         return False
+
+def _parse_url_host_port(url, default_port):
+    try:
+        u = urllib.parse.urlparse(url)
+        host = u.hostname or "localhost"
+        port = int(u.port or default_port)
+        return host, port
+    except Exception:
+        return "localhost", int(default_port)
 
 # 数据库连接配置 (根据 docker-compose.yml)
 MYSQL_CONFIG = {
@@ -217,6 +228,40 @@ def _safe_chaos_str(base_str, max_len):
 
 def _repo_root():
     return Path(__file__).resolve().parents[2]
+
+def _load_mealdb_cover_urls():
+    try:
+        p = _repo_root() / "sql" / "mealdb_recipes.sql"
+        if not p.exists():
+            return []
+        text = p.read_text(encoding="utf-8", errors="ignore")
+        urls = re.findall(r"https://www\.themealdb\.com/images/media/meals/[^'\"\s]+", text)
+        uniq = []
+        seen = set()
+        for u in urls:
+            if u in seen:
+                continue
+            seen.add(u)
+            uniq.append(u)
+        return uniq
+    except Exception:
+        return []
+
+_MEALDB_COVER_URLS = _load_mealdb_cover_urls()
+
+def _pick_cover_url(used=None):
+    pool = _MEALDB_COVER_URLS
+    if not pool:
+        return "https://www.themealdb.com/images/media/meals/6ht8141764786479.jpg"
+    if used is None:
+        return random.choice(pool)
+    if len(used) >= len(pool):
+        return random.choice(pool)
+    for _ in range(12):
+        u = random.choice(pool)
+        if u not in used:
+            return u
+    return random.choice(pool)
 
 def _strip_sql_comments(sql_text):
     out = []
@@ -1058,6 +1103,7 @@ class DataFactory:
         start_dt = datetime.datetime.combine(SYSTEM_START_DATE, datetime.time(0, 0, 0))
         end_dt = datetime.datetime.combine(SYSTEM_END_DATE, datetime.time(23, 59, 59))
         used_titles = set()
+        used_covers = set()
         for i in range(1, RECIPE_COUNT + 1):
             user = random.choice(self.users)
             cat = random.choice(self.categories)
@@ -1085,7 +1131,7 @@ class DataFactory:
                 'id': self._id_base["recipe"] + i,
                 'author_id': user['id'],
                 'title': title,
-                'cover_url': _clamp_str(fake.image_url(), 512),
+                'cover_url': _clamp_str(_pick_cover_url(used_covers), 512),
                 'video_url': "",
                 'description': _build_recipe_desc(theme),
                 'category_id': cat['id'],
@@ -1110,6 +1156,7 @@ class DataFactory:
             rcp["tags"] = json.dumps(_build_recipe_tags(theme), ensure_ascii=False)
             rcp["_theme"] = theme
             self.recipes.append(rcp)
+            used_covers.add(rcp["cover_url"])
             
             # 使用 Zipf 分布模拟长尾效应：少数食谱拥有极高热度
             # zipf 参数 > 1, 越小越长尾
@@ -1385,6 +1432,8 @@ class DataFactory:
             ("不粘锅", 1), ("炒锅", 1), ("汤锅", 1), ("砂锅", 1), ("刀具套装", 1), ("砧板", 1),
             ("空气炸锅", 2), ("烤箱", 2), ("电饭煲", 2), ("电磁炉", 2), ("料理机", 2), ("破壁机", 2), ("厨师机", 2),
             ("烘焙模具", 3), ("电子秤", 3), ("打蛋器", 3), ("量杯量勺", 3), ("裱花袋", 3), ("硅胶刮刀", 3),
+            ("零基础家常菜入门课", 4), ("烘焙进阶课程", 4), ("咖啡手冲训练营", 4),
+            ("围裙", 5), ("贴纸套装", 5), ("餐具周边", 5),
         ]
 
         products = []
@@ -1399,6 +1448,10 @@ class DataFactory:
                 spec = f"{random.choice(sizes)}/{random.choice(materials)}"
             elif ptype in ("空气炸锅", "烤箱", "电饭煲", "电磁炉", "料理机", "破壁机", "厨师机"):
                 spec = f"{random.choice(watt)}/{random.choice(['家用', '轻商用'])}"
+            elif category_id == 4:
+                spec = random.choice(["30天打卡", "体系课", "速成课", "进阶课"])
+            elif category_id == 5:
+                spec = random.choice(["经典款", "限定款", "加厚款", "礼盒装"])
             else:
                 spec = random.choice(["入门套装", "进阶套装", "专业版", "家庭版"])
 
@@ -1916,8 +1969,8 @@ class DataFactory:
     def sync_to_es(self):
         """同步食谱数据到 Elasticsearch"""
         print("正在同步食谱数据到 Elasticsearch...")
-        if not _can_connect("localhost" if ES_HOST.startswith("http://localhost") else ES_HOST.replace("http://", "").replace("https://", "").split(":")[0],
-                            9200 if ":" not in ES_HOST.replace("http://", "").replace("https://", "") else int(ES_HOST.replace("http://", "").replace("https://", "").split(":")[1].split("/")[0])):
+        host, port = _parse_url_host_port(ES_HOST, 9200)
+        if not _can_connect(host, port):
             print(f"无法连接到 ES ({ES_HOST})，跳过同步。")
             return
 
@@ -1947,29 +2000,10 @@ class DataFactory:
                 "createTime": r.get("gmt_create"),
             }
 
-        if ES_AVAILABLE:
-            es = Elasticsearch(ES_HOST)
-            try:
-                if not es.ping():
-                    print(f"无法连接到 ES ({ES_HOST})，跳过同步。")
-                    return
-            except Exception as e:
-                print(f"连接 ES 出错: {e}。跳过同步。")
-                return
-            actions = []
-            for r in self.recipes:
-                actions.append({"_index": index_name, "_id": r["id"], "_source": build_doc(r)})
-            try:
-                success, failed = helpers.bulk(es, actions, stats_only=True)
-                print(f"ES 同步结果: 成功索引 {success} 条文档，失败 {failed} 条。")
-            except Exception as e:
-                print(f"ES 批量操作错误: {e}")
-            return
 
         bulk_lines = []
         for r in self.recipes:
             bulk_lines.append(json.dumps({"index": {"_index": index_name, "_id": r["id"]}}, ensure_ascii=False))
-            bulk_lines.append(json.dumps(build_doc(r), ensure_ascii=False))
         payload = ("\n".join(bulk_lines) + "\n").encode("utf-8")
 
         req = urllib.request.Request(
@@ -2340,4 +2374,3 @@ if __name__ == "__main__":
     factory.sync_to_es()
     
     print("=== 所有任务完成 ===")
-
