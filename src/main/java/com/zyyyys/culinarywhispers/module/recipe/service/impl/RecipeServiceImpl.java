@@ -99,12 +99,20 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
         
         // 3. 保存步骤
         if (publishDTO.getSteps() != null && !publishDTO.getSteps().isEmpty()) {
-            List<RecipeStep> steps = publishDTO.getSteps().stream().map(stepDTO -> {
+            List<RecipePublishDTO.StepDTO> stepDTOs = publishDTO.getSteps().stream()
+                    .filter(s -> s != null && StrUtil.isNotBlank(s.getDesc()))
+                    .sorted(Comparator.comparing(s -> Objects.requireNonNullElse(s.getStepNo(), Integer.MAX_VALUE)))
+                    .collect(Collectors.toList());
+
+            List<RecipeStep> steps = new ArrayList<>();
+            for (int i = 0; i < stepDTOs.size(); i++) {
+                RecipePublishDTO.StepDTO stepDTO = stepDTOs.get(i);
                 RecipeStep step = new RecipeStep();
                 BeanUtils.copyProperties(stepDTO, step);
                 step.setRecipeId(recipeId);
-                return step;
-            }).collect(Collectors.toList());
+                step.setStepNo(i + 1);
+                steps.add(step);
+            }
             
             // 批量插入步骤
             steps.forEach(stepMapper::insert);
@@ -141,6 +149,7 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
         stepWrapper.eq(RecipeStep::getRecipeId, id)
                    .orderByAsc(RecipeStep::getStepNo);
         List<RecipeStep> steps = stepMapper.selectList(stepWrapper);
+        normalizeStepNo(steps);
 
         // 4. 获取作者信息
         User author = userService.getById(recipeInfo.getAuthorId());
@@ -192,6 +201,18 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
         }
 
         return vo;
+    }
+
+    private void normalizeStepNo(List<RecipeStep> steps) {
+        if (steps == null || steps.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < steps.size(); i++) {
+            RecipeStep s = steps.get(i);
+            if (s != null) {
+                s.setStepNo(i + 1);
+            }
+        }
     }
 
     private RecipeStats getStatsFromRedisOrDb(Long recipeId) {

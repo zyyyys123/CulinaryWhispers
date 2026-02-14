@@ -31,7 +31,14 @@ const loadHistory = async (reset = true) => {
       return
     }
     total.value = Number(res.data.total ?? 0)
-    list.value.push(...(res.data.records ?? []))
+    const records = res.data.records ?? []
+    const seen = new Set(list.value.map(r => r.id))
+    for (const r of records) {
+      if (r?.id && !seen.has(r.id)) {
+        list.value.push(r)
+        seen.add(r.id)
+      }
+    }
     page.value++
   } catch {
     errorMessage.value = '加载失败，请检查网络或稍后重试'
@@ -52,7 +59,14 @@ const signIn = async () => {
       return
     }
     signedPoints.value = res.data
-    await loadHistory(true)
+    const latest = await PointsAPI.history({ page: 1, size: 1 })
+    if (latest.code === 200) {
+      total.value = Number(latest.data.total ?? total.value)
+      const r = latest.data.records?.[0]
+      if (r?.id && !list.value.some(x => x.id === r.id)) {
+        list.value.unshift(r)
+      }
+    }
   } catch {
     errorMessage.value = '签到失败，请稍后重试'
   } finally {
@@ -142,4 +156,3 @@ onMounted(() => {
     </div>
   </div>
 </template>
-

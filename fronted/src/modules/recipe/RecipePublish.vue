@@ -62,6 +62,7 @@ const submit = async () => {
     steps: form.value.steps
       .map(s => ({ ...s, desc: (s.desc ?? '').trim() }))
       .filter(s => s.desc.length > 0)
+      .map((s, i) => ({ ...s, stepNo: i + 1 }))
   }
 
   if (!payload.title || !payload.coverUrl || !payload.description || payload.steps.length === 0) {
@@ -205,4 +206,3 @@ const submit = async () => {
     </div>
   </div>
 </template>
-

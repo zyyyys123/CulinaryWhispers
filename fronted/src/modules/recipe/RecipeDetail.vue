@@ -26,15 +26,35 @@ const zenInput = ref('')
 const zenInputRef = ref<HTMLInputElement | null>(null)
 const zenMessages = ref<Array<{ role: 'user' | 'assistant'; content: string }>>([])
 
-const activeStep = computed(() => {
-  if (!recipe.value?.steps?.length) return null
-  const i = Math.min(Math.max(zenStepIndex.value, 0), recipe.value.steps.length - 1)
-  return recipe.value.steps[i]
-})
-
 const containsAscii = (text: string) => /[A-Za-z]/.test(text || '')
 
-const toZhStep = (text: string, stepNo: number) => {
+const displaySteps = computed(() => {
+  const src = recipe.value?.steps ?? []
+  const filtered = src
+    .map(s => ({ ...s, desc: (s?.desc ?? '').trim() }))
+    .filter(s => s.desc.length > 0)
+
+  const merged: typeof filtered = []
+  for (let i = 0; i < filtered.length; i++) {
+    const cur = filtered[i]
+    const next = filtered[i + 1]
+    if (next && containsAscii(cur.desc) && cur.desc.length <= 12) {
+      filtered[i + 1] = { ...next, desc: `${cur.desc} ${next.desc}`.trim() }
+      continue
+    }
+    merged.push(cur)
+  }
+
+  return merged.map((s, i) => ({ ...s, stepNo: i + 1 }))
+})
+
+const activeStep = computed(() => {
+  if (!displaySteps.value.length) return null
+  const i = Math.min(Math.max(zenStepIndex.value, 0), displaySteps.value.length - 1)
+  return displaySteps.value[i]
+})
+
+const toZhStep = (text: string) => {
   if (!text) return ''
   if (!containsAscii(text)) return text
   const t = text
@@ -90,13 +110,12 @@ const toZhStep = (text: string, stepNo: number) => {
     .replace(/\b(g)\b/gi, '克')
     .replace(/\b(l)\b/gi, '升')
     .replace(/\b(ml)\b/gi, '毫升')
-    .replace(/[A-Za-z]+/g, '')
     .replace(/\s*([,.;:!?])\s*/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim()
   
   if (!out || out.length < 6) {
-    return `第${stepNo}步：按提示完成该步骤（建议使用中文数据源重新生成步骤）。`
+    return t
   }
   return out
 }
@@ -213,8 +232,8 @@ const goAuthorProfile = () => {
 }
 
 const openZenModeAt = async (index: number) => {
-  if (!recipe.value?.steps?.length) return
-  zenStepIndex.value = Math.min(Math.max(index, 0), recipe.value.steps.length - 1)
+  if (!displaySteps.value.length) return
+  zenStepIndex.value = Math.min(Math.max(index, 0), displaySteps.value.length - 1)
   if (!isZenMode.value) {
     isZenMode.value = true
     document.body.style.overflow = 'hidden'
@@ -227,13 +246,13 @@ const openZenModeAt = async (index: number) => {
 }
 
 const zenPrev = () => {
-  if (!recipe.value?.steps?.length) return
+  if (!displaySteps.value.length) return
   zenStepIndex.value = Math.max(0, zenStepIndex.value - 1)
 }
 
 const zenNext = () => {
-  if (!recipe.value?.steps?.length) return
-  zenStepIndex.value = Math.min(recipe.value.steps.length - 1, zenStepIndex.value + 1)
+  if (!displaySteps.value.length) return
+  zenStepIndex.value = Math.min(displaySteps.value.length - 1, zenStepIndex.value + 1)
 }
 
 const assistantReply = (question: string, stepText: string, stepNo: number) => {
@@ -252,8 +271,8 @@ const sendZen = () => {
   const q = zenInput.value.trim()
   if (!q) return
   zenMessages.value.push({ role: 'user', content: q })
-  const stepNo = (activeStep.value?.stepNo ?? zenStepIndex.value + 1)
-  const stepText = activeStep.value?.desc ? toZhStep(activeStep.value.desc, stepNo) : ''
+  const stepNo = zenStepIndex.value + 1
+  const stepText = activeStep.value?.desc ? toZhStep(activeStep.value.desc) : ''
   
   setTimeout(() => {
     zenMessages.value.push({ role: 'assistant', content: assistantReply(q, stepText, stepNo) })
@@ -401,15 +420,15 @@ onUnmounted(() => {
 
           <div class="space-y-10">
             <div
-              v-for="(step, idx) in recipe.steps"
-              :key="step.stepNo"
+              v-for="(step, idx) in displaySteps"
+              :key="idx"
               class="group relative pl-8 border-l border-gray-800 hover:border-primary transition-colors duration-300 cursor-pointer"
               @click="openZenModeAt(idx)"
             >
               <span class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-dark-bg border-2 border-gray-600 group-hover:border-primary transition-colors"></span>
               
-              <h4 class="text-lg font-bold text-gray-400 mb-2 group-hover:text-white transition-colors">第 {{ step.stepNo }} 步</h4>
-              <p class="text-gray-300 leading-relaxed mb-4">{{ toZhStep(step.desc, step.stepNo) }}</p>
+              <h4 class="text-lg font-bold text-gray-400 mb-2 group-hover:text-white transition-colors">第 {{ idx + 1 }} 步</h4>
+              <p class="text-gray-300 leading-relaxed mb-4">{{ toZhStep(step.desc) }}</p>
               
               <!-- Key Step Highlight -->
               <div v-if="step.isKeyStep" class="inline-flex items-center gap-2 px-3 py-1 bg-yellow-500/10 text-yellow-500 text-xs rounded border border-yellow-500/20">
@@ -469,9 +488,9 @@ onUnmounted(() => {
         </button>
 
         <div class="text-center max-w-3xl space-y-6 -mt-6">
-          <h2 class="text-primary text-sm tracking-[0.35em]">第 {{ (activeStep?.stepNo ?? 1) }} 步 / 共 {{ recipe.steps.length }} 步</h2>
+          <h2 class="text-primary text-sm tracking-[0.35em]">第 {{ zenStepIndex + 1 }} 步 / 共 {{ displaySteps.length }} 步</h2>
           <p class="text-3xl md:text-6xl font-serif leading-tight text-white max-h-[40vh] overflow-auto px-2 custom-scrollbar">
-            "{{ toZhStep(activeStep?.desc ?? '', activeStep?.stepNo ?? 1) }}"
+            "{{ toZhStep(activeStep?.desc ?? '') }}"
           </p>
           
           <div class="flex justify-center gap-8 mt-8">
@@ -484,7 +503,7 @@ onUnmounted(() => {
              </button>
              <button
                class="w-16 h-16 rounded-full border border-gray-700 flex items-center justify-center hover:bg-white hover:text-black transition-all disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-white"
-               :disabled="zenStepIndex >= recipe.steps.length - 1"
+               :disabled="zenStepIndex >= displaySteps.length - 1"
                @click="zenNext"
              >
                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
