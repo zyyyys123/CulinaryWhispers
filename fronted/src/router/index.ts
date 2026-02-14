@@ -70,6 +70,12 @@ const router = createRouter({
       component: () => import('@/modules/lab/DataLabPage.vue')
     },
     {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('@/modules/admin/AdminConsolePage.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('@/modules/auth/LoginPage.vue')
