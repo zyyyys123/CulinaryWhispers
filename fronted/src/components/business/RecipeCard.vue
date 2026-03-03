@@ -39,6 +39,20 @@ const coverSrc = computed(() => {
 const onCoverError = () => {
   coverLoadError.value = true
 }
+
+const avatarLoadError = ref(false)
+const fallbackAvatarUrl = computed(
+  () =>
+    `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(props.data.authorName || 'user')}`
+)
+const avatarSrc = computed(() => {
+  const url = (props.data.authorAvatar ?? '').trim()
+  if (!url || avatarLoadError.value) return fallbackAvatarUrl.value
+  return url
+})
+const onAvatarError = () => {
+  avatarLoadError.value = true
+}
 </script>
 
 <template>
@@ -82,7 +96,7 @@ const onCoverError = () => {
         <!-- Meta Info (Author & Stats) -->
         <div class="flex items-center justify-between text-gray-300 text-xs font-medium">
           <div class="flex items-center gap-2">
-            <img :src="data.authorAvatar" class="w-5 h-5 rounded-full border border-white/30" />
+            <img :src="avatarSrc" class="w-5 h-5 rounded-full border border-white/30" @error="onAvatarError" />
             <span>{{ data.authorName }}</span>
           </div>
           

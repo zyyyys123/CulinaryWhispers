@@ -75,6 +75,7 @@ fronted/*.local
 fronted/npm-debug.log*
 fronted/yarn-debug.log*
 fronted/yarn-error.log*
+fronted/tsconfig.tsbuildinfo
 
 ### Go ###
 go-edge/**/gateway-server

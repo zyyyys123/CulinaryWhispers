@@ -58,6 +58,20 @@ const coverUrl = computed(() => {
     : 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1800&q=80'
 })
 
+const avatarLoadError = ref(false)
+const fallbackAvatarUrl = computed(
+  () =>
+    `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(profile.value?.nickname || profile.value?.username || 'user')}`
+)
+const avatarSrc = computed(() => {
+  const url = (profile.value?.avatarUrl ?? '').trim()
+  if (!url || avatarLoadError.value) return fallbackAvatarUrl.value
+  return url
+})
+const onAvatarError = () => {
+  avatarLoadError.value = true
+}
+
 const masterLabel = computed(() => {
   if (!profile.value?.isMasterChef) return ''
   const t = profile.value.masterTitle
@@ -303,7 +317,7 @@ const logout = () => {
         <!-- Avatar with Badge Indicator -->
         <div class="relative group/avatar cursor-pointer" @click="showBadgeWall = true">
           <div class="w-32 h-32 rounded-full border-4 border-dark-bg overflow-hidden relative z-10">
-            <img :src="profile.avatarUrl" class="w-full h-full object-cover" />
+            <img :src="avatarSrc" class="w-full h-full object-cover" @error="onAvatarError" />
           </div>
           <!-- 3D Badge Indicator -->
           <div class="absolute -bottom-2 -right-2 bg-primary text-black text-xs font-bold px-3 py-1 rounded-full z-20 animate-bounce">

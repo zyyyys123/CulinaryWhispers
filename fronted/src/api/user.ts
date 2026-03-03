@@ -1,5 +1,6 @@
 import type { Result } from '@/types/recipe'
 import type { UserProfileVO, UserStatsVO } from '@/types/user'
+import { normalizeAssetUrl } from '@/utils/assetUrl'
 import { http } from './http'
 
 type BackendResult<T> = { code: number; message: string; data: T }
@@ -71,7 +72,8 @@ export const UserAPI = {
         userId: String(d.id),
         username: d.username,
         nickname: d.nickname,
-        avatarUrl: d.avatarUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+        avatarUrl:
+          normalizeAssetUrl(d.avatarUrl) ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
         mobile: d.mobile,
         email: d.email,
         isAdmin: Boolean(d.isAdmin),
@@ -91,7 +93,7 @@ export const UserAPI = {
         totalSpend: Number(d.totalSpend ?? 0),
         isMasterChef: Boolean(d.isMasterChef),
         masterTitle: d.masterTitle,
-        bgImageUrl: d.bgImageUrl
+        bgImageUrl: normalizeAssetUrl(d.bgImageUrl)
       }
     }
   },
@@ -109,7 +111,8 @@ export const UserAPI = {
         userId: String(d.id),
         username: d.username,
         nickname: d.nickname,
-        avatarUrl: d.avatarUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+        avatarUrl:
+          normalizeAssetUrl(d.avatarUrl) ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
         mobile: d.mobile,
         email: d.email,
         isAdmin: Boolean(d.isAdmin),
@@ -129,7 +132,7 @@ export const UserAPI = {
         totalSpend: Number(d.totalSpend ?? 0),
         isMasterChef: Boolean(d.isMasterChef),
         masterTitle: d.masterTitle,
-        bgImageUrl: d.bgImageUrl
+        bgImageUrl: normalizeAssetUrl(d.bgImageUrl)
       }
     }
   },
