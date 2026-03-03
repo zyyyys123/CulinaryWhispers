@@ -126,10 +126,20 @@ const fetchData = async () => {
         : [UserAPI.getProfile(), UserAPI.getStats()]
     )
     
+    if (!isPublicView.value && (profileRes.code === 401 || statsRes.code === 401)) {
+      localStorage.removeItem('cw_token')
+      errorMessage.value = '请先登录'
+      await router.replace({ name: 'login', query: { redirect: route.fullPath } })
+      return
+    }
+
     if (profileRes.code === 200) profile.value = profileRes.data
     if (statsRes.code === 200) stats.value = statsRes.data
+
     if (!profile.value || !stats.value) {
-      errorMessage.value = profileRes.message || statsRes.message || '加载失败，请稍后重试'
+      if (profileRes.code !== 200) errorMessage.value = profileRes.message || '加载失败，请稍后重试'
+      else if (statsRes.code !== 200) errorMessage.value = statsRes.message || '加载失败，请稍后重试'
+      else errorMessage.value = '加载失败，请稍后重试'
     }
   } catch (e: any) {
     const status = e?.response?.status
@@ -283,6 +293,11 @@ const uploadBg = async (e: Event) => {
 const logout = () => {
   localStorage.removeItem('cw_token')
   router.replace({ name: 'home' })
+}
+
+const goLogin = () => {
+  localStorage.removeItem('cw_token')
+  router.replace({ name: 'login', query: { redirect: route.fullPath } })
 }
 </script>
 
@@ -593,7 +608,7 @@ const logout = () => {
       <button @click="fetchData" class="px-6 py-3 rounded-full bg-primary text-black font-bold">
         重试
       </button>
-      <button @click="router.replace({ name: 'login', query: { redirect: route.fullPath } })" class="px-6 py-3 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors">
+      <button @click="goLogin" class="px-6 py-3 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors">
         去登录
       </button>
     </div>
