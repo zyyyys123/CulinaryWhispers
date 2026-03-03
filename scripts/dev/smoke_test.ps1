@@ -13,7 +13,8 @@ function Test-Step {
     }
 }
 
-$base = "http://localhost:8081/api"
+$base = $env:CW_BASE_URL
+if (-not $base) { $base = "http://localhost:8080/api" }
 $u = "u$([int](Get-Random -Minimum 10000 -Maximum 99999))"
 $pwd = "Passw0rd!"
 $nick = "Smoke"

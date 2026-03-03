@@ -34,8 +34,10 @@ except ImportError:
 fake = faker.Faker(['zh_CN', 'en_US', 'ja_JP'])
 
 # 文件路径配置
-MYSQL_FILE = "mysql_chaos_data.sql"
-DORIS_FILE = "doris_chaos_data.sql"
+OUT_DIR = (Path(__file__).resolve().parent / "out")
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+MYSQL_FILE = str(OUT_DIR / "mysql_chaos_data.sql")
+DORIS_FILE = str(OUT_DIR / "doris_chaos_data.sql")
 
 def _env_int(name, default):
     v = os.getenv(name)

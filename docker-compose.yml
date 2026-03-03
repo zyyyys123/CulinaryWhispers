@@ -24,10 +24,14 @@ services:
       - SPRING_DATASOURCE_PASSWORD=root
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+      - MANAGEMENT_HEALTH_ELASTICSEARCH_ENABLED=false
     depends_on:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_started
+      elasticsearch:
         condition: service_started
     networks:
       - culinary-net
