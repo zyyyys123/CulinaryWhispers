@@ -19,6 +19,20 @@ const inputEl = ref<HTMLTextAreaElement | null>(null)
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+const showLoginPrompt = ref(false)
+
+const openLoginPrompt = () => {
+  showLoginPrompt.value = true
+}
+
+const goLogin = () => {
+  showLoginPrompt.value = false
+  router.push({ name: 'login', query: { redirect: route.fullPath } })
+}
+
+const closeLoginPrompt = () => {
+  showLoginPrompt.value = false
+}
 
 // Fetch
 const fetchComments = async () => {
@@ -63,7 +77,7 @@ const cancelReply = () => {
 const submitComment = async () => {
   if (!newComment.value.trim()) return
   if (!auth.token) {
-    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    openLoginPrompt()
     return
   }
   
@@ -113,7 +127,7 @@ const submitComment = async () => {
 
 const toggleLike = async (comment: CommentVO) => {
   if (!auth.token) {
-    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    openLoginPrompt()
     return
   }
   // Optimistic UI
@@ -196,6 +210,22 @@ onMounted(() => {
             </button>
             <button @click="startReply(comment)" class="hover:text-white transition-colors">回复</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showLoginPrompt" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-6">
+      <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-black/70 p-6">
+        <div class="text-lg font-bold mb-2">需要登录</div>
+        <div class="text-gray-300 text-sm mb-6">请先登录后再进行评论或点赞操作。</div>
+        <div class="flex justify-end gap-3">
+          <button
+            @click="closeLoginPrompt"
+            class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-sm"
+          >
+            取消
+          </button>
+          <button @click="goLogin" class="px-5 py-2 rounded-full bg-primary text-black font-bold text-sm">去登录</button>
         </div>
       </div>
     </div>
