@@ -1,4 +1,5 @@
 import type { Result, Page, RecipePageVO, RecipeDetailVO, RecipePublishDTO } from '@/types/recipe'
+import { normalizeAssetUrl } from '@/utils/assetUrl'
 import { http } from './http'
 
 type BackendResult<T> = { code: number; message: string; data: T }
@@ -81,9 +82,10 @@ const mapPage = (page: Page<BackendRecipePageVO>, message: string): Result<Page<
         id: String(r.id),
         title: r.title,
         description: r.description,
-        coverUrl: r.coverUrl,
+        coverUrl: normalizeAssetUrl(r.coverUrl) ?? r.coverUrl,
         authorName: r.authorName,
-        authorAvatar: r.authorAvatar ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+        authorAvatar:
+          normalizeAssetUrl(r.authorAvatar) ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
         viewCount: Number(r.viewCount ?? 0),
         likeCount: Number(r.likeCount ?? 0),
         difficulty: Number(r.difficulty ?? 1),
@@ -137,11 +139,12 @@ export const RecipeAPI = {
         id: String(info.id),
         title: info.title,
         description: info.description,
-        coverUrl: info.coverUrl,
-        videoUrl: info.videoUrl,
+        coverUrl: normalizeAssetUrl(info.coverUrl) ?? info.coverUrl,
+        videoUrl: normalizeAssetUrl(info.videoUrl) ?? info.videoUrl,
         authorId: String(info.authorId),
         authorName: d.author?.nickname ?? 'Unknown',
-        authorAvatar: d.author?.avatarUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+        authorAvatar:
+          normalizeAssetUrl(d.author?.avatarUrl) ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
         difficulty: Number(info.difficulty ?? 1),
         timeCost: Number(info.timeCost ?? 0),
         calories: Number(info.calories ?? 0),

@@ -5,6 +5,7 @@ import { SocialAPI } from '@/api/social'
 import type { FollowVO } from '@/types/social'
 import { NotifyAPI } from '@/api/notify'
 import type { NotificationVO } from '@/types/notify'
+import { normalizeAssetUrl } from '@/utils/assetUrl'
 
 const router = useRouter()
 
@@ -37,6 +38,20 @@ const notifyTypeLabel = (t: number) => {
   if (t === 4) return '收藏'
   if (t === 5) return '点赞'
   return '通知'
+}
+
+const avatarFallback = (seed: string) =>
+  `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(seed || 'user')}`
+
+const avatarSrc = (url?: string, seed?: string) => normalizeAssetUrl(url) ?? avatarFallback(seed || 'user')
+
+const onAvatarError = (e: Event) => {
+  const img = e.target as HTMLImageElement | null
+  if (!img) return
+  const seed = img.dataset.seed || 'user'
+  const next = avatarFallback(seed)
+  if (img.src === next) return
+  img.src = next
 }
 
 const filteredNotifications = computed(() => {
@@ -217,7 +232,12 @@ const openNotification = async (n: NotificationVO) => {
           class="rounded-2xl border border-white/10 bg-black/10 p-5 flex items-center justify-between gap-4"
         >
           <div class="flex items-center gap-4 min-w-0">
-            <img :src="item.user.avatarUrl" class="w-12 h-12 rounded-full border border-white/10" />
+            <img
+              :src="avatarSrc(item.user.avatarUrl, item.user.nickname)"
+              class="w-12 h-12 rounded-full border border-white/10"
+              :data-seed="item.user.nickname || 'user'"
+              @error="onAvatarError"
+            />
             <div class="min-w-0">
               <div class="font-bold truncate">{{ item.user.nickname }}</div>
               <div class="text-xs text-gray-500 tracking-widest uppercase">User {{ item.userId }}</div>
