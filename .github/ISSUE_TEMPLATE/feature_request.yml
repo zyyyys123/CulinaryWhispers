@@ -1,0 +1,53 @@
+name: Feature Request
+description: 提交需求（含验收标准）
+title: "[Feature] "
+labels: ["type:feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请填写以下信息，确保有明确验收标准与边界。
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景/目标
+      description: 为什么要做、业务价值、用户痛点
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 范围/不做什么
+      description: 明确边界，避免需求膨胀
+      value: |
+        做：
+        - 
+        
+        不做：
+        - 
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 可量化/可检查（建议勾选清单）
+      value: |
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: 建议方案（可选）
+      description: 可写思路/接口草案/交互稿链接等
+    validations:
+      required: false
+  - type: textarea
+    id: risks
+    attributes:
+      label: 风险与回滚
+      description: 可能影响、如何回退/降级
+    validations:
+      required: false
+
