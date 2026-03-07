@@ -1,8 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 param(
-  [Parameter(Mandatory = $true)]
-  [int]$IssueNumber,
+  [int]$IssueNumber = 0,
 
   [Parameter(Mandatory = $true)]
   [string]$HeadBranch,
@@ -13,6 +12,9 @@ param(
   [string]$MergeMethod = "squash",
   [string]$PrTitle,
   [string]$PrBodyPath,
+  [string]$CreateIssueTitle,
+  [string]$CreateIssueBody,
+  [string[]]$CreateIssueLabels = @(),
   [string]$Background,
   [string]$Problem,
   [string]$Acceptance,
@@ -45,6 +47,23 @@ function Invoke-GhApi($method, $url, $bodyObj) {
   $json = $bodyObj | ConvertTo-Json -Depth 10 -Compress
   $bytes = [Text.Encoding]::UTF8.GetBytes($json)
   return Invoke-RestMethod -Method $method -Uri $url -Headers $headers -ContentType "application/json; charset=utf-8" -Body $bytes -TimeoutSec 60
+}
+
+$createPrIssueFromParams = $IssueNumber -le 0
+if ($createPrIssueFromParams) {
+  if (-not $CreateIssueTitle) {
+    throw "IssueNumber is missing. Provide -IssueNumber or use -CreateIssueTitle to create an issue."
+  }
+  $createIssueUrl = "https://api.github.com/repos/$owner/$name/issues"
+  $issuePayload = @{
+    title = $CreateIssueTitle
+    body  = $CreateIssueBody
+  }
+  if ($CreateIssueLabels -and $CreateIssueLabels.Count -gt 0) {
+    $issuePayload.labels = $CreateIssueLabels
+  }
+  $createdIssue = Invoke-GhApi "POST" $createIssueUrl $issuePayload
+  $IssueNumber = [int]$createdIssue.number
 }
 
 $issueUrl = "https://api.github.com/repos/$owner/$name/issues/$IssueNumber"
