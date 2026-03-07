@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { PointsAPI } from '@/api/points'
 import type { PointsRecordVO } from '@/api/points'
+import CwErrorState from '@/components/feedback/CwErrorState.vue'
+import CwEmptyState from '@/components/feedback/CwEmptyState.vue'
+import CwListFooter from '@/components/feedback/CwListFooter.vue'
 
 const router = useRouter()
 
-const loading = ref(false)
-const errorMessage = ref('')
+const historyLoading = ref(false)
+const signInLoading = ref(false)
+const historyError = ref('')
+const signInError = ref('')
 const signedPoints = ref<number | null>(null)
 
 const page = ref(1)
@@ -15,10 +20,12 @@ const size = ref(10)
 const total = ref(0)
 const list = ref<PointsRecordVO[]>([])
 
+const hasMore = computed(() => (total.value > 0 ? list.value.length < total.value : list.value.length > 0))
+
 const loadHistory = async (reset = true) => {
-  if (loading.value) return
-  loading.value = true
-  errorMessage.value = ''
+  if (historyLoading.value) return
+  historyLoading.value = true
+  historyError.value = ''
   try {
     if (reset) {
       page.value = 1
@@ -27,7 +34,7 @@ const loadHistory = async (reset = true) => {
     }
     const res = await PointsAPI.history({ page: page.value, size: size.value })
     if (res.code !== 200) {
-      errorMessage.value = res.message || '加载失败'
+      historyError.value = res.message || '加载失败'
       return
     }
     total.value = Number(res.data.total ?? 0)
@@ -41,21 +48,21 @@ const loadHistory = async (reset = true) => {
     }
     page.value++
   } catch {
-    errorMessage.value = '加载失败，请检查网络或稍后重试'
+    historyError.value = '加载失败，请检查网络或稍后重试'
   } finally {
-    loading.value = false
+    historyLoading.value = false
   }
 }
 
 const signIn = async () => {
-  if (loading.value) return
-  loading.value = true
-  errorMessage.value = ''
+  if (signInLoading.value) return
+  signInLoading.value = true
+  signInError.value = ''
   signedPoints.value = null
   try {
     const res = await PointsAPI.signIn()
     if (res.code !== 200) {
-      errorMessage.value = res.message || '签到失败'
+      signInError.value = res.message || '签到失败'
       return
     }
     signedPoints.value = res.data
@@ -68,9 +75,9 @@ const signIn = async () => {
       }
     }
   } catch {
-    errorMessage.value = '签到失败，请稍后重试'
+    signInError.value = '签到失败，请稍后重试'
   } finally {
-    loading.value = false
+    signInLoading.value = false
   }
 }
 
@@ -84,14 +91,14 @@ onMounted(() => {
     <div class="max-w-5xl mx-auto">
       <div class="flex items-start justify-between gap-4 mb-8">
         <div>
-          <div class="text-xs tracking-widest uppercase text-gray-500 mb-2">Growth</div>
-          <h1 class="text-4xl md:text-5xl font-serif text-primary">Points</h1>
+          <div class="text-xs tracking-widest uppercase text-gray-500 mb-2">成长</div>
+          <h1 class="text-4xl md:text-5xl font-serif text-primary">积分</h1>
         </div>
         <button
           @click="router.push({ name: 'home' })"
           class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-sm tracking-widest uppercase"
         >
-          Back Home
+          返回首页
         </button>
       </div>
 
@@ -101,10 +108,10 @@ onMounted(() => {
         </div>
         <button
           @click="signIn"
-          :disabled="loading"
+          :disabled="signInLoading"
           class="px-6 py-3 rounded-xl bg-primary text-black font-bold disabled:opacity-60"
         >
-          {{ loading ? 'Working...' : 'Sign In' }}
+          {{ signInLoading ? '处理中…' : '签到' }}
         </button>
       </div>
 
@@ -112,17 +119,20 @@ onMounted(() => {
         签到成功，本次获得 {{ signedPoints }} 积分
       </div>
 
-      <div v-if="errorMessage" class="mb-6 rounded-2xl border border-red-400/20 bg-red-400/10 px-6 py-4 text-red-300">
-        {{ errorMessage }}
-      </div>
+      <CwErrorState v-if="signInError" class="mb-6" :message="signInError" action-label="重试" @action="signIn" />
 
       <div class="rounded-2xl border border-white/10 overflow-hidden">
         <div class="bg-black/30 px-5 py-3 text-xs tracking-widest uppercase text-gray-500">
-          History ({{ total }})
+          积分流水（{{ total }}）
         </div>
-        <div v-if="list.length === 0 && !loading" class="px-6 py-10 text-center text-gray-600 text-sm tracking-widest uppercase">
-          No Records
-        </div>
+        <CwErrorState v-if="historyError" class="m-5" :message="historyError" action-label="重试" @action="loadHistory(true)" />
+        <CwEmptyState
+          v-else-if="list.length === 0 && !historyLoading"
+          title="暂无流水"
+          description="完成签到、发布或互动后会产生积分记录。"
+          action-label="刷新"
+          @action="loadHistory(true)"
+        />
         <div v-else class="divide-y divide-white/5">
           <div v-for="r in list" :key="r.id" class="px-5 py-4 flex items-start justify-between gap-4">
             <div class="min-w-0">
@@ -141,18 +151,15 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="flex justify-center mt-10">
-        <button
-          v-if="list.length < total && !loading"
-          @click="loadHistory(false)"
-          class="px-8 py-3 rounded-full border border-gray-700 hover:border-primary text-gray-300 hover:text-primary transition-colors text-sm tracking-widest uppercase"
-        >
-          Load More
-        </button>
-        <div v-else-if="!loading && list.length > 0" class="text-gray-600 text-sm tracking-widest uppercase">
-          End of List
-        </div>
-      </div>
+      <CwListFooter
+        v-if="!historyError && list.length > 0"
+        :loading="historyLoading"
+        :hasMore="hasMore"
+        load-more-label="加载更多"
+        loading-label="加载中…"
+        end-label="已到底"
+        @loadMore="loadHistory(false)"
+      />
     </div>
   </div>
 </template>
