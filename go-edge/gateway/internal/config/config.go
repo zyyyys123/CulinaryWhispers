@@ -13,7 +13,7 @@ type AppConfig struct {
 var GlobalConfig = &AppConfig{
 	Port:      getEnvOrDefault("CW_GATEWAY_PORT", ":8081"),
 	TargetURL: getEnvOrDefault("CW_GATEWAY_TARGET_URL", "http://app:8080"),
-	JwtSecret: getEnvOrDefault("CW_JWT_SECRET", "dev-secret-change-me"),
+	JwtSecret: getEnvOrDefault("CW_JWT_SECRET", ""),
 }
 
 func getEnvOrDefault(key string, defaultValue string) string {
