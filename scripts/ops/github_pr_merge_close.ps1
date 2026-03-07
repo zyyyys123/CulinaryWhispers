@@ -12,7 +12,14 @@ param(
   [ValidateSet("merge", "squash", "rebase")]
   [string]$MergeMethod = "squash",
   [string]$PrTitle,
-  [string]$PrBodyPath
+  [string]$PrBodyPath,
+  [string]$Background,
+  [string]$Problem,
+  [string]$Acceptance,
+  [string]$Solution,
+  [string]$Result,
+  [string]$Verification,
+  [string]$Risk
 )
 
 $token = $env:GITHUB_TOKEN
@@ -50,30 +57,34 @@ if ($PrBodyPath) {
   $body = Get-Content -Raw -Encoding UTF8 -Path $PrBodyPath
 } else {
   $issueBody = [string]$issue.body
+  $b = if ($Background) { $Background } else { "（来自 Issue #$IssueNumber）" }
+  $p = if ($Problem) { $Problem } else { "（来自 Issue #$IssueNumber）" }
+  $a = if ($Acceptance) { $Acceptance } else { $issueBody }
+  $s = if ($Solution) { $Solution } else { "" }
+  $r = if ($Result) { $Result } else { "" }
+  $v = if ($Verification) { $Verification } else { "- [ ] 本地构建通过（前端/后端）`n- [ ] 核心路径手工验证通过" }
+  $k = if ($Risk) { $Risk } else { "- 影响：`n- 风险：`n- 回滚/降级：" }
   $body = @"
 ## 背景
-- （来自 Issue #$IssueNumber）
+- $b
 
 ## 问题
-- （来自 Issue #$IssueNumber）
+- $p
 
 ## 验收标准（来自 Issue）
-$issueBody
+$a
 
 ## 解决方案
-- 
+$s
 
 ## 最终结果
-- 
+$r
 
 ## 测试与验证
-- [ ] 本地构建通过（前端/后端）
-- [ ] 核心路径手工验证通过
+$v
 
 ## 影响范围与风险
-- 影响：
-- 风险：
-- 回滚/降级：
+$k
 
 ## 关联 Issue
 - Closes #$IssueNumber
@@ -100,4 +111,3 @@ $closed = Invoke-GhApi "PATCH" $issueUrl @{
 
 Write-Output $pr.html_url
 Write-Output $closed.html_url
-
