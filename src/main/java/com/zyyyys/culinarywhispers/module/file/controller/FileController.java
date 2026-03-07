@@ -3,7 +3,9 @@ package com.zyyyys.culinarywhispers.module.file.controller;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.Result;
 import com.zyyyys.culinarywhispers.common.result.ResultCode;
+import com.zyyyys.culinarywhispers.common.config.UploadProperties;
 import com.zyyyys.culinarywhispers.module.file.dto.UploadResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,33 +24,29 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/file")
+@RequiredArgsConstructor
 public class FileController {
 
-    private static final long MAX_SIZE = 3L * 1024 * 1024;
-    private static final Set<String> ALLOWED = Set.of(
-            MediaType.IMAGE_JPEG_VALUE,
-            MediaType.IMAGE_PNG_VALUE,
-            "image/webp",
-            "image/gif"
-    );
+    private final UploadProperties uploadProperties;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<UploadResponse> upload(@RequestPart("file") MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ResultCode.VALIDATE_FAILED);
         }
-        if (file.getSize() > MAX_SIZE) {
-            throw new BusinessException(400, "文件过大（最大 3MB）");
+        if (file.getSize() > uploadProperties.maxSizeBytes()) {
+            throw new BusinessException(400, "文件过大（最大 " + uploadProperties.getMaxSizeMb() + "MB）");
         }
         String contentType = StringUtils.hasText(file.getContentType()) ? file.getContentType() : "";
-        if (!ALLOWED.contains(contentType)) {
+        Set<String> allowed = uploadProperties.allowedContentTypesSet();
+        if (!allowed.isEmpty() && !allowed.contains(contentType)) {
             throw new BusinessException(400, "仅支持 JPG/PNG/WEBP/GIF 图片");
         }
 
         String ext = extFromContentType(contentType);
         String name = UUID.randomUUID().toString().replace("-", "") + ext;
 
-        Path uploadDir = Paths.get("uploads").toAbsolutePath().normalize();
+        Path uploadDir = Paths.get(uploadProperties.getDir()).toAbsolutePath().normalize();
         Path target = uploadDir.resolve(name);
         try {
             Files.createDirectories(uploadDir);
@@ -58,7 +56,10 @@ public class FileController {
         }
 
         UploadResponse resp = new UploadResponse();
-        resp.setUrl("/api/uploads/" + name);
+        String prefix = uploadProperties.getPublicUrlPrefix();
+        if (prefix == null) prefix = "/api/uploads/";
+        if (!prefix.endsWith("/")) prefix = prefix + "/";
+        resp.setUrl(prefix + name);
         resp.setName(name);
         resp.setSize(file.getSize());
         resp.setContentType(contentType);
@@ -73,4 +74,3 @@ public class FileController {
         return ".jpg";
     }
 }
-
