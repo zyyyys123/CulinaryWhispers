@@ -10,6 +10,9 @@ import com.zyyyys.culinarywhispers.module.user.mapper.UserProfileMapper;
 import com.zyyyys.culinarywhispers.module.user.mapper.UserStatsMapper;
 import com.zyyyys.culinarywhispers.module.user.service.UserPointsService;
 import com.zyyyys.culinarywhispers.module.user.vo.VipPlanVO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +27,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/user/vip")
 @RequiredArgsConstructor
+@Tag(name = "VIP", description = "会员计划与积分兑换")
 public class VipController {
 
     private final UserStatsMapper statsMapper;
@@ -74,13 +78,16 @@ public class VipController {
     }
 
     @GetMapping("/plans")
+    @Operation(summary = "VIP 计划列表", description = "获取可兑换的 VIP 计划与权益说明")
     public Result<List<VipPlanVO>> plans() {
         return Result.success(buildPlans());
     }
 
     @PostMapping("/exchange")
     @Transactional(rollbackFor = Exception.class)
-    public Result<UserProfile> exchange(@RequestParam Integer level) {
+    @Operation(summary = "积分兑换 VIP", description = "使用积分兑换指定等级 VIP，支持同等级续期")
+    public Result<UserProfile> exchange(@Parameter(description = "VIP 等级（1-3）", example = "1")
+                                        @RequestParam Integer level) {
         Long userId = SecurityUtil.getUserId();
         if (level == null || level < 1 || level > 3) {
             throw new BusinessException(ResultCode.VALIDATE_FAILED);
@@ -123,6 +130,7 @@ public class VipController {
     }
 
     @GetMapping("/me")
+    @Operation(summary = "我的 VIP 状态", description = "获取当前登录用户的 VIP 等级与到期时间")
     public Result<UserProfile> me() {
         Long userId = SecurityUtil.getUserId();
         UserProfile profile = profileMapper.selectById(userId);
