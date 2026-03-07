@@ -57,7 +57,6 @@ public class AuthContextFilter extends OncePerRequestFilter {
                     if (userService.getById(userId) == null) {
                         throw new BusinessException(ResultCode.UNAUTHORIZED);
                     }
-                    log.info("AuthContextFilter: Set userId from token: {}", userId);
                     UserContext.setUserId(userId);
                     filterChain.doFilter(request, response);
                     return;

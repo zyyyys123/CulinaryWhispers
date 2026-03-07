@@ -15,7 +15,7 @@
 | Redis 密码 | `CW_REDIS_PASSWORD` | 空 |  |
 | Redis DB | `CW_REDIS_DATABASE` | `0` |  |
 | Redis 超时(ms) | `CW_REDIS_TIMEOUT_MS` | `3000` |  |
-| JWT 密钥 | `CW_JWT_SECRET` | `dev-secret-change-me` | 生产环境必改并通过环境变量注入 |
+| JWT 密钥 | `CW_JWT_SECRET` | 空 | 生产环境必填并通过环境变量注入 |
 | JWT 过期(ms) | `CW_JWT_EXPIRATION_MS` | `86400000` |  |
 | 日志目录 | `CW_LOG_DIR` | `logs` | logback 输出目录 |
 | MyBatis 日志实现 | `CW_MYBATIS_LOG_IMPL` | `StdOutImpl` | 生产环境建议关闭 stdout |
@@ -43,5 +43,5 @@
 |---|---|---:|---|
 | 网关端口 | `CW_GATEWAY_PORT` | `:8081` |  |
 | 目标后端 | `CW_GATEWAY_TARGET_URL` | `http://app:8080` |  |
-| JWT 密钥 | `CW_JWT_SECRET` | `dev-secret-change-me` | 需与后端一致 |
+| JWT 密钥 | `CW_JWT_SECRET` | 空 | 需与后端一致 |
 

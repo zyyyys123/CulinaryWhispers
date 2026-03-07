@@ -39,6 +39,9 @@ public class JwtUtil {
 
     @PostConstruct
     public void init() {
+        if (secret == null || secret.trim().isEmpty()) {
+            throw new IllegalStateException("jwt.secret is required");
+        }
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 

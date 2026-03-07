@@ -12,7 +12,7 @@ class JwtUtilTest {
     @Test
     void generate_validate_parse_revoke() {
         JwtUtil jwtUtil = new JwtUtil(new InMemoryTokenStore());
-        ReflectionTestUtils.setField(jwtUtil, "secret", "mySecretKeyForCulinaryWhispersProject2026");
+        ReflectionTestUtils.setField(jwtUtil, "secret", "test-secret");
         ReflectionTestUtils.setField(jwtUtil, "expiration", 60_000L);
         jwtUtil.init();
 
@@ -28,4 +28,3 @@ class JwtUtilTest {
         assertFalse(jwtUtil.validateToken(token));
     }
 }
-

@@ -37,7 +37,7 @@ logging:
     path: ${CW_LOG_DIR:logs}
 
 jwt:
-  secret: ${CW_JWT_SECRET:dev-secret-change-me}
+  secret: ${CW_JWT_SECRET:}
   expiration: ${CW_JWT_EXPIRATION_MS:86400000}
 
 cw:
