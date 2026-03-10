@@ -22,6 +22,26 @@ if (-not $PrBodyPath) {
 
 Write-Host "[PRFlow] Repo=$Repo Base=$BaseBranch Head=$HeadBranch MergeMethod=$MergeMethod DryRun=$($DryRun.IsPresent)"
 
+$findUrl = ""
+if ($Repo) {
+  $repoParts = $Repo.Split("/")
+  if ($repoParts.Count -eq 2) {
+    $findUrl = "https://api.github.com/repos/$($repoParts[0])/$($repoParts[1])/pulls?state=open&head=$($repoParts[0])`:$HeadBranch&base=$BaseBranch"
+  }
+}
+
+if ($DryRun) {
+  Write-Host "[PRFlow] DryRun enabled: will not call GitHub API."
+  if ($PrBodyPath) {
+    Write-Host "[PRFlow] PR body path (resolved): $PrBodyPath"
+  }
+  if ($findUrl) {
+    Write-Host "[PRFlow] Would query: $findUrl"
+  }
+  Write-Host "[PRFlow] Done."
+  exit 0
+}
+
 $token = $env:GITHUB_TOKEN
 if (-not $token) { $token = $env:GH_TOKEN }
 if (-not $token) {
@@ -71,13 +91,7 @@ if (Test-Path -Path $PrBodyPath) {
   Write-Host "[PRFlow] PR body file not found, creating PR without body: $PrBodyPath"
 }
 
-$findUrl = "https://api.github.com/repos/$owner/$name/pulls?state=open&head=$owner`:$HeadBranch&base=$BaseBranch"
 Write-Host "[PRFlow] Looking for existing open PR..."
-if ($DryRun) {
-  Write-Host "[PRFlow] DryRun enabled: skip GitHub API calls."
-  Write-Host "[PRFlow] Done."
-  exit 0
-}
 
 $existing = Invoke-GhApi "GET" $findUrl $null
 $existingList = @()
