@@ -1,5 +1,3 @@
-$ErrorActionPreference = "Stop"
-
 param(
   [string]$Repo = "zyyyys123/CulinaryWhispers",
   [string]$HeadBranch = "fix/auth-sync-comment-author",
@@ -10,6 +8,8 @@ param(
   [ValidateSet("merge", "squash", "rebase")]
   [string]$MergeMethod = "squash"
 )
+
+$ErrorActionPreference = "Stop"
 
 $token = $env:GITHUB_TOKEN
 if (-not $token) { $token = $env:GH_TOKEN }
@@ -73,4 +73,3 @@ foreach ($n in $CloseIssues) {
 }
 
 Write-Output $pr.html_url
-
