@@ -28,6 +28,7 @@ http.interceptors.response.use(
     const status = error?.response?.status
     if (status === 401) {
       localStorage.removeItem('cw_token')
+      window.dispatchEvent(new Event('cw:auth:clear'))
       const current = window.location.pathname + window.location.search + window.location.hash
       if (!current.startsWith('/login')) {
         window.location.href = `/login?redirect=${encodeURIComponent(current)}`

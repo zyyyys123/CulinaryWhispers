@@ -90,6 +90,10 @@ const router = createRouter({
 
 router.beforeEach(async to => {
   const auth = useAuthStore()
+  const storedToken = localStorage.getItem('cw_token')
+  if (auth.token && !storedToken) {
+    auth.clear()
+  }
   if (to.name === 'login' || to.name === 'register') {
     if (auth.token) {
       if (!auth.profile) {

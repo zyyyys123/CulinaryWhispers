@@ -13,6 +13,11 @@ import com.zyyyys.culinarywhispers.module.social.entity.Comment;
 import com.zyyyys.culinarywhispers.module.social.event.CommentEvent;
 import com.zyyyys.culinarywhispers.module.social.mapper.CommentMapper;
 import com.zyyyys.culinarywhispers.module.social.service.CommentService;
+import com.zyyyys.culinarywhispers.module.social.vo.CommentVO;
+import com.zyyyys.culinarywhispers.module.user.entity.User;
+import com.zyyyys.culinarywhispers.module.user.entity.UserProfile;
+import com.zyyyys.culinarywhispers.module.user.mapper.UserMapper;
+import com.zyyyys.culinarywhispers.module.user.mapper.UserProfileMapper;
 import com.zyyyys.culinarywhispers.module.user.service.UserPointsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 评论服务实现类
@@ -36,6 +44,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     private final NotificationService notificationService;
     private final RecipeInfoMapper recipeInfoMapper;
     private final UserPointsService pointsService;
+    private final UserMapper userMapper;
+    private final UserProfileMapper userProfileMapper;
 
     /**
      * 添加评论
@@ -155,14 +165,61 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
      * @return 评论分页列表
      */
     @Override
-    public Page<Comment> listComments(Long recipeId, int page, int size) {
+    public Page<CommentVO> listComments(Long recipeId, int page, int size) {
         Page<Comment> pageParam = new Page<>(page, size);
         LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Comment::getRecipeId, recipeId)
                .orderByDesc(Comment::getGmtCreate); // 默认按时间倒序
         
-        // TODO: 可以在这里处理树形结构的组装，目前先返回扁平列表
-        return this.page(pageParam, wrapper);
+        Page<Comment> entityPage = this.page(pageParam, wrapper);
+        List<Comment> records = entityPage.getRecords() == null ? Collections.emptyList() : entityPage.getRecords();
+
+        Set<Long> userIds = records.stream()
+            .map(Comment::getUserId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+
+        Map<Long, User> userMap = userIds.isEmpty()
+            ? Collections.emptyMap()
+            : userMapper.selectBatchIds(userIds).stream().filter(Objects::nonNull).collect(Collectors.toMap(User::getId, Function.identity(), (a, b) -> a));
+
+        Map<Long, UserProfile> profileMap = userIds.isEmpty()
+            ? Collections.emptyMap()
+            : userProfileMapper.selectBatchIds(userIds).stream().filter(Objects::nonNull).collect(Collectors.toMap(UserProfile::getUserId, Function.identity(), (a, b) -> a));
+
+        List<CommentVO> voRecords = records.stream().map(c -> {
+            CommentVO vo = new CommentVO();
+            vo.setId(c.getId());
+            vo.setRecipeId(c.getRecipeId());
+            vo.setContent(c.getContent());
+            vo.setParentId(c.getParentId());
+            vo.setLikeCount(c.getLikeCount());
+            vo.setGmtCreate(c.getGmtCreate());
+
+            Long uid = c.getUserId();
+            User u = uid == null ? null : userMap.get(uid);
+            UserProfile p = uid == null ? null : profileMap.get(uid);
+
+            CommentVO.AuthorVO author = new CommentVO.AuthorVO();
+            author.setId(uid);
+            author.setUsername(u != null && StringUtils.hasText(u.getUsername()) ? u.getUsername() : "user_" + uid);
+            author.setNickname(u != null && StringUtils.hasText(u.getNickname()) ? u.getNickname() : ("User " + uid));
+            author.setAvatarUrl(u != null ? u.getAvatarUrl() : null);
+            author.setIsMasterChef(p != null && p.getIsMasterChef() != null ? p.getIsMasterChef() : Boolean.FALSE);
+            author.setMasterTitle(p != null ? p.getMasterTitle() : null);
+            author.setBgImageUrl(p != null ? p.getBgImageUrl() : null);
+
+            vo.setAuthor(author);
+            return vo;
+        }).collect(Collectors.toList());
+
+        Page<CommentVO> voPage = new Page<>();
+        voPage.setCurrent(entityPage.getCurrent());
+        voPage.setSize(entityPage.getSize());
+        voPage.setTotal(entityPage.getTotal());
+        voPage.setPages(entityPage.getPages());
+        voPage.setRecords(voRecords);
+        return voPage;
     }
 
     /**

@@ -3,6 +3,7 @@ package com.zyyyys.culinarywhispers.module.social.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zyyyys.culinarywhispers.module.social.entity.Comment;
+import com.zyyyys.culinarywhispers.module.social.vo.CommentVO;
 
 /**
  * 评论服务接口
@@ -42,5 +43,5 @@ public interface CommentService extends IService<Comment> {
      * @param size 每页大小
      * @return 分页列表
      */
-    Page<Comment> listComments(Long recipeId, int page, int size);
+    Page<CommentVO> listComments(Long recipeId, int page, int size);
 }
