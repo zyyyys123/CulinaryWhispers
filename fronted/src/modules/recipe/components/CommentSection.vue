@@ -5,6 +5,7 @@ import { SocialAPI } from '@/api/social'
 import type { CommentVO } from '@/types/social'
 import { useAuthStore } from '@/stores/auth'
 import { useRoute, useRouter } from 'vue-router'
+import { normalizeAssetUrl } from '@/utils/assetUrl'
 
 const props = defineProps<{
   recipeId: string
@@ -33,6 +34,10 @@ const goLogin = () => {
 const closeLoginPrompt = () => {
   showLoginPrompt.value = false
 }
+
+const myAvatarSrc = () =>
+  normalizeAssetUrl(auth.profile?.avatarUrl) ??
+  `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(auth.profile?.nickname || auth.profile?.username || 'me')}`
 
 // Fetch
 const fetchComments = async () => {
@@ -154,7 +159,7 @@ onMounted(() => {
     <!-- Input Area -->
     <div class="flex gap-4 mb-10">
       <div class="w-10 h-10 rounded-full bg-gray-700 overflow-hidden shrink-0">
-        <img :src="auth.profile?.avatarUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=me'" class="w-full h-full object-cover" />
+        <img :src="myAvatarSrc()" class="w-full h-full object-cover" />
       </div>
       <div class="flex-1 relative">
         <div v-if="replyTo" class="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-black/20 text-xs text-gray-300">

@@ -11,6 +11,7 @@ import type { RecipePageVO } from '@/types/recipe'
 import RecipeCard from '@/components/business/RecipeCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { FileAPI } from '@/api/file'
+import { normalizeAssetUrl } from '@/utils/assetUrl'
 
 // State
 const profile = ref<UserProfileVO | null>(null)
@@ -52,7 +53,7 @@ const editForm = ref({
 })
 
 const coverUrl = computed(() => {
-  const bg = profile.value?.bgImageUrl
+  const bg = normalizeAssetUrl(profile.value?.bgImageUrl)
   return bg && bg.trim().length > 0
     ? bg
     : 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1800&q=80'
@@ -64,7 +65,7 @@ const fallbackAvatarUrl = computed(
     `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(profile.value?.nickname || profile.value?.username || 'user')}`
 )
 const avatarSrc = computed(() => {
-  const url = (profile.value?.avatarUrl ?? '').trim()
+  const url = normalizeAssetUrl(profile.value?.avatarUrl) ?? ''
   if (!url || avatarLoadError.value) return fallbackAvatarUrl.value
   return url
 })

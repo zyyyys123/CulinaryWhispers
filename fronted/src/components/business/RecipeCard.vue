@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { RecipePageVO } from '@/types/recipe'
+import { normalizeAssetUrl } from '@/utils/assetUrl'
 
 // Props
 const props = defineProps<{
@@ -46,7 +47,7 @@ const fallbackAvatarUrl = computed(
     `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(props.data.authorName || 'user')}`
 )
 const avatarSrc = computed(() => {
-  const url = (props.data.authorAvatar ?? '').trim()
+  const url = normalizeAssetUrl(props.data.authorAvatar)
   if (!url || avatarLoadError.value) return fallbackAvatarUrl.value
   return url
 })

@@ -10,6 +10,7 @@ import AIAssistantOrb from '@/components/visual/AIAssistantOrb.vue'
 import { NRate } from 'naive-ui'
 import CommentSection from './components/CommentSection.vue'
 import { useAuthStore } from '@/stores/auth'
+import { normalizeAssetUrl } from '@/utils/assetUrl'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -39,6 +40,13 @@ const goLogin = () => {
 const closeLoginPrompt = () => {
   showLoginPrompt.value = false
 }
+
+const authorAvatarSrc = computed(() => {
+  const v = normalizeAssetUrl(recipe.value?.authorAvatar)
+  if (v) return v
+  const seed = recipe.value?.authorName || recipe.value?.authorId || 'user'
+  return `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(String(seed))}`
+})
 
 const containsAscii = (text: string) => /[A-Za-z]/.test(text || '')
 
@@ -338,7 +346,7 @@ onUnmounted(() => {
           <!-- Meta Row -->
           <div class="flex items-center gap-8 text-sm md:text-base font-medium text-gray-200">
             <button @click="goAuthorProfile" class="flex items-center gap-2 hover:text-primary transition-colors">
-              <img :src="recipe.authorAvatar" class="w-8 h-8 rounded-full border border-primary/50" />
+              <img :src="authorAvatarSrc" class="w-8 h-8 rounded-full border border-primary/50" />
               <span>作者 {{ recipe.authorName }}</span>
             </button>
             <div class="flex items-center gap-2">

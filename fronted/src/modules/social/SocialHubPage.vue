@@ -49,6 +49,7 @@ const avatarFallback = (seed: string) =>
   `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(seed || 'user')}`
 
 const avatarSrc = (url?: string, seed?: string) => normalizeAssetUrl(url) ?? avatarFallback(seed || 'user')
+const notifyAvatarSrc = (url?: string, seed?: string) => normalizeAssetUrl(url) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || 'u')}`
 
 const onAvatarError = (e: Event) => {
   const img = e.target as HTMLImageElement | null
@@ -387,7 +388,7 @@ const openNotification = async (n: NotificationVO) => {
         >
           <div class="flex items-center gap-4 min-w-0">
             <div class="relative">
-              <img :src="n.fromAvatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${n.fromUserId}`" class="w-12 h-12 rounded-full border border-white/10" />
+              <img :src="notifyAvatarSrc(n.fromAvatarUrl, n.fromUserId)" class="w-12 h-12 rounded-full border border-white/10" />
               <span v-if="!n.isRead" class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary"></span>
             </div>
             <div class="min-w-0">
