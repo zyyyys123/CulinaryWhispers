@@ -1,20 +1,18 @@
-$ErrorActionPreference = "Stop"
-
 param(
-  [int]$IssueNumber = 0,
+  [int]$IssueNumber,
 
   [Parameter(Mandatory = $true)]
   [string]$HeadBranch,
 
-  [string]$BaseBranch = "master",
-  [string]$Repo = "zyyyys123/CulinaryWhispers",
+  [string]$BaseBranch,
+  [string]$Repo,
   [ValidateSet("merge", "squash", "rebase")]
-  [string]$MergeMethod = "squash",
+  [string]$MergeMethod,
   [string]$PrTitle,
   [string]$PrBodyPath,
   [string]$CreateIssueTitle,
   [string]$CreateIssueBody,
-  [string[]]$CreateIssueLabels = @(),
+  [string[]]$CreateIssueLabels,
   [string]$Background,
   [string]$Problem,
   [string]$Acceptance,
@@ -23,6 +21,14 @@ param(
   [string]$Verification,
   [string]$Risk
 )
+
+$ErrorActionPreference = "Stop"
+
+$IssueNumber = if ($null -eq $IssueNumber) { 0 } else { $IssueNumber }
+if (-not $BaseBranch) { $BaseBranch = "master" }
+if (-not $Repo) { $Repo = "zyyyys123/CulinaryWhispers" }
+if (-not $MergeMethod) { $MergeMethod = "squash" }
+if ($null -eq $CreateIssueLabels) { $CreateIssueLabels = @() }
 
 $token = $env:GITHUB_TOKEN
 if (-not $token) { $token = $env:GH_TOKEN }
@@ -76,36 +82,36 @@ if ($PrBodyPath) {
   $body = Get-Content -Raw -Encoding UTF8 -Path $PrBodyPath
 } else {
   $issueBody = [string]$issue.body
-  $b = if ($Background) { $Background } else { "（来自 Issue #$IssueNumber）" }
-  $p = if ($Problem) { $Problem } else { "（来自 Issue #$IssueNumber）" }
+  $b = if ($Background) { $Background } else { "(from Issue #$IssueNumber)" }
+  $p = if ($Problem) { $Problem } else { "(from Issue #$IssueNumber)" }
   $a = if ($Acceptance) { $Acceptance } else { $issueBody }
   $s = if ($Solution) { $Solution } else { "" }
   $r = if ($Result) { $Result } else { "" }
-  $v = if ($Verification) { $Verification } else { "- [ ] 本地构建通过（前端/后端）`n- [ ] 核心路径手工验证通过" }
-  $k = if ($Risk) { $Risk } else { "- 影响：`n- 风险：`n- 回滚/降级：" }
+  $v = if ($Verification) { $Verification } else { "- [ ] Local build passed (frontend/backend)`n- [ ] Manual smoke test passed" }
+  $k = if ($Risk) { $Risk } else { "- Impact:`n- Risk:`n- Rollback:" }
   $body = @"
-## 背景
+## Background
 - $b
 
-## 问题
+## Problem
 - $p
 
-## 验收标准（来自 Issue）
+## Acceptance Criteria (from Issue)
 $a
 
-## 解决方案
+## Solution
 $s
 
-## 最终结果
+## Result
 $r
 
-## 测试与验证
+## Verification
 $v
 
-## 影响范围与风险
+## Impact & Risk
 $k
 
-## 关联 Issue
+## Related Issue
 - Closes #$IssueNumber
 "@
 }

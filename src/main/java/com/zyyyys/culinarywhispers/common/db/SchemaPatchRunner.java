@@ -91,57 +91,51 @@ public class SchemaPatchRunner implements ApplicationRunner {
     }
 
     private void ensureFollowTable() {
-        String ddl = """
-                CREATE TABLE IF NOT EXISTS t_soc_follow (
-                  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '关注ID',
-                  follower_id BIGINT UNSIGNED NOT NULL COMMENT '关注者ID',
-                  following_id BIGINT UNSIGNED NOT NULL COMMENT '被关注者ID',
-                  status INT NOT NULL DEFAULT 1 COMMENT '关注状态: 1-关注,0-取消',
-                  gmt_create DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-                  gmt_modified DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
-                  PRIMARY KEY (id),
-                  UNIQUE KEY uk_follower_following (follower_id, following_id),
-                  KEY idx_following (following_id),
-                  KEY idx_follower (follower_id)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注表'
-                """;
+        String ddl = "CREATE TABLE IF NOT EXISTS t_soc_follow (\n"
+                + "  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '关注ID',\n"
+                + "  follower_id BIGINT UNSIGNED NOT NULL COMMENT '关注者ID',\n"
+                + "  following_id BIGINT UNSIGNED NOT NULL COMMENT '被关注者ID',\n"
+                + "  status INT NOT NULL DEFAULT 1 COMMENT '关注状态: 1-关注,0-取消',\n"
+                + "  gmt_create DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n"
+                + "  gmt_modified DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),\n"
+                + "  PRIMARY KEY (id),\n"
+                + "  UNIQUE KEY uk_follower_following (follower_id, following_id),\n"
+                + "  KEY idx_following (following_id),\n"
+                + "  KEY idx_follower (follower_id)\n"
+                + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注表'";
         ensureTable("t_soc_follow", ddl);
         ensureFollowTableColumnsAndIndexes();
     }
 
     private void ensurePointsRecordTable() {
-        String ddl = """
-                CREATE TABLE IF NOT EXISTS t_points_record (
-                  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '流水ID',
-                  user_id BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
-                  type INT NOT NULL COMMENT '类型: 1-签到,2-发布食谱,3-被点赞,10-兑换商品',
-                  amount INT NOT NULL COMMENT '变动数量(可为负)',
-                  description VARCHAR(255) DEFAULT NULL COMMENT '说明',
-                  gmt_create DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-                  PRIMARY KEY (id),
-                  KEY idx_user_time (user_id, gmt_create)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户积分流水表'
-                """;
+        String ddl = "CREATE TABLE IF NOT EXISTS t_points_record (\n"
+                + "  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '流水ID',\n"
+                + "  user_id BIGINT UNSIGNED NOT NULL COMMENT '用户ID',\n"
+                + "  type INT NOT NULL COMMENT '类型: 1-签到,2-发布食谱,3-被点赞,10-兑换商品',\n"
+                + "  amount INT NOT NULL COMMENT '变动数量(可为负)',\n"
+                + "  description VARCHAR(255) DEFAULT NULL COMMENT '说明',\n"
+                + "  gmt_create DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n"
+                + "  PRIMARY KEY (id),\n"
+                + "  KEY idx_user_time (user_id, gmt_create)\n"
+                + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户积分流水表'";
         ensureTable("t_points_record", ddl);
     }
 
     private void ensureNotifyTable() {
-        String ddl = """
-                CREATE TABLE IF NOT EXISTS t_notify (
-                  id BIGINT UNSIGNED NOT NULL COMMENT '通知ID',
-                  from_user_id BIGINT UNSIGNED NOT NULL COMMENT '触发者ID',
-                  to_user_id BIGINT UNSIGNED NOT NULL COMMENT '接收者ID',
-                  type INT NOT NULL COMMENT '类型: 1-评论回复,2-评论食谱,3-点赞食谱,4-收藏食谱,5-点赞评论',
-                  target_type INT NOT NULL COMMENT '目标类型: 1-食谱,2-评论',
-                  target_id BIGINT UNSIGNED NOT NULL COMMENT '目标ID',
-                  content VARCHAR(512) NOT NULL COMMENT '内容',
-                  is_read TINYINT NOT NULL DEFAULT 0 COMMENT '是否已读: 0-未读,1-已读',
-                  gmt_create DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-                  PRIMARY KEY (id),
-                  KEY idx_to_time (to_user_id, gmt_create),
-                  KEY idx_read (to_user_id, is_read)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站内通知'
-                """;
+        String ddl = "CREATE TABLE IF NOT EXISTS t_notify (\n"
+                + "  id BIGINT UNSIGNED NOT NULL COMMENT '通知ID',\n"
+                + "  from_user_id BIGINT UNSIGNED NOT NULL COMMENT '触发者ID',\n"
+                + "  to_user_id BIGINT UNSIGNED NOT NULL COMMENT '接收者ID',\n"
+                + "  type INT NOT NULL COMMENT '类型: 1-评论回复,2-评论食谱,3-点赞食谱,4-收藏食谱,5-点赞评论',\n"
+                + "  target_type INT NOT NULL COMMENT '目标类型: 1-食谱,2-评论',\n"
+                + "  target_id BIGINT UNSIGNED NOT NULL COMMENT '目标ID',\n"
+                + "  content VARCHAR(512) NOT NULL COMMENT '内容',\n"
+                + "  is_read TINYINT NOT NULL DEFAULT 0 COMMENT '是否已读: 0-未读,1-已读',\n"
+                + "  gmt_create DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n"
+                + "  PRIMARY KEY (id),\n"
+                + "  KEY idx_to_time (to_user_id, gmt_create),\n"
+                + "  KEY idx_read (to_user_id, is_read)\n"
+                + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站内通知'";
         ensureTable("t_notify", ddl);
     }
 

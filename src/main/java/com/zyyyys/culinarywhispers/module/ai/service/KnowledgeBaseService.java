@@ -40,7 +40,7 @@ public class KnowledgeBaseService {
         List<ScoredChunk> scored = new ArrayList<>(chunks.size());
         for (KbChunk c : chunks) {
             int score = 0;
-            String text = c.textLower;
+            String text = c.textLower();
             for (String t : tokens) {
                 int idx = 0;
                 while (idx >= 0) {
@@ -201,12 +201,45 @@ public class KnowledgeBaseService {
         return tokens;
     }
 
-    public record KbChunk(String source, String text, String textLower) {
+    public static final class KbChunk {
+        private final String source;
+        private final String text;
+        private final String textLower;
+
         public KbChunk(String source, String text) {
-            this(source, text, text.toLowerCase());
+            this.source = source;
+            this.text = text;
+            this.textLower = text == null ? "" : text.toLowerCase();
+        }
+
+        public String source() {
+            return source;
+        }
+
+        public String text() {
+            return text;
+        }
+
+        public String textLower() {
+            return textLower;
         }
     }
 
-    private record ScoredChunk(KbChunk chunk, int score) {
+    private static final class ScoredChunk {
+        private final KbChunk chunk;
+        private final int score;
+
+        private ScoredChunk(KbChunk chunk, int score) {
+            this.chunk = chunk;
+            this.score = score;
+        }
+
+        public KbChunk chunk() {
+            return chunk;
+        }
+
+        public int score() {
+            return score;
+        }
     }
 }

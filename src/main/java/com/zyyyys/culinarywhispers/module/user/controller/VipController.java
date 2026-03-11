@@ -10,6 +10,7 @@ import com.zyyyys.culinarywhispers.module.user.mapper.UserProfileMapper;
 import com.zyyyys.culinarywhispers.module.user.mapper.UserStatsMapper;
 import com.zyyyys.culinarywhispers.module.user.service.UserPointsService;
 import com.zyyyys.culinarywhispers.module.user.vo.VipPlanVO;
+import com.zyyyys.culinarywhispers.module.user.vo.VipStatusVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +34,14 @@ public class VipController {
     private final UserStatsMapper statsMapper;
     private final UserProfileMapper profileMapper;
     private final UserPointsService pointsService;
+
+    private VipStatusVO toVipStatus(UserProfile profile) {
+        VipStatusVO vo = new VipStatusVO();
+        vo.setUserId(profile.getUserId());
+        vo.setVipLevel(profile.getVipLevel());
+        vo.setVipExpireTime(profile.getVipExpireTime());
+        return vo;
+    }
 
     private List<VipPlanVO> buildPlans() {
         VipPlanVO vip1 = new VipPlanVO();
@@ -86,7 +95,7 @@ public class VipController {
     @PostMapping("/exchange")
     @Transactional(rollbackFor = Exception.class)
     @Operation(summary = "积分兑换 VIP", description = "使用积分兑换指定等级 VIP，支持同等级续期")
-    public Result<UserProfile> exchange(@Parameter(description = "VIP 等级（1-3）", example = "1")
+    public Result<VipStatusVO> exchange(@Parameter(description = "VIP 等级（1-3）", example = "1")
                                         @RequestParam Integer level) {
         Long userId = SecurityUtil.getUserId();
         if (level == null || level < 1 || level > 3) {
@@ -126,17 +135,17 @@ public class VipController {
 
         pointsService.addPoints(userId, -plan.getCostPoints(), 10, "积分兑换 " + plan.getName() + "（" + plan.getDurationDays() + "天）");
 
-        return Result.success(profileMapper.selectById(userId));
+        return Result.success(toVipStatus(profileMapper.selectById(userId)));
     }
 
     @GetMapping("/me")
     @Operation(summary = "我的 VIP 状态", description = "获取当前登录用户的 VIP 等级与到期时间")
-    public Result<UserProfile> me() {
+    public Result<VipStatusVO> me() {
         Long userId = SecurityUtil.getUserId();
         UserProfile profile = profileMapper.selectById(userId);
         if (profile == null) {
             throw new BusinessException(ResultCode.DATA_NOT_FOUND);
         }
-        return Result.success(profile);
+        return Result.success(toVipStatus(profile));
     }
 }
