@@ -1,5 +1,5 @@
 import type { Result, Page } from '@/types/recipe'
-import type { ProductVO } from '@/types/commerce'
+import type { OrderVO, ProductVO } from '@/types/commerce'
 import { http } from './http'
 
 type BackendResult<T> = { code: number; message: string; data: T }
@@ -11,6 +11,22 @@ type BackendProduct = {
   price: number
   stock: number
   categoryId: number
+}
+
+type BackendOrderItem = {
+  productId: number
+  productTitle?: string
+  count: number
+  price: number
+}
+
+type BackendOrder = {
+  id: number
+  totalAmount: number
+  status: number
+  payTime?: string
+  gmtCreate: string
+  items?: BackendOrderItem[]
 }
 
 const coverByCategory: Record<number, string> = {
@@ -80,11 +96,79 @@ export const CommerceAPI = {
       const id = Number(k)
       if (Number.isFinite(id) && v > 0) body[id] = v
     })
-    const res = await http.post<BackendResult<number>>('/commerce/order/create', body)
+    const res = await http.post<BackendResult<number>>('/commerce/order/create', { productCounts: body })
     if (res.data.code !== 200) {
       return { code: res.data.code, message: res.data.message, data: '' }
     }
     return { code: 200, message: res.data.message, data: String(res.data.data ?? '') }
+  },
+
+  listMyOrders: async (params: { page: number; size: number; status?: number }): Promise<Result<Page<OrderVO>>> => {
+    const res = await http.get<BackendResult<Page<BackendOrder>>>('/commerce/order/list', { params })
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: null as any }
+    }
+    const page = res.data.data
+    return {
+      code: 200,
+      message: res.data.message,
+      data: {
+        ...page,
+        records: (page.records ?? []).map(o => ({
+          id: String(o.id),
+          totalAmount: Number(o.totalAmount ?? 0),
+          status: Number(o.status ?? 0),
+          payTime: o.payTime,
+          createTime: o.gmtCreate,
+          items: (o.items ?? []).map(it => ({
+            productId: String(it.productId),
+            productTitle: it.productTitle ?? `商品 ${it.productId}`,
+            count: Number(it.count ?? 0),
+            price: Number(it.price ?? 0)
+          }))
+        }))
+      }
+    }
+  },
+
+  getMyOrder: async (orderId: string): Promise<Result<OrderVO>> => {
+    const res = await http.get<BackendResult<BackendOrder>>(`/commerce/order/${orderId}`)
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: null as any }
+    }
+    const o = res.data.data
+    return {
+      code: 200,
+      message: res.data.message,
+      data: {
+        id: String(o.id),
+        totalAmount: Number(o.totalAmount ?? 0),
+        status: Number(o.status ?? 0),
+        payTime: o.payTime,
+        createTime: o.gmtCreate,
+        items: (o.items ?? []).map(it => ({
+          productId: String(it.productId),
+          productTitle: it.productTitle ?? `商品 ${it.productId}`,
+          count: Number(it.count ?? 0),
+          price: Number(it.price ?? 0)
+        }))
+      }
+    }
+  },
+
+  cancelOrder: async (orderId: string): Promise<Result<null>> => {
+    const res = await http.post<BackendResult<null>>(`/commerce/order/${orderId}/cancel`)
+    return { code: res.data.code, message: res.data.message, data: null }
+  },
+
+  deliverOrder: async (orderId: string): Promise<Result<null>> => {
+    const res = await http.post<BackendResult<null>>(`/commerce/order/${orderId}/deliver`)
+    return { code: res.data.code, message: res.data.message, data: null }
+  },
+
+  finishOrder: async (orderId: string): Promise<Result<null>> => {
+    const res = await http.post<BackendResult<null>>(`/commerce/order/${orderId}/finish`)
+    return { code: res.data.code, message: res.data.message, data: null }
   },
 
   paymentNotify: async (orderId: string): Promise<Result<null>> => {

@@ -2,6 +2,8 @@ package com.zyyyys.culinarywhispers.module.commerce.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zyyyys.culinarywhispers.module.commerce.entity.Order;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zyyyys.culinarywhispers.module.commerce.vo.OrderVO;
 
 import java.util.Map;
 
@@ -31,4 +33,12 @@ public interface OrderService extends IService<Order> {
      * @param orderId 订单ID
      */
     void paySuccess(Long orderId);
+
+    Page<OrderVO> pageMyOrders(Long userId, int page, int size, Integer status);
+
+    OrderVO getMyOrder(Long userId, Long orderId);
+
+    void deliverOrder(Long userId, Long orderId);
+
+    void finishOrder(Long userId, Long orderId);
 }

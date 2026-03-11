@@ -19,3 +19,19 @@ export interface CartItem {
   product: ProductVO
   quantity: number
 }
+
+export interface OrderItemVO {
+  productId: string
+  productTitle: string
+  count: number
+  price: number
+}
+
+export interface OrderVO {
+  id: string
+  totalAmount: number
+  status: number
+  payTime?: string
+  createTime: string
+  items: OrderItemVO[]
+}
