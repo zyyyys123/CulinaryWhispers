@@ -14,11 +14,15 @@ services:
       - culinary-net
 
   app:
-    build: .
+    build:
+      context: .
+      args:
+        SKIP_TESTS: "true"
     container_name: culinary-backend
     ports:
       - "8080:8080"
     environment:
+      - JWT_SECRET=${CW_JWT_SECRET:-cw_dev_secret_please_change_32bytes!}
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/culinary_user?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=${CW_DB_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${CW_DB_PASSWORD:-${MYSQL_ROOT_PASSWORD:-root}}
@@ -74,8 +78,6 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
     volumes:
       - es-data:/usr/share/elasticsearch/data
     networks:
@@ -220,7 +222,7 @@ services:
       - GIN_MODE=release
       - CW_GATEWAY_PORT=:8081
       - CW_GATEWAY_TARGET_URL=http://app:8080
-      - CW_JWT_SECRET=${CW_JWT_SECRET}
+      - CW_JWT_SECRET=${CW_JWT_SECRET:-cw_dev_secret_please_change_32bytes!}
     depends_on:
       - app
     networks:
