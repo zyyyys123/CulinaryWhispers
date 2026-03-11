@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zyyyys.culinarywhispers.common.db.mapper.SchemaPatchMapper">
+  <select id="currentDatabase" resultType="string">
+    SELECT DATABASE()
+  </select>
+
+  <select id="countTable" resultType="int">
+    SELECT COUNT(1)
+    FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA = #{schema}
+      AND TABLE_NAME = #{table}
+  </select>
+
+  <select id="countColumn" resultType="int">
+    SELECT COUNT(1)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = #{schema}
+      AND TABLE_NAME = #{table}
+      AND COLUMN_NAME = #{column}
+  </select>
+
+  <select id="countIndex" resultType="int">
+    SELECT COUNT(1)
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = #{schema}
+      AND TABLE_NAME = #{table}
+      AND INDEX_NAME = #{index}
+  </select>
+
+  <update id="exec">
+    ${sql}
+  </update>
+</mapper>
