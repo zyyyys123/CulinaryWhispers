@@ -5,6 +5,7 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { RecipeAPI } from '@/api/recipe'
 import { SocialAPI } from '@/api/social'
+import { AiAPI, type AiChatMessage } from '@/api/ai'
 import type { RecipeDetailVO } from '@/types/recipe'
 import AIAssistantOrb from '@/components/visual/AIAssistantOrb.vue'
 import { NRate } from 'naive-ui'
@@ -26,6 +27,7 @@ const zenStepIndex = ref(0)
 const zenInput = ref('')
 const zenInputRef = ref<HTMLInputElement | null>(null)
 const zenMessages = ref<Array<{ role: 'user' | 'assistant'; content: string }>>([])
+const zenSending = ref(false)
 const showLoginPrompt = ref(false)
 
 const openLoginPrompt = () => {
@@ -291,17 +293,35 @@ const assistantReply = (question: string, stepText: string, stepNo: number) => {
   return `${base}${s}你也可以说“帮我概括这一步”或“给我更细的操作”。`
 }
 
-const sendZen = () => {
+const sendZen = async () => {
   const q = zenInput.value.trim()
-  if (!q) return
+  if (!q || zenSending.value) return
   zenMessages.value.push({ role: 'user', content: q })
+  zenInput.value = ''
+
   const stepNo = zenStepIndex.value + 1
   const stepText = activeStep.value?.desc ? toZhStep(activeStep.value.desc) : ''
-  
-  setTimeout(() => {
+  const recipeTitle = recipe.value?.title ?? ''
+  const message = `${recipeTitle ? `菜谱：${recipeTitle}\n` : ''}当前步骤：第${stepNo}步\n步骤内容：${stepText}\n问题：${q}`.trim()
+
+  const history: AiChatMessage[] = zenMessages.value
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .slice(-8)
+    .map(m => ({ role: m.role, content: m.content }))
+
+  zenSending.value = true
+  try {
+    const res = await AiAPI.chat({ message, history })
+    if (res.code === 200 && res.data?.reply) {
+      zenMessages.value.push({ role: 'assistant', content: res.data.reply.trim() })
+      return
+    }
     zenMessages.value.push({ role: 'assistant', content: assistantReply(q, stepText, stepNo) })
-  }, 500)
-  
+  } catch {
+    zenMessages.value.push({ role: 'assistant', content: assistantReply(q, stepText, stepNo) })
+  } finally {
+    zenSending.value = false
+  }
   zenInput.value = ''
 }
 
@@ -538,7 +558,7 @@ onUnmounted(() => {
         <!-- AI Assistant Orb (Fixed at bottom) -->
         <div class="absolute bottom-8 left-1/2 -translate-x-1/2 w-[92vw] max-w-2xl">
           <div class="flex flex-col items-center gap-3">
-            <AIAssistantOrb status="thinking" />
+            <AIAssistantOrb :status="zenSending ? 'processing' : 'idle'" />
             <div class="w-full rounded-2xl border border-white/10 bg-black/40 backdrop-blur px-4 py-3">
               <div v-if="zenMessages.length" class="max-h-40 overflow-auto space-y-2 pr-1 custom-scrollbar">
                 <div v-for="(m, i) in zenMessages" :key="i" class="text-sm leading-relaxed">
@@ -558,7 +578,7 @@ onUnmounted(() => {
                 <button
                   @click="sendZen"
                   class="px-4 py-2 rounded-xl bg-primary text-black font-bold text-sm disabled:opacity-60"
-                  :disabled="!zenInput.trim()"
+                  :disabled="!zenInput.trim() || zenSending"
                 >
                   发送
                 </button>
