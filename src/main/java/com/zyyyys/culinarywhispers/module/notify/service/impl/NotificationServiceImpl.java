@@ -1,6 +1,8 @@
 package com.zyyyys.culinarywhispers.module.notify.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,11 +30,14 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     private final UserService userService;
 
     @Override
-    public Page<NotificationVO> pageMyNotifications(Long userId, int page, int size) {
+    public Page<NotificationVO> pageMyNotifications(Long userId, int page, int size, Integer type) {
         Page<Notification> p = new Page<>(page, size);
         LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Notification::getToUserId, userId)
                 .orderByDesc(Notification::getGmtCreate);
+        if (type != null) {
+            wrapper.eq(Notification::getType, type);
+        }
         this.page(p, wrapper);
 
         List<Notification> records = p.getRecords();
@@ -71,11 +77,39 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     }
 
     @Override
-    public long countUnread(Long userId) {
+    public long countUnread(Long userId, Integer type) {
         LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Notification::getToUserId, userId)
                 .eq(Notification::getIsRead, 0);
+        if (type != null) {
+            wrapper.eq(Notification::getType, type);
+        }
         return this.count(wrapper);
+    }
+
+    @Override
+    public Map<Integer, Long> countUnreadByType(Long userId) {
+        QueryWrapper<Notification> wrapper = new QueryWrapper<>();
+        wrapper.select("type", "COUNT(1) AS cnt")
+                .eq("to_user_id", userId)
+                .eq("is_read", 0)
+                .groupBy("type");
+        List<Map<String, Object>> rows = this.listMaps(wrapper);
+        Map<Integer, Long> result = new HashMap<>();
+        if (rows == null || rows.isEmpty()) {
+            return result;
+        }
+        for (Map<String, Object> row : rows) {
+            Object t = row.get("type");
+            Object c = row.get("cnt");
+            if (t == null || c == null) {
+                continue;
+            }
+            Integer type = Integer.valueOf(String.valueOf(t));
+            Long cnt = Long.valueOf(String.valueOf(c));
+            result.put(type, cnt);
+        }
+        return result;
     }
 
     @Override
@@ -90,5 +124,16 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         n.setIsRead(1);
         this.updateById(n);
     }
-}
 
+    @Override
+    public void markAllRead(Long userId, Integer type) {
+        LambdaUpdateWrapper<Notification> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(Notification::getToUserId, userId)
+                .eq(Notification::getIsRead, 0);
+        if (type != null) {
+            wrapper.eq(Notification::getType, type);
+        }
+        wrapper.set(Notification::getIsRead, 1);
+        this.update(wrapper);
+    }
+}
