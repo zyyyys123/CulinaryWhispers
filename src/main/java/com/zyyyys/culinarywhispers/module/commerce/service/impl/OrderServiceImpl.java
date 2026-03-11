@@ -1,6 +1,8 @@
 package com.zyyyys.culinarywhispers.module.commerce.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.ResultCode;
 import com.zyyyys.culinarywhispers.module.commerce.entity.Order;
@@ -10,6 +12,8 @@ import com.zyyyys.culinarywhispers.module.commerce.mapper.OrderItemMapper;
 import com.zyyyys.culinarywhispers.module.commerce.mapper.OrderMapper;
 import com.zyyyys.culinarywhispers.module.commerce.service.OrderService;
 import com.zyyyys.culinarywhispers.module.commerce.service.ProductService;
+import com.zyyyys.culinarywhispers.module.commerce.vo.OrderItemVO;
+import com.zyyyys.culinarywhispers.module.commerce.vo.OrderVO;
 import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 订单服务实现类
@@ -122,10 +131,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         order.setGmtModified(LocalDateTime.now());
         this.updateById(order);
 
-        // 2. 恢复库存 (简单查询明细并恢复，实际场景可能更复杂)
-        // 这里需要查询 order_item 表，暂未在 OrderService 中注入，实际应注入 mapper 或 service
-        // 为演示逻辑，假设能获取 items
-        // 实际开发中应该有 getItemsByOrderId 方法
+        // 2. 恢复库存
+        List<OrderItem> items = orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId));
+        if (items != null) {
+            for (OrderItem it : items) {
+                if (it == null || it.getProductId() == null || it.getCount() == null) continue;
+                productService.recoverStock(it.getProductId(), it.getCount());
+            }
+        }
     }
 
     /**
@@ -153,5 +166,140 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         userService.updateTotalSpend(order.getUserId(), order.getTotalAmount());
         
         log.info("Order paid: {}", orderId);
+    }
+
+    @Override
+    public Page<OrderVO> pageMyOrders(Long userId, int page, int size, Integer status) {
+        Page<Order> p = new Page<>(page, size);
+        LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Order::getUserId, userId)
+                .eq(status != null, Order::getStatus, status)
+                .orderByDesc(Order::getGmtCreate);
+        this.page(p, wrapper);
+
+        List<Order> orders = p.getRecords();
+        if (orders == null || orders.isEmpty()) {
+            Page<OrderVO> result = new Page<>(page, size);
+            result.setTotal(p.getTotal());
+            result.setSize(p.getSize());
+            result.setCurrent(p.getCurrent());
+            result.setPages(p.getPages());
+            result.setRecords(List.of());
+            return result;
+        }
+
+        Set<Long> orderIds = orders.stream().map(Order::getId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, List<OrderItem>> itemMap = loadOrderItems(orderIds);
+        Map<Long, Product> productMap = loadProducts(itemMap.values().stream().flatMap(List::stream).map(OrderItem::getProductId).collect(Collectors.toSet()));
+
+        List<OrderVO> voList = orders.stream().map(o -> buildOrderVO(o, itemMap.getOrDefault(o.getId(), List.of()), productMap)).collect(Collectors.toList());
+        Page<OrderVO> result = new Page<>(page, size);
+        result.setTotal(p.getTotal());
+        result.setSize(p.getSize());
+        result.setCurrent(p.getCurrent());
+        result.setPages(p.getPages());
+        result.setRecords(voList);
+        return result;
+    }
+
+    @Override
+    public OrderVO getMyOrder(Long userId, Long orderId) {
+        Order o = this.getById(orderId);
+        if (o == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND);
+        }
+        if (!Objects.equals(o.getUserId(), userId)) {
+            throw new BusinessException(ResultCode.FORBIDDEN);
+        }
+        List<OrderItem> items = orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId));
+        Map<Long, Product> productMap = loadProducts(items == null ? Set.of() : items.stream().map(OrderItem::getProductId).collect(Collectors.toSet()));
+        return buildOrderVO(o, items == null ? List.of() : items, productMap);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deliverOrder(Long userId, Long orderId) {
+        Order order = this.getById(orderId);
+        if (order == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND);
+        }
+        if (!Objects.equals(order.getUserId(), userId)) {
+            throw new BusinessException(ResultCode.FORBIDDEN);
+        }
+        if (order.getStatus() == null || order.getStatus() != 1) {
+            throw new BusinessException(400, "当前订单状态不可发货");
+        }
+        order.setStatus(2);
+        order.setGmtModified(LocalDateTime.now());
+        this.updateById(order);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void finishOrder(Long userId, Long orderId) {
+        Order order = this.getById(orderId);
+        if (order == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND);
+        }
+        if (!Objects.equals(order.getUserId(), userId)) {
+            throw new BusinessException(ResultCode.FORBIDDEN);
+        }
+        if (order.getStatus() == null || (order.getStatus() != 1 && order.getStatus() != 2)) {
+            throw new BusinessException(400, "当前订单状态不可完成");
+        }
+        order.setStatus(3);
+        order.setGmtModified(LocalDateTime.now());
+        this.updateById(order);
+    }
+
+    private Map<Long, List<OrderItem>> loadOrderItems(Set<Long> orderIds) {
+        if (orderIds == null || orderIds.isEmpty()) {
+            return Map.of();
+        }
+        List<OrderItem> items = orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>().in(OrderItem::getOrderId, orderIds));
+        if (items == null || items.isEmpty()) {
+            return Map.of();
+        }
+        return items.stream().filter(Objects::nonNull).collect(Collectors.groupingBy(OrderItem::getOrderId));
+    }
+
+    private Map<Long, Product> loadProducts(Set<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Product> products = productService.listByIds(productIds);
+        if (products == null || products.isEmpty()) {
+            return Map.of();
+        }
+        return products.stream().filter(Objects::nonNull).collect(Collectors.toMap(Product::getId, Function.identity(), (a, b) -> a));
+    }
+
+    private OrderVO buildOrderVO(Order o, List<OrderItem> items, Map<Long, Product> productMap) {
+        OrderVO vo = new OrderVO();
+        vo.setId(o.getId());
+        vo.setTotalAmount(o.getTotalAmount());
+        vo.setStatus(o.getStatus());
+        vo.setPayTime(o.getPayTime());
+        vo.setGmtCreate(o.getGmtCreate());
+
+        if (items == null || items.isEmpty()) {
+            vo.setItems(List.of());
+            return vo;
+        }
+        List<OrderItemVO> itemVos = new ArrayList<>();
+        for (OrderItem it : items) {
+            if (it == null) continue;
+            OrderItemVO iv = new OrderItemVO();
+            iv.setProductId(it.getProductId());
+            iv.setCount(it.getCount());
+            iv.setPrice(it.getPrice());
+            Product p = productMap == null ? null : productMap.get(it.getProductId());
+            if (p != null) {
+                iv.setProductTitle(p.getTitle());
+            }
+            itemVos.add(iv);
+        }
+        vo.setItems(itemVos);
+        return vo;
     }
 }

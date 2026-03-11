@@ -7,6 +7,7 @@ import com.zyyyys.culinarywhispers.module.commerce.dto.CreateOrderRequest;
 import com.zyyyys.culinarywhispers.module.commerce.entity.Product;
 import com.zyyyys.culinarywhispers.module.commerce.service.OrderService;
 import com.zyyyys.culinarywhispers.module.commerce.service.ProductService;
+import com.zyyyys.culinarywhispers.module.commerce.vo.OrderVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -75,6 +76,26 @@ public class CommerceController {
         return Result.success(orderService.createOrder(userId, request.getProductCounts()));
     }
 
+    @GetMapping("/order/list")
+    @Operation(summary = "订单列表", description = "分页获取当前登录用户的订单列表，可按状态筛选")
+    public Result<Page<OrderVO>> listMyOrders(@Parameter(description = "页码（从 1 开始）", example = "1")
+                                              @RequestParam(defaultValue = "1") int page,
+                                              @Parameter(description = "每页数量", example = "10")
+                                              @RequestParam(defaultValue = "10") int size,
+                                              @Parameter(description = "订单状态（可选）", example = "1")
+                                              @RequestParam(required = false) Integer status) {
+        Long userId = SecurityUtil.getUserId();
+        return Result.success(orderService.pageMyOrders(userId, page, size, status));
+    }
+
+    @GetMapping("/order/{orderId}")
+    @Operation(summary = "订单详情", description = "获取指定订单详情（仅允许查看自己的订单）")
+    public Result<OrderVO> getMyOrder(@Parameter(description = "订单ID", example = "10001")
+                                      @PathVariable Long orderId) {
+        Long userId = SecurityUtil.getUserId();
+        return Result.success(orderService.getMyOrder(userId, orderId));
+    }
+
     /**
      * 取消订单
      * @param orderId 订单ID
@@ -85,6 +106,24 @@ public class CommerceController {
                                     @PathVariable Long orderId) {
         Long userId = SecurityUtil.getUserId();
         orderService.cancelOrder(userId, orderId);
+        return Result.success();
+    }
+
+    @PostMapping("/order/{orderId}/deliver")
+    @Operation(summary = "发货（模拟）", description = "将订单状态置为已发货（模拟，仅允许操作自己的订单）")
+    public Result<Void> deliver(@Parameter(description = "订单ID", example = "10001")
+                                @PathVariable Long orderId) {
+        Long userId = SecurityUtil.getUserId();
+        orderService.deliverOrder(userId, orderId);
+        return Result.success();
+    }
+
+    @PostMapping("/order/{orderId}/finish")
+    @Operation(summary = "确认收货/完成（模拟）", description = "将订单状态置为已完成（模拟，仅允许操作自己的订单）")
+    public Result<Void> finish(@Parameter(description = "订单ID", example = "10001")
+                               @PathVariable Long orderId) {
+        Long userId = SecurityUtil.getUserId();
+        orderService.finishOrder(userId, orderId);
         return Result.success();
     }
 

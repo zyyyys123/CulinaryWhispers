@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { gsap } from 'gsap'
 import { CommerceAPI } from '@/api/commerce'
 import type { CartItem, ProductVO } from '@/types/commerce'
+import type { OrderVO } from '@/types/commerce'
 import { useAuthStore } from '@/stores/auth'
 import CwErrorState from '@/components/feedback/CwErrorState.vue'
 import CwEmptyState from '@/components/feedback/CwEmptyState.vue'
@@ -30,6 +31,16 @@ const cartItems = ref<CartItem[]>([])
 const cartCount = computed(() => cartItems.value.reduce((acc, it) => acc + it.quantity, 0))
 const cartTotal = computed(() => cartItems.value.reduce((acc, it) => acc + it.product.price * it.quantity, 0))
 
+const isOrdersOpen = ref(false)
+const ordersLoading = ref(false)
+const ordersErrorMessage = ref('')
+const oPage = ref(1)
+const oSize = ref(10)
+const oTotal = ref(0)
+const orders = ref<OrderVO[]>([])
+const lastOrdersFetchCount = ref(0)
+const selectedOrder = ref<OrderVO | null>(null)
+
 const categories: Array<{ id: number | null; name: string }> = [
   { id: null, name: '全部' },
   { id: 1, name: '厨具' },
@@ -46,6 +57,16 @@ const categoryName = (id: string) => {
 }
 
 const hasMore = computed(() => (total.value > 0 ? products.value.length < total.value : products.value.length > 0))
+const hasMoreOrders = computed(() => (oTotal.value > 0 ? orders.value.length < oTotal.value : lastOrdersFetchCount.value === oSize.value))
+
+const orderStatusLabel = (s: number) => {
+  if (s === 0) return '待支付'
+  if (s === 1) return '已支付'
+  if (s === 2) return '已发货'
+  if (s === 3) return '已完成'
+  if (s === 4) return '已取消'
+  return `状态 ${s}`
+}
 
 // Data Fetching
 const fetchProducts = async (reset = true) => {
@@ -88,6 +109,114 @@ const fetchProducts = async (reset = true) => {
     listErrorMessage.value = '加载失败，请检查网络或稍后重试'
   } finally {
     listLoading.value = false
+  }
+}
+
+const fetchOrders = async (reset = true) => {
+  if (ordersLoading.value) return
+  if (!auth.token) {
+    ordersErrorMessage.value = '请先登录后查看订单'
+    return
+  }
+  ordersLoading.value = true
+  ordersErrorMessage.value = ''
+  try {
+    if (reset) {
+      oPage.value = 1
+      oTotal.value = 0
+      orders.value = []
+      selectedOrder.value = null
+    }
+    const res = await CommerceAPI.listMyOrders({ page: oPage.value, size: oSize.value })
+    if (res.code !== 200) {
+      ordersErrorMessage.value = res.message || '加载失败'
+      return
+    }
+    oTotal.value = Number(res.data.total ?? 0)
+    const batch = res.data.records ?? []
+    orders.value.push(...batch)
+    lastOrdersFetchCount.value = batch.length
+    oPage.value++
+  } catch {
+    ordersErrorMessage.value = '加载失败，请检查网络或稍后重试'
+  } finally {
+    ordersLoading.value = false
+  }
+}
+
+const openOrders = async () => {
+  isOrdersOpen.value = true
+  await fetchOrders(true)
+}
+
+const viewOrder = async (id: string) => {
+  if (!auth.token) return
+  ordersLoading.value = true
+  ordersErrorMessage.value = ''
+  try {
+    const res = await CommerceAPI.getMyOrder(id)
+    if (res.code !== 200) {
+      ordersErrorMessage.value = res.message || '加载失败'
+      return
+    }
+    selectedOrder.value = res.data
+  } catch {
+    ordersErrorMessage.value = '加载失败，请稍后重试'
+  } finally {
+    ordersLoading.value = false
+  }
+}
+
+const cancelOrder = async (id: string) => {
+  ordersLoading.value = true
+  ordersErrorMessage.value = ''
+  try {
+    const res = await CommerceAPI.cancelOrder(id)
+    if (res.code !== 200) {
+      ordersErrorMessage.value = res.message || '取消失败'
+      return
+    }
+    await fetchOrders(true)
+  } catch {
+    ordersErrorMessage.value = '取消失败，请稍后重试'
+  } finally {
+    ordersLoading.value = false
+  }
+}
+
+const deliverOrder = async (id: string) => {
+  ordersLoading.value = true
+  ordersErrorMessage.value = ''
+  try {
+    const res = await CommerceAPI.deliverOrder(id)
+    if (res.code !== 200) {
+      ordersErrorMessage.value = res.message || '发货失败'
+      return
+    }
+    await viewOrder(id)
+    await fetchOrders(true)
+  } catch {
+    ordersErrorMessage.value = '发货失败，请稍后重试'
+  } finally {
+    ordersLoading.value = false
+  }
+}
+
+const finishOrder = async (id: string) => {
+  ordersLoading.value = true
+  ordersErrorMessage.value = ''
+  try {
+    const res = await CommerceAPI.finishOrder(id)
+    if (res.code !== 200) {
+      ordersErrorMessage.value = res.message || '完成失败'
+      return
+    }
+    await viewOrder(id)
+    await fetchOrders(true)
+  } catch {
+    ordersErrorMessage.value = '完成失败，请稍后重试'
+  } finally {
+    ordersLoading.value = false
   }
 }
 
@@ -200,7 +329,8 @@ const checkout = async () => {
     await CommerceAPI.paymentNotify(res.data)
     isCartOpen.value = false
     cartItems.value = []
-    alert(`订单已支付（模拟）：${res.data}`)
+    await openOrders()
+    await viewOrder(res.data)
     await fetchProducts(true)
   } catch {
     checkoutErrorMessage.value = '下单失败，请稍后重试'
@@ -231,6 +361,14 @@ onMounted(() => {
           <button @click="router.push({ name: 'home' })" class="text-xs font-bold tracking-widest text-gray-400 hover:text-white transition-colors">
             返回首页
           </button>
+
+          <button
+            v-if="auth.token"
+            @click="openOrders"
+            class="text-xs font-bold tracking-widest text-gray-400 hover:text-white transition-colors"
+          >
+            我的订单
+          </button>
           
           <!-- Cart Icon -->
           <div ref="cartBtnRef" @click="isCartOpen = !isCartOpen" class="relative cursor-pointer group">
@@ -242,6 +380,109 @@ onMounted(() => {
         </div>
       </div>
     </header>
+
+    <div
+      class="fixed inset-y-0 right-0 w-[92vw] max-w-3xl bg-dark-surface shadow-2xl transform transition-transform duration-300 z-50 border-l border-gray-800 p-6"
+      :class="isOrdersOpen ? 'translate-x-0' : 'translate-x-full'"
+    >
+      <div class="flex justify-between items-center mb-8">
+        <h2 class="text-xl font-serif text-primary">我的订单</h2>
+        <button @click="isOrdersOpen = false" class="text-gray-500 hover:text-white">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <CwErrorState
+        v-if="ordersErrorMessage"
+        class="mb-4"
+        :message="ordersErrorMessage"
+        action-label="重试"
+        @action="fetchOrders(true)"
+      />
+
+      <div v-if="selectedOrder" class="rounded-2xl border border-white/10 bg-black/10 p-5 mb-6">
+        <div class="flex items-center justify-between gap-4">
+          <div class="min-w-0">
+            <div class="text-xs text-gray-500 tracking-widest uppercase">Order {{ selectedOrder.id }}</div>
+            <div class="text-sm text-gray-300 mt-1">{{ selectedOrder.createTime }}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-primary font-bold">¥{{ selectedOrder.totalAmount.toFixed(2) }}</div>
+            <div class="text-xs text-gray-400 mt-1">{{ orderStatusLabel(selectedOrder.status) }}</div>
+          </div>
+        </div>
+        <div class="mt-4 space-y-2">
+          <div v-for="it in selectedOrder.items" :key="it.productId" class="flex items-center justify-between text-sm">
+            <div class="text-gray-200 truncate">{{ it.productTitle }}</div>
+            <div class="text-gray-400 shrink-0">x{{ it.count }}</div>
+          </div>
+        </div>
+        <div class="flex gap-2 mt-5 justify-end">
+          <button
+            v-if="selectedOrder.status === 0"
+            @click="cancelOrder(selectedOrder.id)"
+            class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-xs tracking-widest uppercase"
+            :disabled="ordersLoading"
+          >
+            取消订单
+          </button>
+          <button
+            v-if="selectedOrder.status === 1"
+            @click="deliverOrder(selectedOrder.id)"
+            class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-xs tracking-widest uppercase"
+            :disabled="ordersLoading"
+          >
+            模拟发货
+          </button>
+          <button
+            v-if="selectedOrder.status === 1 || selectedOrder.status === 2"
+            @click="finishOrder(selectedOrder.id)"
+            class="px-5 py-2 rounded-full bg-primary text-black font-bold text-xs tracking-widest uppercase disabled:opacity-60"
+            :disabled="ordersLoading"
+          >
+            确认收货
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <CwEmptyState
+          v-if="!ordersLoading && !ordersErrorMessage && orders.length === 0"
+          title="暂无订单"
+          description="下单后会在这里展示订单记录。"
+          action-label="刷新"
+          @action="fetchOrders(true)"
+        />
+
+        <div
+          v-for="o in orders"
+          :key="o.id"
+          class="rounded-2xl border border-white/10 bg-black/10 p-5 cursor-pointer hover:border-primary/40 transition-colors"
+          @click="viewOrder(o.id)"
+        >
+          <div class="flex items-center justify-between gap-4">
+            <div class="min-w-0">
+              <div class="font-bold truncate">订单 {{ o.id }}</div>
+              <div class="text-xs text-gray-500 mt-1">{{ o.createTime }}</div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-primary font-bold">¥{{ o.totalAmount.toFixed(2) }}</div>
+              <div class="text-xs text-gray-400 mt-1">{{ orderStatusLabel(o.status) }}</div>
+            </div>
+          </div>
+        </div>
+
+        <CwListFooter
+          v-if="!ordersErrorMessage && orders.length > 0"
+          :loading="ordersLoading"
+          :hasMore="hasMoreOrders"
+          load-more-label="加载更多"
+          loading-label="加载中…"
+          end-label="已到底"
+          @loadMore="fetchOrders(false)"
+        />
+      </div>
+    </div>
 
     <!-- Cart Sidebar -->
     <div 
