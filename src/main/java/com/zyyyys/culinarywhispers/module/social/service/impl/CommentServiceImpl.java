@@ -91,6 +91,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         // 3. 保存入库
         this.save(comment);
 
+        Long newCommentId = comment.getId();
+
         String shortContent = content.trim();
         if (shortContent.length() > 80) {
             shortContent = shortContent.substring(0, 80) + "...";
@@ -101,8 +103,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             n.setFromUserId(userId);
             n.setToUserId(parent.getUserId());
             n.setType(1);
-            n.setTargetType(1);
-            n.setTargetId(recipeId);
+            n.setTargetType(2);
+            n.setTargetId(newCommentId);
             n.setContent("回复了你：" + shortContent);
             n.setIsRead(0);
             n.setGmtCreate(LocalDateTime.now());
@@ -116,8 +118,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             n.setFromUserId(userId);
             n.setToUserId(info.getAuthorId());
             n.setType(2);
-            n.setTargetType(1);
-            n.setTargetId(recipeId);
+            n.setTargetType(2);
+            n.setTargetId(newCommentId);
             n.setContent("评论了你的食谱：" + shortContent);
             n.setIsRead(0);
             n.setGmtCreate(LocalDateTime.now());
@@ -220,6 +222,36 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         voPage.setPages(entityPage.getPages());
         voPage.setRecords(voRecords);
         return voPage;
+    }
+
+    @Override
+    public CommentVO getComment(Long commentId) {
+        Comment c = this.getById(commentId);
+        if (c == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND);
+        }
+        Long uid = c.getUserId();
+        User u = uid == null ? null : userMapper.selectById(uid);
+        UserProfile p = uid == null ? null : userProfileMapper.selectById(uid);
+
+        CommentVO vo = new CommentVO();
+        vo.setId(c.getId());
+        vo.setRecipeId(c.getRecipeId());
+        vo.setContent(c.getContent());
+        vo.setParentId(c.getParentId());
+        vo.setLikeCount(c.getLikeCount());
+        vo.setGmtCreate(c.getGmtCreate());
+
+        CommentVO.AuthorVO author = new CommentVO.AuthorVO();
+        author.setId(uid);
+        author.setUsername(u != null && StringUtils.hasText(u.getUsername()) ? u.getUsername() : "user_" + uid);
+        author.setNickname(u != null && StringUtils.hasText(u.getNickname()) ? u.getNickname() : ("User " + uid));
+        author.setAvatarUrl(u != null ? u.getAvatarUrl() : null);
+        author.setIsMasterChef(p != null && p.getIsMasterChef() != null ? p.getIsMasterChef() : Boolean.FALSE);
+        author.setMasterTitle(p != null ? p.getMasterTitle() : null);
+        author.setBgImageUrl(p != null ? p.getBgImageUrl() : null);
+        vo.setAuthor(author);
+        return vo;
     }
 
     /**

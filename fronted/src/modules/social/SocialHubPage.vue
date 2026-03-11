@@ -195,6 +195,17 @@ const openNotification = async (n: NotificationVO) => {
   } finally {
     if (n.targetType === 1) {
       router.push({ name: 'recipe-detail', params: { id: n.targetId } })
+      return
+    }
+    if (n.targetType === 2) {
+      const res = await SocialAPI.getCommentById(n.targetId)
+      if (res.code === 200) {
+        router.push({
+          name: 'recipe-detail',
+          params: { id: res.data.recipeId },
+          query: { highlightCommentId: res.data.id }
+        })
+      }
     }
   }
 }

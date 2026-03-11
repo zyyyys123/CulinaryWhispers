@@ -9,6 +9,7 @@ import { normalizeAssetUrl } from '@/utils/assetUrl'
 
 const props = defineProps<{
   recipeId: string
+  highlightCommentId?: string
 }>()
 
 const comments = ref<CommentVO[]>([])
@@ -16,6 +17,7 @@ const loading = ref(true)
 const newComment = ref('')
 const replyTo = ref<CommentVO | null>(null)
 const inputEl = ref<HTMLTextAreaElement | null>(null)
+const highlightedId = ref('')
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -57,6 +59,34 @@ const fetchComments = async () => {
       })
     }, 100)
   }
+}
+
+const highlightComment = async (commentId: string) => {
+  const id = (commentId || '').trim()
+  if (!id) return
+
+  let target = comments.value.find(c => c.id === id)
+  if (!target) {
+    const res = await SocialAPI.getCommentById(id)
+    if (res.code === 200 && res.data.recipeId === props.recipeId) {
+      const exists = comments.value.some(c => c.id === res.data.id)
+      if (!exists) {
+        comments.value.unshift(res.data)
+      }
+      target = res.data
+    }
+  }
+  if (!target) return
+
+  highlightedId.value = id
+  await nextTick()
+  const el = document.getElementById(`comment-${id}`)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+  window.setTimeout(() => {
+    if (highlightedId.value === id) highlightedId.value = ''
+  }, 2500)
 }
 
 const startReply = async (comment: CommentVO) => {
@@ -149,6 +179,11 @@ const toggleLike = async (comment: CommentVO) => {
 
 onMounted(() => {
   fetchComments()
+  if (props.highlightCommentId) {
+    setTimeout(() => {
+      highlightComment(props.highlightCommentId || '')
+    }, 300)
+  }
 })
 </script>
 
@@ -184,7 +219,13 @@ onMounted(() => {
 
     <!-- List -->
     <div class="space-y-6">
-      <div v-for="comment in comments" :key="comment.id" class="comment-item flex gap-4">
+      <div
+        v-for="comment in comments"
+        :key="comment.id"
+        class="comment-item flex gap-4 rounded-xl px-3 py-2 -mx-3 transition-colors"
+        :id="`comment-${comment.id}`"
+        :class="highlightedId === comment.id ? 'bg-primary/10 border border-primary/30' : ''"
+      >
         <!-- Avatar -->
         <div class="w-10 h-10 rounded-full border border-gray-700 overflow-hidden shrink-0">
           <img :src="comment.author.avatarUrl" class="w-full h-full object-cover" />
