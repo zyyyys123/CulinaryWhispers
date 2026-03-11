@@ -44,4 +44,6 @@ public interface CommentService extends IService<Comment> {
      * @return 分页列表
      */
     Page<CommentVO> listComments(Long recipeId, int page, int size);
+
+    CommentVO getComment(Long commentId);
 }

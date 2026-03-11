@@ -41,6 +41,8 @@ const closeLoginPrompt = () => {
   showLoginPrompt.value = false
 }
 
+const highlightCommentId = computed(() => (typeof route.query.highlightCommentId === 'string' ? route.query.highlightCommentId : ''))
+
 const authorAvatarSrc = computed(() => {
   const v = normalizeAssetUrl(recipe.value?.authorAvatar)
   if (v) return v
@@ -462,7 +464,7 @@ onUnmounted(() => {
         </section>
 
         <!-- Comments Section -->
-        <CommentSection :recipeId="recipe.id" />
+        <CommentSection :recipeId="recipe.id" :highlightCommentId="highlightCommentId" />
       </div>
 
       <!-- Right Column: Ingredients (Sticky) -->

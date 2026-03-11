@@ -144,6 +144,38 @@ export const SocialAPI = {
     }
   },
 
+  getCommentById: async (commentId: string): Promise<Result<CommentVO>> => {
+    const res = await http.get<BackendResult<BackendComment>>(`/social/comment/${commentId}`)
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: null as any }
+    }
+    const c = res.data.data
+    return {
+      code: 200,
+      message: res.data.message,
+      data: {
+        id: String(c.id),
+        recipeId: String(c.recipeId),
+        content: c.content,
+        parentId: c.parentId ? String(c.parentId) : undefined,
+        author: {
+          userId: String(c.author?.id ?? '0'),
+          username: c.author?.username ?? 'unknown',
+          nickname: c.author?.nickname ?? 'Unknown',
+          avatarUrl:
+            normalizeAssetUrl(c.author?.avatarUrl) ??
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.author?.id ?? 'u'}`,
+          isMasterChef: Boolean(c.author?.isMasterChef),
+          masterTitle: c.author?.masterTitle,
+          bgImageUrl: c.author?.bgImageUrl
+        },
+        createTime: c.gmtCreate,
+        likeCount: c.likeCount ?? 0,
+        isLiked: false
+      }
+    }
+  },
+
   postComment: async (params: { recipeId: string; content: string; parentId?: string }): Promise<Result<string>> => {
     const res = await http.post<BackendResult<number>>(
       '/social/comment',

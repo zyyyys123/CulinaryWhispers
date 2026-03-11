@@ -91,6 +91,11 @@ public class SocialController {
         return Result.success(commentService.listComments(recipeId, page, size));
     }
 
+    @GetMapping("/comment/{commentId}")
+    public Result<CommentVO> getComment(@PathVariable Long commentId) {
+        return Result.success(commentService.getComment(commentId));
+    }
+
     // ================== 关注接口 ==================
 
     /**
