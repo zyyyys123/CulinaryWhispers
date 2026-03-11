@@ -1,19 +1,27 @@
 import type { Result, Page, RecipePageVO } from '@/types/recipe'
 import type { CommentVO, FollowVO } from '@/types/social'
 import type { UserProfileVO } from '@/types/user'
+import { normalizeAssetUrl } from '@/utils/assetUrl'
 import { http } from './http'
 
 type BackendResult<T> = { code: number; message: string; data: T }
 
 type BackendComment = {
   id: number
-  userId: number
-  targetId: number
-  recipeId?: number
+  recipeId: number
   content: string
   parentId: number
   likeCount: number
   gmtCreate: string
+  author?: {
+    id: number
+    username: string
+    nickname: string
+    avatarUrl?: string
+    isMasterChef?: boolean
+    masterTitle?: string
+    bgImageUrl?: string
+  }
 }
 
 type BackendFollow = {
@@ -56,9 +64,10 @@ const mapRecipePage = (page: Page<BackendRecipePageVO>, message: string): Result
       id: String(r.id),
       title: r.title,
       description: r.description,
-      coverUrl: r.coverUrl,
+      coverUrl: normalizeAssetUrl(r.coverUrl) ?? r.coverUrl,
       authorName: r.authorName,
-      authorAvatar: r.authorAvatar ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.authorId ?? 'u'}`,
+      authorAvatar:
+        normalizeAssetUrl(r.authorAvatar) ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.authorId ?? 'u'}`,
       viewCount: Number(r.viewCount ?? 0),
       likeCount: Number(r.likeCount ?? 0),
       difficulty: Number(r.difficulty ?? 1),
@@ -118,7 +127,17 @@ export const SocialAPI = {
           recipeId: String(c.recipeId ?? params.recipeId),
           content: c.content,
           parentId: c.parentId ? String(c.parentId) : undefined,
-          author: fallbackUser(String(c.userId)),
+          author: {
+            userId: String(c.author?.id ?? '0'),
+            username: c.author?.username ?? 'unknown',
+            nickname: c.author?.nickname ?? 'Unknown',
+            avatarUrl:
+              normalizeAssetUrl(c.author?.avatarUrl) ??
+              `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.author?.id ?? 'u'}`,
+            isMasterChef: Boolean(c.author?.isMasterChef),
+            masterTitle: c.author?.masterTitle,
+            bgImageUrl: c.author?.bgImageUrl
+          },
           createTime: c.gmtCreate,
           likeCount: c.likeCount ?? 0,
           isLiked: false

@@ -9,6 +9,7 @@ import com.zyyyys.culinarywhispers.module.social.entity.Follow;
 import com.zyyyys.culinarywhispers.module.social.service.CommentService;
 import com.zyyyys.culinarywhispers.module.social.service.FollowService;
 import com.zyyyys.culinarywhispers.module.social.service.InteractionService;
+import com.zyyyys.culinarywhispers.module.social.vo.CommentVO;
 import com.zyyyys.culinarywhispers.module.social.vo.InteractionStatusVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -83,9 +84,9 @@ public class SocialController {
      * @param size 每页大小
      */
     @GetMapping("/comment/list")
-    public Result<Page<Comment>> listComments(@RequestParam Long recipeId,
-                                              @RequestParam(defaultValue = "1") int page,
-                                              @RequestParam(defaultValue = "10") int size) {
+    public Result<Page<CommentVO>> listComments(@RequestParam Long recipeId,
+                                                @RequestParam(defaultValue = "1") int page,
+                                                @RequestParam(defaultValue = "10") int size) {
         return Result.success(commentService.listComments(recipeId, page, size));
     }
 

@@ -3,11 +3,11 @@ package com.zyyyys.culinarywhispers.module.social.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zyyyys.culinarywhispers.common.context.UserContext;
 import com.zyyyys.culinarywhispers.common.result.Result;
-import com.zyyyys.culinarywhispers.module.social.entity.Comment;
 import com.zyyyys.culinarywhispers.module.social.entity.Follow;
 import com.zyyyys.culinarywhispers.module.social.service.CommentService;
 import com.zyyyys.culinarywhispers.module.social.service.FollowService;
 import com.zyyyys.culinarywhispers.module.social.service.InteractionService;
+import com.zyyyys.culinarywhispers.module.social.vo.CommentVO;
 import com.zyyyys.culinarywhispers.module.social.vo.InteractionStatusVO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -40,8 +40,8 @@ class SocialControllerTest {
         Result<Long> commentId = controller.addComment(100L, "hi", null);
         assertEquals(0, commentId.getCode());
 
-        when(commentService.listComments(eq(100L), anyInt(), anyInt())).thenReturn(new Page<Comment>());
-        Result<Page<Comment>> comments = controller.listComments(100L, 1, 10);
+        when(commentService.listComments(eq(100L), anyInt(), anyInt())).thenReturn(new Page<CommentVO>());
+        Result<Page<CommentVO>> comments = controller.listComments(100L, 1, 10);
         assertEquals(0, comments.getCode());
 
         Result<Void> follow = controller.followUser(2L);
