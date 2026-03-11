@@ -21,6 +21,15 @@ http.interceptors.response.use(
       if (data.code === 0) {
         data.code = 200
       }
+      if (data.code === 401) {
+        localStorage.removeItem('cw_token')
+        window.dispatchEvent(new Event('cw:auth:clear'))
+        const current = window.location.pathname + window.location.search + window.location.hash
+        if (!current.startsWith('/login')) {
+          window.location.href = `/login?redirect=${encodeURIComponent(current)}`
+        }
+        return Promise.reject(new Error('Unauthorized'))
+      }
     }
     return response
   },
