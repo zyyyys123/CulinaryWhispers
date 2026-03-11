@@ -20,8 +20,8 @@ services:
       - "8080:8080"
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/culinary_user?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_DATASOURCE_USERNAME=${CW_DB_USERNAME:-root}
+      - SPRING_DATASOURCE_PASSWORD=${CW_DB_PASSWORD:-${MYSQL_ROOT_PASSWORD:-root}}
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
       - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
@@ -42,7 +42,7 @@ services:
     ports:
       - "3306:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
     volumes:
       - ./sql/mysql.sql:/docker-entrypoint-initdb.d/01_init.sql
       - ./sql/seed_data.sql:/docker-entrypoint-initdb.d/02_seed.sql
@@ -115,8 +115,8 @@ services:
     image: minio/minio:RELEASE.2023-03-20T20-16-18Z
     profiles: ["full"]
     environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
     ports:
       - "9001:9001"
       - "9000:9000"
@@ -259,7 +259,7 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
       - GF_USERS_DEFAULT_THEME=dark
     volumes:
       - ./deploy/grafana/provisioning:/etc/grafana/provisioning
