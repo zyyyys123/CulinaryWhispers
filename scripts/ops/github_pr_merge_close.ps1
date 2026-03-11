@@ -1,5 +1,3 @@
-$ErrorActionPreference = "Stop"
-
 param(
   [int]$IssueNumber,
 
@@ -23,6 +21,8 @@ param(
   [string]$Verification,
   [string]$Risk
 )
+
+$ErrorActionPreference = "Stop"
 
 $IssueNumber = if ($null -eq $IssueNumber) { 0 } else { $IssueNumber }
 if (-not $BaseBranch) { $BaseBranch = "master" }
