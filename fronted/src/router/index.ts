@@ -94,23 +94,40 @@ router.beforeEach(async to => {
   if (auth.token && !storedToken) {
     auth.clear()
   }
+
+  const ensureProfile = async () => {
+    if (!auth.token) return false
+    if (auth.profile) return true
+    const ok = await auth.loadProfile()
+    if (!ok) {
+      auth.clear()
+      return false
+    }
+    return true
+  }
+
   if (to.name === 'login' || to.name === 'register') {
     if (auth.token) {
-      if (!auth.profile) {
-        await auth.loadProfile()
-      }
-      if (auth.profile) {
+      const ok = await ensureProfile()
+      if (ok && auth.profile) {
         return auth.profile.isAdmin ? { name: 'admin' } : { name: 'home' }
       }
     }
     return true
   }
-  if (to.meta?.requiresAuth && !auth.token) {
-    return { name: 'login', query: { redirect: to.fullPath } }
+  if (to.meta?.requiresAuth) {
+    if (!auth.token) {
+      return { name: 'login', query: { redirect: to.fullPath } }
+    }
+    const ok = await ensureProfile()
+    if (!ok) {
+      return { name: 'login', query: { redirect: to.fullPath } }
+    }
   }
   if (to.meta?.requiresAdmin) {
-    if (!auth.profile && auth.token) {
-      await auth.loadProfile()
+    const ok = await ensureProfile()
+    if (!ok) {
+      return { name: 'login', query: { redirect: to.fullPath } }
     }
     if (!auth.profile?.isAdmin) {
       return { name: 'home' }
