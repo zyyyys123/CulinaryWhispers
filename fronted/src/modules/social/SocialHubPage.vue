@@ -30,6 +30,8 @@ const lastNotifyFetchCount = ref(0)
 const notifyFilter = ref<'all' | 'like' | 'comment' | 'collect'>('all')
 
 const targetUserId = ref('')
+const editingRemarkUserId = ref<string | null>(null)
+const remarkDraft = ref('')
 
 const hasMore = computed(() => (total.value > 0 ? list.value.length < total.value : lastFetchCount.value === size.value))
 const hasMoreNotify = computed(() => (nTotal.value > 0 ? notifications.value.length < nTotal.value : lastNotifyFetchCount.value === nSize.value))
@@ -151,6 +153,34 @@ const unfollow = async (uid: string) => {
   }
 }
 
+const startEditRemark = (item: FollowVO) => {
+  editingRemarkUserId.value = item.userId
+  remarkDraft.value = item.remarkName ?? ''
+}
+
+const cancelEditRemark = () => {
+  editingRemarkUserId.value = null
+  remarkDraft.value = ''
+}
+
+const saveRemark = async (item: FollowVO) => {
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    const res = await SocialAPI.updateFollowRemark(item.userId, remarkDraft.value.trim() ? remarkDraft.value.trim() : undefined)
+    if (res.code !== 200) {
+      errorMessage.value = res.message || '备注失败'
+      return
+    }
+    item.remarkName = remarkDraft.value.trim() ? remarkDraft.value.trim() : undefined
+    cancelEditRemark()
+  } catch {
+    errorMessage.value = '备注失败，请稍后重试'
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(() => {
   load(true)
 })
@@ -236,32 +266,75 @@ const openNotification = async (n: NotificationVO) => {
           action-label="刷新"
           @action="load(true)"
         />
-        <div
-          v-for="item in list"
-          :key="item.userId"
-          class="rounded-2xl border border-white/10 bg-black/10 p-5 flex items-center justify-between gap-4"
-        >
-          <div class="flex items-center gap-4 min-w-0">
-            <img
-              :src="avatarSrc(item.user.avatarUrl, item.user.nickname)"
-              class="w-12 h-12 rounded-full border border-white/10"
-              :data-seed="item.user.nickname || 'user'"
-              @error="onAvatarError"
-            />
-            <div class="min-w-0">
-              <div class="font-bold truncate">{{ item.user.nickname }}</div>
-              <div class="text-xs text-gray-500 tracking-widest uppercase">User {{ item.userId }}</div>
-              <div class="text-xs text-gray-600 mt-1">{{ item.createTime }}</div>
+        <div v-for="item in list" :key="item.userId" class="space-y-3">
+          <div class="rounded-2xl border border-white/10 bg-black/10 p-5 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4 min-w-0">
+              <img
+                :src="avatarSrc(item.user.avatarUrl, item.user.nickname)"
+                class="w-12 h-12 rounded-full border border-white/10"
+                :data-seed="item.user.nickname || 'user'"
+                @error="onAvatarError"
+              />
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 min-w-0">
+                  <div class="font-bold truncate">{{ item.remarkName || item.user.nickname }}</div>
+                  <div
+                    v-if="item.isMutual"
+                    class="px-2 py-0.5 rounded-full border border-primary/40 text-[10px] tracking-widest text-primary shrink-0"
+                  >
+                    互关
+                  </div>
+                </div>
+                <div class="text-xs text-gray-500 tracking-widest uppercase">User {{ item.userId }}</div>
+                <div class="text-xs text-gray-600 mt-1">{{ item.createTime }}</div>
+              </div>
+            </div>
+            <div class="flex gap-2 shrink-0">
+              <button
+                v-if="activeTab === 'following'"
+                @click="unfollow(item.userId)"
+                class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-xs tracking-widest uppercase"
+              >
+                取消关注
+              </button>
+              <button
+                v-if="activeTab === 'following' && editingRemarkUserId !== item.userId"
+                @click="startEditRemark(item)"
+                class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-xs tracking-widest uppercase"
+              >
+                备注
+              </button>
             </div>
           </div>
-          <div class="flex gap-2 shrink-0">
-            <button
-              v-if="activeTab === 'following'"
-              @click="unfollow(item.userId)"
-              class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-xs tracking-widest uppercase"
-            >
-              取消关注
-            </button>
+
+          <div
+            v-if="activeTab === 'following' && editingRemarkUserId === item.userId"
+            class="rounded-2xl border border-white/10 bg-black/10 p-5 flex items-center justify-between gap-4"
+          >
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              <div class="text-sm text-gray-300 shrink-0">备注名</div>
+              <input
+                v-model="remarkDraft"
+                placeholder="输入备注名（最多 64 字）"
+                class="flex-1 w-full px-4 py-2 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none focus:border-primary"
+              />
+            </div>
+            <div class="flex gap-2 shrink-0">
+              <button
+                @click="saveRemark(item)"
+                class="px-5 py-2 rounded-full bg-primary text-black font-bold text-xs tracking-widest uppercase"
+                :disabled="loading"
+              >
+                保存
+              </button>
+              <button
+                @click="cancelEditRemark"
+                class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-xs tracking-widest uppercase"
+                :disabled="loading"
+              >
+                取消
+              </button>
+            </div>
           </div>
         </div>
       </div>

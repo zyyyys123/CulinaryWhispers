@@ -19,4 +19,5 @@ export interface FollowVO {
   user: UserProfileVO
   createTime: string
   isMutual: boolean // 是否互相关注
+  remarkName?: string
 }

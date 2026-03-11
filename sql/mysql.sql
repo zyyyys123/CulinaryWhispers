@@ -363,6 +363,7 @@ CREATE TABLE IF NOT EXISTS `t_soc_follow` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '关注ID',
   `follower_id` bigint(20) unsigned NOT NULL COMMENT '关注者ID',
   `following_id` bigint(20) unsigned NOT NULL COMMENT '被关注者ID',
+  `remark_name` varchar(64) DEFAULT NULL COMMENT '备注名',
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '关注状态: 1-关注,0-取消',
   `gmt_create` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `gmt_modified` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),

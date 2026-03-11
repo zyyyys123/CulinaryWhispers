@@ -3,11 +3,11 @@ package com.zyyyys.culinarywhispers.module.social.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zyyyys.culinarywhispers.common.context.UserContext;
 import com.zyyyys.culinarywhispers.common.result.Result;
-import com.zyyyys.culinarywhispers.module.social.entity.Follow;
 import com.zyyyys.culinarywhispers.module.social.service.CommentService;
 import com.zyyyys.culinarywhispers.module.social.service.FollowService;
 import com.zyyyys.culinarywhispers.module.social.service.InteractionService;
 import com.zyyyys.culinarywhispers.module.social.vo.CommentVO;
+import com.zyyyys.culinarywhispers.module.social.vo.FollowVO;
 import com.zyyyys.culinarywhispers.module.social.vo.InteractionStatusVO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -48,8 +48,8 @@ class SocialControllerTest {
         assertEquals(0, follow.getCode());
         verify(followService).followUser(1L, 2L);
 
-        when(followService.listFollowing(eq(1L), anyInt(), anyInt())).thenReturn(new Page<Follow>());
-        Result<Page<Follow>> following = controller.listMyFollowing(1, 10);
+        when(followService.listFollowing(eq(1L), anyInt(), anyInt())).thenReturn(new Page<FollowVO>());
+        Result<Page<FollowVO>> following = controller.listMyFollowing(1, 10);
         assertEquals(0, following.getCode());
     }
 
