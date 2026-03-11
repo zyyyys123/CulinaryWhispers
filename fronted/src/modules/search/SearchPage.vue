@@ -2,6 +2,9 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { SearchAPI } from '@/api/search'
+import CwErrorState from '@/components/feedback/CwErrorState.vue'
+import CwEmptyState from '@/components/feedback/CwEmptyState.vue'
+import CwListFooter from '@/components/feedback/CwListFooter.vue'
 
 const router = useRouter()
 
@@ -59,14 +62,14 @@ const openDetail = (id: string) => {
     <div class="max-w-5xl mx-auto">
       <div class="flex items-start justify-between gap-4 mb-8">
         <div>
-          <div class="text-xs tracking-widest uppercase text-gray-500 mb-2">Search</div>
-          <h1 class="text-4xl md:text-5xl font-serif text-primary">Find Recipes</h1>
+          <div class="text-xs tracking-widest uppercase text-gray-500 mb-2">搜索</div>
+          <h1 class="text-4xl md:text-5xl font-serif text-primary">查找菜谱</h1>
         </div>
         <button
           @click="router.push({ name: 'home' })"
           class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-sm tracking-widest uppercase"
         >
-          Back Home
+          返回首页
         </button>
       </div>
 
@@ -83,7 +86,7 @@ const openDetail = (id: string) => {
             :disabled="loading"
             class="px-6 py-3 rounded-xl bg-primary text-black font-bold disabled:opacity-60"
           >
-            {{ loading ? 'Searching...' : 'Search' }}
+            {{ loading ? '搜索中…' : '搜索' }}
           </button>
         </div>
 
@@ -93,21 +96,29 @@ const openDetail = (id: string) => {
             class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
             :class="activeMode === 'personalized' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
           >
-            Personalized
+            个性化
           </button>
           <button
             @click="activeMode = 'global'; search(true)"
             class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
             :class="activeMode === 'global' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
           >
-            Global
+            全站
           </button>
         </div>
 
-        <div v-if="errorMessage" class="mt-4 text-sm text-red-300">{{ errorMessage }}</div>
+        <CwErrorState v-if="errorMessage" class="mt-4" :message="errorMessage" action-label="重试" @action="search(true)" />
       </div>
 
-      <div class="space-y-4">
+      <CwEmptyState
+        v-if="!loading && !errorMessage && items.length === 0"
+        title="暂无结果"
+        description="试试换个关键词或切换搜索模式。"
+        action-label="重新搜索"
+        @action="search(true)"
+      />
+
+      <div v-else class="space-y-4">
         <button
           v-for="r in items"
           :key="r.id"
@@ -133,19 +144,15 @@ const openDetail = (id: string) => {
         </button>
       </div>
 
-      <div class="flex justify-center mt-10">
-        <button
-          v-if="hasMore && !loading"
-          @click="search(false)"
-          class="px-8 py-3 rounded-full border border-gray-700 hover:border-primary text-gray-300 hover:text-primary transition-colors text-sm tracking-widest uppercase"
-        >
-          Load More
-        </button>
-        <div v-else-if="!loading && items.length > 0" class="text-gray-600 text-sm tracking-widest uppercase">
-          End of Results
-        </div>
-      </div>
+      <CwListFooter
+        v-if="!errorMessage && items.length > 0"
+        :loading="loading"
+        :hasMore="hasMore"
+        load-more-label="加载更多"
+        loading-label="加载中…"
+        end-label="已到底"
+        @loadMore="search(false)"
+      />
     </div>
   </div>
 </template>
-

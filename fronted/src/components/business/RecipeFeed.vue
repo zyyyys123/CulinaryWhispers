@@ -6,6 +6,9 @@ import { RecipeAPI } from '@/api/recipe'
 import type { RecipePageVO } from '@/types/recipe'
 import RecipeCard from './RecipeCard.vue'
 import RecipeSkeleton from '@/components/feedback/RecipeSkeleton.vue'
+import CwErrorState from '@/components/feedback/CwErrorState.vue'
+import CwEmptyState from '@/components/feedback/CwEmptyState.vue'
+import CwListFooter from '@/components/feedback/CwListFooter.vue'
 
 const props = defineProps<{
   authorId?: string
@@ -98,15 +101,7 @@ onMounted(() => {
 
 <template>
   <div class="recipe-feed w-full">
-    <div v-if="errorMessage" class="mb-6 rounded-2xl border border-white/10 bg-black/20 px-6 py-4 flex items-center justify-between gap-4">
-      <div class="text-gray-300 text-sm tracking-wider">{{ errorMessage }}</div>
-      <button
-        @click="fetchRecipes"
-        class="px-5 py-2 rounded-full bg-primary text-black font-bold text-sm"
-      >
-        Retry
-      </button>
-    </div>
+    <CwErrorState v-if="errorMessage" class="mb-6" :message="errorMessage" action-label="重试" @action="fetchRecipes" />
 
     <!-- Masonry Grid -->
     <div class="flex gap-6 items-start">
@@ -129,23 +124,23 @@ onMounted(() => {
       <RecipeSkeleton v-for="i in 3" :key="i" />
     </div>
     
-    <div v-if="!loading && !errorMessage && recipes.length === 0" class="text-center mt-12 text-gray-600 text-sm tracking-widest uppercase">
-      No Recipes
-    </div>
+    <CwEmptyState
+      v-if="!loading && !errorMessage && recipes.length === 0"
+      title="暂无食谱"
+      description="试试搜索或换个关键词。"
+      action-label="重新加载"
+      @action="fetchRecipes"
+    />
 
     <!-- Load More Trigger (Simple Button for now, IntersectionObserver later) -->
-    <div v-if="!loading && !errorMessage && hasMore" class="flex justify-center mt-12">
-      <button 
-        @click="fetchRecipes"
-        class="group relative px-8 py-3 bg-transparent border border-gray-700 hover:border-primary text-gray-300 hover:text-primary transition-colors duration-300 rounded-full overflow-hidden"
-      >
-        <span class="relative z-10 text-sm tracking-widest uppercase">Load More</span>
-        <div class="absolute inset-0 bg-primary/10 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
-      </button>
-    </div>
-    
-    <div v-if="!loading && !errorMessage && !hasMore" class="text-center mt-12 text-gray-600 text-sm tracking-widest uppercase">
-      End of Collection
-    </div>
+    <CwListFooter
+      v-if="!errorMessage && recipes.length > 0"
+      :loading="loading"
+      :hasMore="hasMore"
+      load-more-label="加载更多"
+      loading-label="加载中…"
+      end-label="已到底"
+      @loadMore="fetchRecipes"
+    />
   </div>
 </template>

@@ -6,6 +6,9 @@ import type { FollowVO } from '@/types/social'
 import { NotifyAPI } from '@/api/notify'
 import type { NotificationVO } from '@/types/notify'
 import { normalizeAssetUrl } from '@/utils/assetUrl'
+import CwErrorState from '@/components/feedback/CwErrorState.vue'
+import CwEmptyState from '@/components/feedback/CwEmptyState.vue'
+import CwListFooter from '@/components/feedback/CwListFooter.vue'
 
 const router = useRouter()
 
@@ -211,21 +214,28 @@ const openNotification = async (n: NotificationVO) => {
             class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
             :class="activeTab === 'following' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
           >
-            Following
+            关注中
           </button>
           <button
             @click="activeTab = 'followers'; load(true)"
             class="px-4 py-2 rounded-full text-xs tracking-widest uppercase border transition-colors"
             :class="activeTab === 'followers' ? 'border-primary text-primary' : 'border-white/10 text-gray-300 hover:border-white/30'"
           >
-            Followers
+            粉丝
           </button>
         </div>
 
-        <div v-if="errorMessage" class="mt-4 text-sm text-red-300">{{ errorMessage }}</div>
+        <CwErrorState v-if="errorMessage" class="mt-4" :message="errorMessage" action-label="重试" @action="load(true)" />
       </div>
 
       <div v-if="activeTab !== 'notifications'" class="space-y-3">
+        <CwEmptyState
+          v-if="!loading && !errorMessage && list.length === 0"
+          :title="activeTab === 'following' ? '暂无关注' : '暂无粉丝'"
+          description="先去逛逛内容，找到感兴趣的厨友吧。"
+          action-label="刷新"
+          @action="load(true)"
+        />
         <div
           v-for="item in list"
           :key="item.userId"
@@ -250,7 +260,7 @@ const openNotification = async (n: NotificationVO) => {
               @click="unfollow(item.userId)"
               class="px-5 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-xs tracking-widest uppercase"
             >
-              Unfollow
+              取消关注
             </button>
           </div>
         </div>
@@ -288,6 +298,14 @@ const openNotification = async (n: NotificationVO) => {
           </button>
         </div>
 
+        <CwEmptyState
+          v-if="!loading && !errorMessage && filteredNotifications.length === 0"
+          title="暂无通知"
+          description="有新的互动会第一时间通知你。"
+          action-label="刷新"
+          @action="load(true)"
+        />
+
         <div
           v-for="n in filteredNotifications"
           :key="n.id"
@@ -314,28 +332,25 @@ const openNotification = async (n: NotificationVO) => {
         </div>
       </div>
 
-      <div class="flex justify-center mt-10">
-        <button
-          v-if="activeTab !== 'notifications' && hasMore && !loading"
-          @click="load(false)"
-          class="px-8 py-3 rounded-full border border-gray-700 hover:border-primary text-gray-300 hover:text-primary transition-colors text-sm tracking-widest uppercase"
-        >
-          Load More
-        </button>
-        <button
-          v-else-if="activeTab === 'notifications' && hasMoreNotify && !loading"
-          @click="load(false)"
-          class="px-8 py-3 rounded-full border border-gray-700 hover:border-primary text-gray-300 hover:text-primary transition-colors text-sm tracking-widest uppercase"
-        >
-          Load More
-        </button>
-        <div v-else-if="!loading && activeTab !== 'notifications' && list.length > 0" class="text-gray-600 text-sm tracking-widest uppercase">
-          End of List
-        </div>
-        <div v-else-if="!loading && activeTab === 'notifications' && notifications.length > 0" class="text-gray-600 text-sm tracking-widest uppercase">
-          End of List
-        </div>
-      </div>
+      <CwListFooter
+        v-if="!errorMessage && activeTab !== 'notifications' && list.length > 0"
+        :loading="loading"
+        :hasMore="hasMore"
+        load-more-label="加载更多"
+        loading-label="加载中…"
+        end-label="已到底"
+        @loadMore="load(false)"
+      />
+
+      <CwListFooter
+        v-else-if="!errorMessage && activeTab === 'notifications' && notifications.length > 0"
+        :loading="loading"
+        :hasMore="hasMoreNotify"
+        load-more-label="加载更多"
+        loading-label="加载中…"
+        end-label="已到底"
+        @loadMore="load(false)"
+      />
     </div>
   </div>
 </template>

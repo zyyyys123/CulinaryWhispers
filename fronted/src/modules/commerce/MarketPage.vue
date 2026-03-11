@@ -5,13 +5,18 @@ import { gsap } from 'gsap'
 import { CommerceAPI } from '@/api/commerce'
 import type { CartItem, ProductVO } from '@/types/commerce'
 import { useAuthStore } from '@/stores/auth'
+import CwErrorState from '@/components/feedback/CwErrorState.vue'
+import CwEmptyState from '@/components/feedback/CwEmptyState.vue'
+import CwListFooter from '@/components/feedback/CwListFooter.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
 
 const products = ref<ProductVO[]>([])
-const loading = ref(false)
-const errorMessage = ref('')
+const listLoading = ref(false)
+const checkoutLoading = ref(false)
+const listErrorMessage = ref('')
+const checkoutErrorMessage = ref('')
 const keyword = ref('')
 const selectedCategoryId = ref<number | null>(null)
 const page = ref(1)
@@ -44,9 +49,9 @@ const hasMore = computed(() => (total.value > 0 ? products.value.length < total.
 
 // Data Fetching
 const fetchProducts = async (reset = true) => {
-  if (loading.value) return
-  loading.value = true
-  errorMessage.value = ''
+  if (listLoading.value) return
+  listLoading.value = true
+  listErrorMessage.value = ''
   try {
     if (reset) {
       page.value = 1
@@ -60,7 +65,7 @@ const fetchProducts = async (reset = true) => {
       categoryId: selectedCategoryId.value ?? undefined
     })
     if (res.code !== 200) {
-      errorMessage.value = res.message || '加载失败'
+      listErrorMessage.value = res.message || '加载失败'
       return
     }
     total.value = Number(res.data.total ?? 0)
@@ -80,9 +85,9 @@ const fetchProducts = async (reset = true) => {
       }, 80)
     }
   } catch {
-    errorMessage.value = '加载失败，请检查网络或稍后重试'
+    listErrorMessage.value = '加载失败，请检查网络或稍后重试'
   } finally {
-    loading.value = false
+    listLoading.value = false
   }
 }
 
@@ -180,8 +185,8 @@ const checkout = async () => {
     await router.push({ name: 'login', query: { redirect: '/market' } })
     return
   }
-  loading.value = true
-  errorMessage.value = ''
+  checkoutLoading.value = true
+  checkoutErrorMessage.value = ''
   try {
     const productCounts: Record<string, number> = {}
     cartItems.value.forEach(it => {
@@ -189,7 +194,7 @@ const checkout = async () => {
     })
     const res = await CommerceAPI.createOrder(productCounts)
     if (res.code !== 200) {
-      errorMessage.value = res.message || '下单失败'
+      checkoutErrorMessage.value = res.message || '下单失败'
       return
     }
     await CommerceAPI.paymentNotify(res.data)
@@ -198,9 +203,9 @@ const checkout = async () => {
     alert(`订单已支付（模拟）：${res.data}`)
     await fetchProducts(true)
   } catch {
-    errorMessage.value = '下单失败，请稍后重试'
+    checkoutErrorMessage.value = '下单失败，请稍后重试'
   } finally {
-    loading.value = false
+    checkoutLoading.value = false
   }
 }
 
@@ -274,11 +279,18 @@ onMounted(() => {
       </div>
 
       <div v-if="cartItems.length > 0" class="absolute bottom-6 left-6 right-6">
+        <CwErrorState
+          v-if="checkoutErrorMessage"
+          class="mb-4"
+          :message="checkoutErrorMessage"
+          action-label="重试"
+          @action="checkout"
+        />
         <div class="flex justify-between mb-4 text-white font-bold">
           <span>合计</span>
           <span>¥{{ cartTotal.toFixed(2) }}</span>
         </div>
-        <button @click="checkout" :disabled="loading" class="w-full py-3 bg-primary text-black font-bold rounded-lg hover:bg-white transition-colors disabled:opacity-60">
+        <button @click="checkout" :disabled="checkoutLoading" class="w-full py-3 bg-primary text-black font-bold rounded-lg hover:bg-white transition-colors disabled:opacity-60">
           去结算（模拟支付）
         </button>
       </div>
@@ -296,7 +308,7 @@ onMounted(() => {
           />
           <button
             @click="fetchProducts(true)"
-            :disabled="loading"
+            :disabled="listLoading"
             class="px-6 py-3 rounded-xl bg-primary text-black font-bold disabled:opacity-60"
           >
             搜索
@@ -313,12 +325,20 @@ onMounted(() => {
             {{ c.name }}
           </button>
         </div>
-        <div v-if="errorMessage" class="mt-4 text-sm text-red-300">{{ errorMessage }}</div>
+        <CwErrorState v-if="listErrorMessage" class="mt-4" :message="listErrorMessage" action-label="重试" @action="fetchProducts(true)" />
       </div>
 
-      <div v-if="loading && products.length === 0" class="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div v-if="listLoading && products.length === 0" class="grid grid-cols-1 md:grid-cols-4 gap-8">
         <div v-for="i in 8" :key="i" class="animate-pulse bg-gray-800 h-80 rounded-xl"></div>
       </div>
+
+      <CwEmptyState
+        v-else-if="!listLoading && !listErrorMessage && products.length === 0"
+        title="暂无商品"
+        description="试试换个关键词或切换分类。"
+        action-label="清空筛选"
+        @action="keyword = ''; selectedCategoryId = null; fetchProducts(true)"
+      />
 
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         <div 
@@ -367,18 +387,15 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="flex justify-center mt-10">
-        <button
-          v-if="!loading && hasMore"
-          @click="fetchProducts(false)"
-          class="px-8 py-3 rounded-full border border-gray-700 hover:border-primary text-gray-300 hover:text-primary transition-colors text-sm tracking-widest uppercase"
-        >
-          加载更多
-        </button>
-        <div v-else-if="!loading && products.length > 0" class="text-gray-600 text-sm tracking-widest uppercase">
-          已到底
-        </div>
-      </div>
+      <CwListFooter
+        v-if="!listErrorMessage && products.length > 0"
+        :loading="listLoading"
+        :hasMore="hasMore"
+        load-more-label="加载更多"
+        loading-label="加载中…"
+        end-label="已到底"
+        @loadMore="fetchProducts(false)"
+      />
     </main>
   </div>
 </template>
