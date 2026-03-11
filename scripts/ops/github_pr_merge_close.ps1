@@ -1,20 +1,20 @@
 $ErrorActionPreference = "Stop"
 
 param(
-  [int]$IssueNumber = 0,
+  [int]$IssueNumber,
 
   [Parameter(Mandatory = $true)]
   [string]$HeadBranch,
 
-  [string]$BaseBranch = "master",
-  [string]$Repo = "zyyyys123/CulinaryWhispers",
+  [string]$BaseBranch,
+  [string]$Repo,
   [ValidateSet("merge", "squash", "rebase")]
-  [string]$MergeMethod = "squash",
+  [string]$MergeMethod,
   [string]$PrTitle,
   [string]$PrBodyPath,
   [string]$CreateIssueTitle,
   [string]$CreateIssueBody,
-  [string[]]$CreateIssueLabels = @(),
+  [string[]]$CreateIssueLabels,
   [string]$Background,
   [string]$Problem,
   [string]$Acceptance,
@@ -23,6 +23,12 @@ param(
   [string]$Verification,
   [string]$Risk
 )
+
+$IssueNumber = if ($null -eq $IssueNumber) { 0 } else { $IssueNumber }
+if (-not $BaseBranch) { $BaseBranch = "master" }
+if (-not $Repo) { $Repo = "zyyyys123/CulinaryWhispers" }
+if (-not $MergeMethod) { $MergeMethod = "squash" }
+if ($null -eq $CreateIssueLabels) { $CreateIssueLabels = @() }
 
 $token = $env:GITHUB_TOKEN
 if (-not $token) { $token = $env:GH_TOKEN }
