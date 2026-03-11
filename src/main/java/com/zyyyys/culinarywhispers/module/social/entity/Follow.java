@@ -31,6 +31,8 @@ public class Follow implements Serializable {
      */
     private Long followingId;
 
+    private String remarkName;
+
     /**
      * 关注状态: 1-关注, 0-取消
      */

@@ -208,6 +208,18 @@ public class SchemaPatchRunner implements ApplicationRunner {
             log.info("Schema patch applied: added t_soc_follow.status");
         }
 
+        Integer remarkCol = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+                Integer.class,
+                schema,
+                "t_soc_follow",
+                "remark_name"
+        );
+        if (remarkCol == null || remarkCol == 0) {
+            jdbcTemplate.execute("ALTER TABLE t_soc_follow ADD COLUMN remark_name VARCHAR(64) DEFAULT NULL COMMENT '备注名' AFTER following_id");
+            log.info("Schema patch applied: added t_soc_follow.remark_name");
+        }
+
         Integer gmtModifiedCol = jdbcTemplate.queryForObject(
                 "SELECT COUNT(1) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?",
                 Integer.class,

@@ -10,6 +10,7 @@ import com.zyyyys.culinarywhispers.module.social.service.CommentService;
 import com.zyyyys.culinarywhispers.module.social.service.FollowService;
 import com.zyyyys.culinarywhispers.module.social.service.InteractionService;
 import com.zyyyys.culinarywhispers.module.social.vo.CommentVO;
+import com.zyyyys.culinarywhispers.module.social.vo.FollowVO;
 import com.zyyyys.culinarywhispers.module.social.vo.InteractionStatusVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -118,8 +119,8 @@ public class SocialController {
      * 获取我的粉丝列表
      */
     @GetMapping("/followers")
-    public Result<Page<Follow>> listMyFollowers(@RequestParam(defaultValue = "1") int page,
-                                                @RequestParam(defaultValue = "10") int size) {
+    public Result<Page<FollowVO>> listMyFollowers(@RequestParam(defaultValue = "1") int page,
+                                                  @RequestParam(defaultValue = "10") int size) {
         Long userId = SecurityUtil.getUserId();
         return Result.success(followService.listFollowers(userId, page, size));
     }
@@ -128,10 +129,17 @@ public class SocialController {
      * 获取我的关注列表
      */
     @GetMapping("/following")
-    public Result<Page<Follow>> listMyFollowing(@RequestParam(defaultValue = "1") int page,
-                                                @RequestParam(defaultValue = "10") int size) {
+    public Result<Page<FollowVO>> listMyFollowing(@RequestParam(defaultValue = "1") int page,
+                                                  @RequestParam(defaultValue = "10") int size) {
         Long userId = SecurityUtil.getUserId();
         return Result.success(followService.listFollowing(userId, page, size));
+    }
+
+    @PostMapping("/follow/remark/{followingId}")
+    public Result<Void> updateRemark(@PathVariable Long followingId, @RequestParam(required = false) String remarkName) {
+        Long userId = SecurityUtil.getUserId();
+        followService.updateRemark(userId, followingId, remarkName);
+        return Result.success();
     }
 
     /**

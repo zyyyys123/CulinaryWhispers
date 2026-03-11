@@ -24,13 +24,20 @@ type BackendComment = {
   }
 }
 
-type BackendFollow = {
-  id: number
-  followerId: number
-  followingId: number
-  status?: number
+type BackendFollowVO = {
+  userId: number
   gmtCreate: string
-  gmtModified?: string
+  isMutual?: boolean
+  remarkName?: string
+  user?: {
+    id: number
+    username: string
+    nickname: string
+    avatarUrl?: string
+    isMasterChef?: boolean
+    masterTitle?: string
+    bgImageUrl?: string
+  }
 }
 
 type BackendInteractionStatusVO = {
@@ -75,15 +82,6 @@ const mapRecipePage = (page: Page<BackendRecipePageVO>, message: string): Result
       tags: []
     }))
   }
-})
-
-const fallbackUser = (userId: string): UserProfileVO => ({
-  userId,
-  username: `user_${userId}`,
-  nickname: `User ${userId}`,
-  avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
-  totalSpend: 0,
-  isMasterChef: false
 })
 
 export const SocialAPI = {
@@ -167,7 +165,7 @@ export const SocialAPI = {
   },
 
   getFollowers: async (params: { page: number; size: number }): Promise<Result<Page<FollowVO>>> => {
-    const res = await http.get<BackendResult<Page<BackendFollow>>>('/social/followers', { params })
+    const res = await http.get<BackendResult<Page<BackendFollowVO>>>('/social/followers', { params })
     if (res.data.code !== 200) {
       return { code: res.data.code, message: res.data.message, data: null as any }
     }
@@ -178,17 +176,27 @@ export const SocialAPI = {
       data: {
         ...page,
         records: (page.records ?? []).map(f => ({
-          userId: String(f.followerId),
-          user: fallbackUser(String(f.followerId)),
+          userId: String(f.userId),
+          user: {
+            userId: String(f.user?.id ?? f.userId),
+            username: f.user?.username ?? `user${f.userId}`,
+            nickname: f.user?.nickname ?? `用户 ${f.userId}`,
+            avatarUrl:
+              normalizeAssetUrl(f.user?.avatarUrl) ??
+              `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(String(f.userId))}`,
+            isMasterChef: Boolean(f.user?.isMasterChef),
+            masterTitle: f.user?.masterTitle,
+            bgImageUrl: f.user?.bgImageUrl
+          } as UserProfileVO,
           createTime: f.gmtCreate,
-          isMutual: false
+          isMutual: Boolean(f.isMutual)
         }))
       }
     }
   },
 
   getFollowing: async (params: { page: number; size: number }): Promise<Result<Page<FollowVO>>> => {
-    const res = await http.get<BackendResult<Page<BackendFollow>>>('/social/following', { params })
+    const res = await http.get<BackendResult<Page<BackendFollowVO>>>('/social/following', { params })
     if (res.data.code !== 200) {
       return { code: res.data.code, message: res.data.message, data: null as any }
     }
@@ -199,15 +207,31 @@ export const SocialAPI = {
       data: {
         ...page,
         records: (page.records ?? []).map(f => ({
-          userId: String(f.followingId),
-          user: fallbackUser(String(f.followingId)),
+          userId: String(f.userId),
+          user: {
+            userId: String(f.user?.id ?? f.userId),
+            username: f.user?.username ?? `user${f.userId}`,
+            nickname: f.user?.nickname ?? `用户 ${f.userId}`,
+            avatarUrl:
+              normalizeAssetUrl(f.user?.avatarUrl) ??
+              `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(String(f.userId))}`,
+            isMasterChef: Boolean(f.user?.isMasterChef),
+            masterTitle: f.user?.masterTitle,
+            bgImageUrl: f.user?.bgImageUrl
+          } as UserProfileVO,
           createTime: f.gmtCreate,
-          isMutual: false
+          isMutual: Boolean(f.isMutual),
+          remarkName: f.remarkName
         }))
       }
     }
   }
   ,
+
+  updateFollowRemark: async (followingId: string, remarkName?: string): Promise<Result<void>> => {
+    const res = await http.post<BackendResult<void>>(`/social/follow/remark/${followingId}`, null, { params: { remarkName } })
+    return { code: res.data.code, message: res.data.message, data: undefined }
+  },
 
   getCollectedRecipes: async (params: { page: number; size: number }): Promise<Result<Page<RecipePageVO>>> => {
     const res = await http.get<BackendResult<Page<BackendRecipePageVO>>>('/social/collect/recipes', { params })

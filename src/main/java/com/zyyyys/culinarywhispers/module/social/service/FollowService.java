@@ -3,6 +3,7 @@ package com.zyyyys.culinarywhispers.module.social.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zyyyys.culinarywhispers.module.social.entity.Follow;
+import com.zyyyys.culinarywhispers.module.social.vo.FollowVO;
 
 /**
  * 关注服务接口
@@ -27,12 +28,14 @@ public interface FollowService extends IService<Follow> {
     /**
      * 获取粉丝列表
      */
-    Page<Follow> listFollowers(Long userId, int page, int size);
+    Page<FollowVO> listFollowers(Long userId, int page, int size);
 
     /**
      * 获取关注列表
      */
-    Page<Follow> listFollowing(Long userId, int page, int size);
+    Page<FollowVO> listFollowing(Long userId, int page, int size);
+
+    void updateRemark(Long followerId, Long followingId, String remarkName);
 
     /**
      * 检查是否已关注
