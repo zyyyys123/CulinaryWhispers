@@ -5,11 +5,16 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.zyyyys.culinarywhispers.module.notify.entity.Notification;
 import com.zyyyys.culinarywhispers.module.notify.vo.NotificationVO;
 
-public interface NotificationService extends IService<Notification> {
-    Page<NotificationVO> pageMyNotifications(Long userId, int page, int size);
+import java.util.Map;
 
-    long countUnread(Long userId);
+public interface NotificationService extends IService<Notification> {
+    Page<NotificationVO> pageMyNotifications(Long userId, int page, int size, Integer type);
+
+    long countUnread(Long userId, Integer type);
+
+    Map<Integer, Long> countUnreadByType(Long userId);
 
     void markRead(Long userId, Long notificationId);
-}
 
+    void markAllRead(Long userId, Integer type);
+}

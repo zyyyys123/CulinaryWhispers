@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/notify")
 @RequiredArgsConstructor
@@ -29,16 +31,26 @@ public class NotificationController {
     public Result<Page<NotificationVO>> list(@Parameter(description = "页码（从 1 开始）", example = "1")
                                              @RequestParam(defaultValue = "1") int page,
                                              @Parameter(description = "每页数量", example = "10")
-                                             @RequestParam(defaultValue = "10") int size) {
+                                             @RequestParam(defaultValue = "10") int size,
+                                             @Parameter(description = "通知类型（可选）", example = "3")
+                                             @RequestParam(required = false) Integer type) {
         Long userId = SecurityUtil.getUserId();
-        return Result.success(notificationService.pageMyNotifications(userId, page, size));
+        return Result.success(notificationService.pageMyNotifications(userId, page, size, type));
     }
 
     @GetMapping("/unread/count")
     @Operation(summary = "未读数", description = "获取当前登录用户的未读通知数量")
-    public Result<Long> unreadCount() {
+    public Result<Long> unreadCount(@Parameter(description = "通知类型（可选）", example = "3")
+                                    @RequestParam(required = false) Integer type) {
         Long userId = SecurityUtil.getUserId();
-        return Result.success(notificationService.countUnread(userId));
+        return Result.success(notificationService.countUnread(userId, type));
+    }
+
+    @GetMapping("/unread/counts")
+    @Operation(summary = "未读数（按类型）", description = "获取当前登录用户各类型未读通知数量")
+    public Result<Map<Integer, Long>> unreadCountsByType() {
+        Long userId = SecurityUtil.getUserId();
+        return Result.success(notificationService.countUnreadByType(userId));
     }
 
     @PostMapping("/read/{id}")
@@ -47,6 +59,15 @@ public class NotificationController {
                                  @PathVariable("id") Long id) {
         Long userId = SecurityUtil.getUserId();
         notificationService.markRead(userId, id);
+        return Result.success(null);
+    }
+
+    @PostMapping("/read/all")
+    @Operation(summary = "一键已读", description = "将当前用户未读通知全部标记为已读（可按类型筛选）")
+    public Result<Void> markAllRead(@Parameter(description = "通知类型（可选）", example = "3")
+                                    @RequestParam(required = false) Integer type) {
+        Long userId = SecurityUtil.getUserId();
+        notificationService.markAllRead(userId, type);
         return Result.success(null);
     }
 }
