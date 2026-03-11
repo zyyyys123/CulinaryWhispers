@@ -41,6 +41,10 @@ temp/
 *.pid
 *.pid.lock
 
+### Python ###
+__pycache__/
+*.pyc
+
 ### OS ###
 .DS_Store
 Thumbs.db
@@ -59,6 +63,7 @@ replay_pid*
 
 ### Generated Data ###
 scripts/data/*.sql
+scripts/data/out/
 
 ### Local Tools ###
 .tools/
