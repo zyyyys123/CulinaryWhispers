@@ -43,6 +43,11 @@ const router = createRouter({
       component: () => import('@/modules/commerce/MarketPage.vue')
     },
     {
+      path: '/market/product/:id',
+      name: 'market-product',
+      component: () => import('@/modules/commerce/ProductDetailPage.vue')
+    },
+    {
       path: '/search',
       name: 'search',
       component: () => import('@/modules/search/SearchPage.vue')

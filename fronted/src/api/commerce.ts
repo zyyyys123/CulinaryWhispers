@@ -37,6 +37,13 @@ const coverByCategory: Record<number, string> = {
   5: 'https://www.themealdb.com/images/ingredients/Milk.png'
 }
 
+const coverByProduct = (p: BackendProduct) => {
+  const title = String(p.title ?? '').trim() || `商品 ${p.id}`
+  const short = title.length > 18 ? `${title.slice(0, 18)}…` : title
+  const text = encodeURIComponent(short)
+  return `https://dummyimage.com/600x600/0b0b0b/22c55e.png&text=${text}`
+}
+
 export const CommerceAPI = {
   // 获取商品列表
   getList: async (params: { page: number; size: number; keyword?: string; categoryId?: number }): Promise<Result<Page<ProductVO>>> => {
@@ -55,7 +62,7 @@ export const CommerceAPI = {
           name: p.title,
           description: p.description,
           price: Number(p.price ?? 0),
-          coverUrl: coverByCategory[p.categoryId] ?? coverByCategory[1],
+          coverUrl: coverByProduct(p) ?? coverByCategory[p.categoryId] ?? coverByCategory[1],
           images: [],
           stock: Number(p.stock ?? 0),
           categoryId: String(p.categoryId ?? ''),
@@ -80,7 +87,7 @@ export const CommerceAPI = {
         name: p.title,
         description: p.description,
         price: Number(p.price ?? 0),
-        coverUrl: coverByCategory[p.categoryId] ?? coverByCategory[1],
+        coverUrl: coverByProduct(p) ?? coverByCategory[p.categoryId] ?? coverByCategory[1],
         images: [],
         stock: Number(p.stock ?? 0),
         categoryId: String(p.categoryId ?? ''),

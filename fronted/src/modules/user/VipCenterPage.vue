@@ -9,6 +9,7 @@ const auth = useAuthStore()
 
 const loading = ref(false)
 const errorMessage = ref('')
+const successMessage = ref('')
 const plans = ref<VipPlanVO[]>([])
 const vipLevel = ref<number>(0)
 const vipExpireTime = ref<string>('')
@@ -22,6 +23,7 @@ const vipText = computed(() => {
 const load = async () => {
   loading.value = true
   errorMessage.value = ''
+  successMessage.value = ''
   try {
     const res = await VipAPI.plans()
     if (res.code !== 200) {
@@ -50,6 +52,7 @@ const exchange = async (level: number) => {
   }
   loading.value = true
   errorMessage.value = ''
+  successMessage.value = ''
   try {
     const res = await VipAPI.exchange(level)
     if (res.code !== 200) {
@@ -62,8 +65,10 @@ const exchange = async (level: number) => {
       vipExpireTime.value = me.data.vipExpireTime ?? ''
     }
     await auth.loadProfile()
-  } catch {
-    errorMessage.value = '兑换失败，请稍后重试'
+    successMessage.value = '兑换成功'
+  } catch (e: any) {
+    const message = e?.response?.data?.message
+    errorMessage.value = message || '兑换失败，请稍后重试'
   } finally {
     loading.value = false
   }
@@ -102,6 +107,12 @@ onMounted(() => {
       <div v-if="errorMessage" class="mb-6 rounded-2xl border border-white/10 bg-black/20 px-6 py-4 flex items-center justify-between gap-4">
         <div class="text-gray-300 text-sm tracking-wider">{{ errorMessage }}</div>
         <button @click="load" class="px-5 py-2 rounded-full bg-primary text-black font-bold text-sm">重试</button>
+      </div>
+      <div v-if="successMessage" class="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-6 py-4 flex items-center justify-between gap-4">
+        <div class="text-emerald-200 text-sm tracking-wider">{{ successMessage }}</div>
+        <button @click="successMessage = ''" class="px-5 py-2 rounded-full border border-emerald-500/30 text-emerald-100 hover:border-emerald-500/60 transition-colors text-sm">
+          知道了
+        </button>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { gsap } from 'gsap'
 import { CommerceAPI } from '@/api/commerce'
 import type { CartItem, ProductVO } from '@/types/commerce'
@@ -10,6 +10,7 @@ import CwErrorState from '@/components/feedback/CwErrorState.vue'
 import CwEmptyState from '@/components/feedback/CwEmptyState.vue'
 import CwListFooter from '@/components/feedback/CwListFooter.vue'
 
+const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
@@ -339,8 +340,15 @@ const checkout = async () => {
   }
 }
 
+const goProduct = (id: string) => {
+  router.push({ name: 'market-product', params: { id } })
+}
+
 onMounted(() => {
   fetchProducts(true)
+  if (route.query.openOrders === '1') {
+    openOrders()
+  }
 })
 </script>
 
@@ -585,7 +593,8 @@ onMounted(() => {
         <div 
           v-for="product in products" 
           :key="product.id"
-          class="product-card group bg-dark-surface rounded-xl overflow-hidden border border-gray-800 hover:border-primary transition-colors duration-300"
+          class="product-card group bg-dark-surface rounded-xl overflow-hidden border border-gray-800 hover:border-primary transition-colors duration-300 cursor-pointer"
+          @click="goProduct(product.id)"
         >
           <!-- Image -->
           <div class="relative aspect-square overflow-hidden bg-white">
@@ -596,7 +605,7 @@ onMounted(() => {
             
             <!-- Quick Add Button (Visible on Hover) -->
             <button 
-              @click="(e) => addToCart(e, product)"
+              @click.stop="(e) => addToCart(e, product)"
               :disabled="product.stock <= 0"
               class="absolute bottom-4 right-4 w-10 h-10 bg-black text-white rounded-full flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:bg-primary hover:text-black shadow-lg disabled:opacity-40 disabled:hover:bg-black disabled:hover:text-white"
             >

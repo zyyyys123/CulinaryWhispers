@@ -91,7 +91,8 @@ const highlightComment = async (commentId: string) => {
 
 const startReply = async (comment: CommentVO) => {
   replyTo.value = comment
-  const mention = `@${comment.author.userId} `
+  const displayName = comment.author.nickname || comment.author.username || '用户'
+  const mention = `@${displayName} `
   if (!newComment.value.trim()) {
     newComment.value = mention
   } else if (!newComment.value.startsWith(mention)) {
