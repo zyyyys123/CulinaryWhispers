@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { SearchAPI } from '@/api/search'
+import { RecipeAPI } from '@/api/recipe'
+import type { RecipePageVO } from '@/types/recipe'
 import CwErrorState from '@/components/feedback/CwErrorState.vue'
 import CwEmptyState from '@/components/feedback/CwEmptyState.vue'
 import CwListFooter from '@/components/feedback/CwListFooter.vue'
+import RecipeCard from '@/components/business/RecipeCard.vue'
+import RecipeSkeleton from '@/components/feedback/RecipeSkeleton.vue'
 
 const router = useRouter()
 
@@ -12,6 +16,10 @@ const keyword = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
 const activeMode = ref<'personalized' | 'global'>('personalized')
+
+const hotLoading = ref(false)
+const hotErrorMessage = ref('')
+const hotRecipes = ref<RecipePageVO[]>([])
 
 const page = ref(1)
 const size = ref(10)
@@ -55,6 +63,28 @@ const search = async (reset = true) => {
 const openDetail = (id: string) => {
   router.push({ name: 'recipe-detail', params: { id } })
 }
+
+const loadHot = async () => {
+  if (hotLoading.value) return
+  hotLoading.value = true
+  hotErrorMessage.value = ''
+  try {
+    const res = await RecipeAPI.hot({ page: 1, size: 6 })
+    if (res.code !== 200) {
+      hotErrorMessage.value = res.message || '加载失败'
+      return
+    }
+    hotRecipes.value = res.data.records ?? []
+  } catch {
+    hotErrorMessage.value = '加载失败，请检查网络或稍后重试'
+  } finally {
+    hotLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadHot()
+})
 </script>
 
 <template>
@@ -108,6 +138,25 @@ const openDetail = (id: string) => {
         </div>
 
         <CwErrorState v-if="errorMessage" class="mt-4" :message="errorMessage" action-label="重试" @action="search(true)" />
+      </div>
+
+      <div class="mb-10">
+        <div class="flex items-end justify-between mb-5">
+          <div class="text-xl font-serif text-primary">热门菜谱</div>
+          <button
+            @click="loadHot"
+            class="px-4 py-2 rounded-full border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition-colors text-xs tracking-widest uppercase"
+          >
+            刷新
+          </button>
+        </div>
+        <CwErrorState v-if="hotErrorMessage" class="mb-4" :message="hotErrorMessage" action-label="重试" @action="loadHot" />
+        <div v-if="hotLoading && hotRecipes.length === 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <RecipeSkeleton v-for="i in 3" :key="i" />
+        </div>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <RecipeCard v-for="r in hotRecipes" :key="r.id" :data="r" />
+        </div>
       </div>
 
       <CwEmptyState

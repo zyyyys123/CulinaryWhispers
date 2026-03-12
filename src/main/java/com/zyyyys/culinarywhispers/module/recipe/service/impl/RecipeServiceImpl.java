@@ -40,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -57,6 +58,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo> implements RecipeService {
+
+    private static final int HOT_RECIPE_MAX = 100;
+    private static final Duration HOT_RECIPE_TTL = Duration.ofMinutes(5);
 
     private final RecipeStepMapper stepMapper;
     private final RecipeStatsMapper statsMapper;
@@ -420,6 +424,72 @@ public class RecipeServiceImpl extends ServiceImpl<RecipeInfoMapper, RecipeInfo>
         resultPage.setTotal(page.getTotal());
         resultPage.setRecords(toPageVoList(picked));
         return resultPage;
+    }
+
+    @Override
+    public Page<RecipePageVO> pageHot(RecipeQueryDTO queryDTO) {
+        int pageNo = queryDTO != null && queryDTO.getPage() != null ? queryDTO.getPage() : 1;
+        int size = queryDTO != null && queryDTO.getSize() != null ? queryDTO.getSize() : 10;
+        if (pageNo < 1) pageNo = 1;
+        if (size < 1) size = 10;
+
+        List<Long> ids = getHotRecipeIdsCached(HOT_RECIPE_MAX);
+        int offset = (pageNo - 1) * size;
+        if (ids.isEmpty() || offset >= ids.size()) {
+            Page<RecipePageVO> empty = new Page<>(pageNo, size);
+            empty.setTotal(ids.size());
+            empty.setRecords(Collections.emptyList());
+            return empty;
+        }
+
+        int end = Math.min(ids.size(), offset + size);
+        List<Long> pageIds = ids.subList(offset, end);
+        List<RecipeInfo> infos = pageIds.isEmpty() ? Collections.emptyList() : this.listByIds(pageIds);
+        Map<Long, RecipeInfo> map = infos.stream().filter(Objects::nonNull).collect(Collectors.toMap(RecipeInfo::getId, x -> x, (a, b) -> a));
+        List<RecipeInfo> ordered = new ArrayList<>();
+        for (Long id : pageIds) {
+            RecipeInfo info = map.get(id);
+            if (info != null) ordered.add(info);
+        }
+
+        Page<RecipePageVO> result = new Page<>(pageNo, size);
+        result.setTotal(ids.size());
+        result.setRecords(toPageVoList(ordered));
+        return result;
+    }
+
+    private List<Long> getHotRecipeIdsCached(int max) {
+        try {
+            String cached = redisTemplate.opsForValue().get(RedisKeyConstant.HOT_RECIPE_IDS_KEY);
+            if (StringUtils.hasText(cached)) {
+                List<Long> ids = objectMapper.readValue(cached, new TypeReference<List<Long>>() {});
+                if (ids != null && !ids.isEmpty()) {
+                    return ids.size() > max ? ids.subList(0, max) : ids;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        LambdaQueryWrapper<RecipeInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(RecipeInfo::getStatus, 2)
+                .select(RecipeInfo::getId)
+                .orderByDesc(RecipeInfo::getLikeCount)
+                .orderByDesc(RecipeInfo::getCollectCount)
+                .orderByDesc(RecipeInfo::getViewCount)
+                .orderByDesc(RecipeInfo::getGmtCreate)
+                .last("limit " + Math.max(1, max));
+        List<RecipeInfo> list = this.list(wrapper);
+        List<Long> ids = list == null ? Collections.emptyList() : list.stream().map(RecipeInfo::getId).filter(Objects::nonNull).collect(Collectors.toList());
+
+        if (!ids.isEmpty()) {
+            try {
+                String json = objectMapper.writeValueAsString(ids);
+                redisTemplate.opsForValue().set(RedisKeyConstant.HOT_RECIPE_IDS_KEY, json, HOT_RECIPE_TTL);
+            } catch (Exception ignored) {
+            }
+        }
+
+        return ids.size() > max ? ids.subList(0, max) : ids;
     }
 
     private List<RecipePageVO> toPageVoList(List<RecipeInfo> records) {

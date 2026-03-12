@@ -17,4 +17,10 @@ public class RedisKeyConstant {
      * 存储发生过变动的食谱ID
      */
     public static final String RECIPE_STATS_DIRTY_SET = "cw:stats:dirty_recipes";
+
+    /**
+     * 热门食谱ID列表 (Value, JSON array)
+     * 格式: cw:hot:recipe:ids:v1
+     */
+    public static final String HOT_RECIPE_IDS_KEY = "cw:hot:recipe:ids:v1";
 }
