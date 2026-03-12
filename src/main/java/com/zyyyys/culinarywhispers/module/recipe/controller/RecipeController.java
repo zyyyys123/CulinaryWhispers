@@ -56,4 +56,9 @@ public class RecipeController {
         }
         return Result.success(recipeService.pageListPersonalized(userId, queryDTO));
     }
+
+    @GetMapping("/hot")
+    public Result<Page<RecipePageVO>> hot(RecipeQueryDTO queryDTO) {
+        return Result.success(recipeService.pageHot(queryDTO));
+    }
 }

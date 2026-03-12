@@ -114,6 +114,14 @@ export const RecipeAPI = {
     return mapPage(res.data.data, res.data.message)
   },
 
+  hot: async (params: { page: number; size: number }): Promise<Result<Page<RecipePageVO>>> => {
+    const res = await http.get<BackendResult<Page<BackendRecipePageVO>>>('/recipe/hot', { params })
+    if (res.data.code !== 200) {
+      return { code: res.data.code, message: res.data.message, data: null as any }
+    }
+    return mapPage(res.data.data, res.data.message)
+  },
+
   publish: async (payload: RecipePublishDTO): Promise<Result<string>> => {
     const res = await http.post<BackendResult<number>>('/recipe/publish', payload)
     if (res.data.code !== 200) {

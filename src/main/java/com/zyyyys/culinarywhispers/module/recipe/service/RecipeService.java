@@ -39,6 +39,13 @@ public interface RecipeService extends IService<RecipeInfo> {
     Page<RecipePageVO> pageListPersonalized(Long userId, RecipeQueryDTO queryDTO);
 
     /**
+     * 热门食谱列表（带缓存）
+     * @param queryDTO page/size
+     * @return 分页列表
+     */
+    Page<RecipePageVO> pageHot(RecipeQueryDTO queryDTO);
+
+    /**
      * 更新食谱
      * @param userId 用户ID
      * @param recipeId 食谱ID
