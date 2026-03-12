@@ -3,6 +3,7 @@ package com.zyyyys.culinarywhispers.module.social.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zyyyys.culinarywhispers.common.context.UserContext;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.ResultCode;
 import com.zyyyys.culinarywhispers.module.notify.entity.Notification;
@@ -147,8 +148,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             throw new BusinessException(ResultCode.DATA_NOT_FOUND);
         }
 
-        // 权限校验：只能删除自己的评论 (未来可扩展：食谱作者或管理员也能删除)
-        if (!comment.getUserId().equals(userId)) {
+        if (!comment.getUserId().equals(userId) && !UserContext.isAdmin()) {
             throw new BusinessException(ResultCode.FORBIDDEN);
         }
 

@@ -5,6 +5,8 @@ import com.zyyyys.culinarywhispers.common.context.RequestContext;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.Result;
 import com.zyyyys.culinarywhispers.common.result.ResultCode;
+import com.zyyyys.culinarywhispers.common.security.authz.AuthzProperties;
+import com.zyyyys.culinarywhispers.common.security.authz.Role;
 import com.zyyyys.culinarywhispers.common.utils.JwtUtil;
 import com.zyyyys.culinarywhispers.module.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,6 +23,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.EnumSet;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -34,6 +38,7 @@ public class AuthContextFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper;
     private final UserService userService;
+    private final AuthzProperties authzProperties;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -64,6 +69,9 @@ public class AuthContextFilter extends OncePerRequestFilter {
                         throw new BusinessException(ResultCode.UNAUTHORIZED);
                     }
                     UserContext.setUserId(userId);
+                    Object usernameObj = claims.get("username");
+                    UserContext.setUsername(usernameObj == null ? null : String.valueOf(usernameObj));
+                    UserContext.setRoles(resolveRoles(UserContext.getUsername(), authzProperties));
                     filterChain.doFilter(request, response);
                     return;
                 }
@@ -88,6 +96,34 @@ public class AuthContextFilter extends OncePerRequestFilter {
         } finally {
             UserContext.clear();
         }
+    }
+
+    private EnumSet<Role> resolveRoles(String username, AuthzProperties props) {
+        EnumSet<Role> roles = EnumSet.of(Role.USER);
+        if (username == null) {
+            return roles;
+        }
+        if (containsIgnoreCase(props.getSuperadmins(), username)) {
+            roles.add(Role.ADMIN);
+            roles.add(Role.SUPERADMIN);
+            return roles;
+        }
+        if (containsIgnoreCase(props.getAdmins(), username)) {
+            roles.add(Role.ADMIN);
+        }
+        return roles;
+    }
+
+    private boolean containsIgnoreCase(List<String> list, String v) {
+        if (list == null || list.isEmpty() || v == null) {
+            return false;
+        }
+        for (String x : list) {
+            if (x != null && x.equalsIgnoreCase(v)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isWhitelisted(String method, String path) {
