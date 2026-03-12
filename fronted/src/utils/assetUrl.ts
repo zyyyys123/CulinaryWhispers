@@ -10,6 +10,7 @@ export function normalizeAssetUrl(url?: string | null): string | undefined {
   ) {
     return u
   }
+  if (u.startsWith('api/')) return `/${u}`
   if (u.startsWith('/api/')) return u
   if (u.startsWith('/uploads/')) return `/api${u}`
   if (u.startsWith('uploads/')) return `/api/${u}`

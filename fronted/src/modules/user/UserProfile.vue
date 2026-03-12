@@ -128,7 +128,7 @@ const fetchData = async () => {
     )
     
     if (!isPublicView.value && (profileRes.code === 401 || statsRes.code === 401)) {
-      localStorage.removeItem('cw_token')
+      window.dispatchEvent(new Event('cw:auth:clear'))
       errorMessage.value = '请先登录'
       await router.replace({ name: 'login', query: { redirect: route.fullPath } })
       return
@@ -145,7 +145,7 @@ const fetchData = async () => {
   } catch (e: any) {
     const status = e?.response?.status
     if (status === 401 && !isPublicView.value) {
-      localStorage.removeItem('cw_token')
+      window.dispatchEvent(new Event('cw:auth:clear'))
       errorMessage.value = '登录已失效，请重新登录'
       await router.replace({ name: 'login', query: { redirect: route.fullPath } })
       return
@@ -185,6 +185,10 @@ const fetchData = async () => {
 
 onMounted(() => {
   if (auth.token && !auth.profile) auth.loadProfile()
+  if (!isPublicView.value && !auth.token) {
+    router.replace({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
   fetchData()
 })
 
@@ -292,12 +296,12 @@ const uploadBg = async (e: Event) => {
 }
 
 const logout = () => {
-  localStorage.removeItem('cw_token')
+  window.dispatchEvent(new Event('cw:auth:clear'))
   router.replace({ name: 'home' })
 }
 
 const goLogin = () => {
-  localStorage.removeItem('cw_token')
+  window.dispatchEvent(new Event('cw:auth:clear'))
   router.replace({ name: 'login', query: { redirect: route.fullPath } })
 }
 </script>

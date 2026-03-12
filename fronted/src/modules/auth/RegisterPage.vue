@@ -32,6 +32,9 @@ const submit = async () => {
     auth.setToken(loginRes.data)
     await auth.loadProfile()
     router.replace({ name: 'user-profile-setup' })
+  } catch (e: any) {
+    const message = e?.response?.data?.message
+    errorText.value = message || '系统繁忙，请稍后重试'
   } finally {
     loading.value = false
   }

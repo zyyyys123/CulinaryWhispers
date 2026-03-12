@@ -39,6 +39,9 @@ const submit = async () => {
       redirect = '/admin'
     }
     await router.replace(redirect)
+  } catch (e: any) {
+    const message = e?.response?.data?.message
+    errorText.value = message || '系统繁忙，请稍后重试'
   } finally {
     loading.value = false
   }

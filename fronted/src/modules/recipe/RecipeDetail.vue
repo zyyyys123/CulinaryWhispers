@@ -52,6 +52,19 @@ const authorAvatarSrc = computed(() => {
   return `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(String(seed))}`
 })
 
+const hasNutrition = computed(() => {
+  if (!recipe.value) return false
+  const protein = Number(recipe.value.protein ?? 0)
+  const fat = Number(recipe.value.fat ?? 0)
+  const carbs = Number(recipe.value.carbs ?? 0)
+  const calories = Number(recipe.value.calories ?? 0)
+  return protein > 0 || fat > 0 || carbs > 0 || calories > 0
+})
+
+const proteinText = computed(() => (hasNutrition.value ? `${recipe.value?.protein ?? 0}g` : '--'))
+const fatText = computed(() => (hasNutrition.value ? `${recipe.value?.fat ?? 0}g` : '--'))
+const carbsText = computed(() => (hasNutrition.value ? `${recipe.value?.carbs ?? 0}g` : '--'))
+
 const containsAscii = (text: string) => /[A-Za-z]/.test(text || '')
 
 const displaySteps = computed(() => {
@@ -507,15 +520,15 @@ onUnmounted(() => {
             <h4 class="text-sm tracking-widest text-gray-500 mb-4">每份营养</h4>
             <div class="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div class="text-xl font-bold text-white">{{ recipe.protein }}g</div>
+                <div class="text-xl font-bold text-white">{{ proteinText }}</div>
                 <div class="text-xs text-gray-500">蛋白质</div>
               </div>
               <div>
-                <div class="text-xl font-bold text-white">{{ recipe.fat }}g</div>
+                <div class="text-xl font-bold text-white">{{ fatText }}</div>
                 <div class="text-xs text-gray-500">脂肪</div>
               </div>
               <div>
-                <div class="text-xl font-bold text-white">{{ recipe.carbs }}g</div>
+                <div class="text-xl font-bold text-white">{{ carbsText }}</div>
                 <div class="text-xs text-gray-500">碳水</div>
               </div>
             </div>
