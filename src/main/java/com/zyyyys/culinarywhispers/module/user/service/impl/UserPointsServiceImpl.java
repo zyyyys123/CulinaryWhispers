@@ -44,6 +44,17 @@ public class UserPointsServiceImpl extends ServiceImpl<PointsRecordMapper, Point
             // 初始化统计信息 (理论上注册时应初始化，这里做兜底)
             stats = new UserStats();
             stats.setUserId(userId);
+            stats.setLevel(1);
+            stats.setExperience(0L);
+            stats.setTotalRecipes(0);
+            stats.setTotalMoments(0);
+            stats.setTotalLikesReceived(0L);
+            stats.setTotalCollectsReceived(0L);
+            stats.setTotalFans(0);
+            stats.setTotalFollows(0);
+            stats.setTotalViews(0L);
+            stats.setWeekActiveDays(0);
+            stats.setMonthActiveDays(0);
             stats.setPoints(0);
             stats.setContinueSignDays(0);
             statsMapper.insert(stats);
