@@ -34,7 +34,25 @@ http.interceptors.response.use(
     return response
   },
   error => {
-    const status = error?.response?.status
+    const response = error?.response
+    const data = response?.data
+    if (data && typeof data === 'object' && 'code' in data) {
+      if ((data as any).code === 0) {
+        ;(data as any).code = 200
+      }
+      if ((data as any).code === 401) {
+        localStorage.removeItem('cw_token')
+        window.dispatchEvent(new Event('cw:auth:clear'))
+        const current = window.location.pathname + window.location.search + window.location.hash
+        if (!current.startsWith('/login')) {
+          window.location.href = `/login?redirect=${encodeURIComponent(current)}`
+        }
+        return Promise.reject(new Error('Unauthorized'))
+      }
+      return response
+    }
+
+    const status = response?.status
     if (status === 401) {
       localStorage.removeItem('cw_token')
       window.dispatchEvent(new Event('cw:auth:clear'))

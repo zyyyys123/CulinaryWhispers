@@ -9,7 +9,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @SpringBootApplication
 @EnableTransactionManagement
 @EnableAsync
-@MapperScan("com.zyyyys.culinarywhispers.module.*.mapper")
+@MapperScan({
+        "com.zyyyys.culinarywhispers.module.*.mapper",
+        "com.zyyyys.culinarywhispers.common.db.mapper"
+})
 public class CulinaryWhispersApplication {
 
     public static void main(String[] args) {

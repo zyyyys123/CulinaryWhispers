@@ -3,6 +3,9 @@ $ErrorActionPreference = "Stop"
 $repo = "zyyyys123/CulinaryWhispers"
 $csvPath = "D:\MyCollegeProject\CulinaryWhispers\docs2.0\plan2.0\github_issues.csv"
 
+if ($env:CW_ISSUE_REPO) { $repo = $env:CW_ISSUE_REPO }
+if ($env:CW_ISSUE_CSV_PATH) { $csvPath = $env:CW_ISSUE_CSV_PATH }
+
 function Resolve-Gh {
   $cmd = Get-Command gh -ErrorAction SilentlyContinue
   if ($cmd) { return $cmd.Path }
@@ -27,7 +30,16 @@ if (-not $issues -or $issues.Count -eq 0) {
   throw "No issues found in CSV: $csvPath"
 }
 
+$startAt = 1
+if ($env:CW_ISSUE_START_AT) {
+  try { $startAt = [int]$env:CW_ISSUE_START_AT } catch { $startAt = 1 }
+  if ($startAt -lt 1) { $startAt = 1 }
+}
+
+$i = 0
 foreach ($it in $issues) {
+  $i++
+  if ($i -lt $startAt) { continue }
   $title = [string]$it.title
   $body = [string]$it.body
   $labelsRaw = [string]$it.labels
