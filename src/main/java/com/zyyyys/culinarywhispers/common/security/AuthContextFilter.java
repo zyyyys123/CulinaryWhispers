@@ -1,6 +1,7 @@
 package com.zyyyys.culinarywhispers.common.security;
 
 import com.zyyyys.culinarywhispers.common.context.UserContext;
+import com.zyyyys.culinarywhispers.common.context.RequestContext;
 import com.zyyyys.culinarywhispers.common.exception.BusinessException;
 import com.zyyyys.culinarywhispers.common.result.Result;
 import com.zyyyys.culinarywhispers.common.result.ResultCode;
@@ -39,6 +40,11 @@ public class AuthContextFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             try {
+                String requestId = RequestContext.ensureRequestId(request);
+                String traceId = RequestContext.ensureTraceId(request);
+                response.setHeader(RequestContext.HEADER_REQUEST_ID, requestId);
+                response.setHeader(RequestContext.HEADER_TRACE_ID, traceId);
+
                 String requestUri = request.getRequestURI();
                 String method = request.getMethod();
 
@@ -73,6 +79,10 @@ public class AuthContextFilter extends OncePerRequestFilter {
                 response.setCharacterEncoding("UTF-8");
                 response.setContentType("application/json;charset=UTF-8");
                 Result<Void> result = Result.error(ex.getCode(), ex.getMessage());
+                result.setRequestId(RequestContext.ensureRequestId(request));
+                result.setTraceId(RequestContext.ensureTraceId(request));
+                result.setTimestamp(System.currentTimeMillis());
+                result.setPath(request.getRequestURI());
                 response.getWriter().write(objectMapper.writeValueAsString(result));
             }
         } finally {

@@ -1,5 +1,6 @@
 package com.zyyyys.culinarywhispers.common.result;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -9,11 +10,16 @@ import java.io.Serializable;
  * @author zyyyys
  */
 @Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Result<T> implements Serializable {
 
     private Integer code;
     private String message;
     private T data;
+    private String requestId;
+    private String traceId;
+    private Long timestamp;
+    private String path;
 
     public static <T> Result<T> success() {
         Result<T> result = new Result<>();
