@@ -14,10 +14,31 @@ const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 const product = ref<ProductVO | null>(null)
+const coverLoadError = ref(false)
 const quantity = ref(1)
 const createdOrderId = ref('')
 
 const productId = computed(() => String(route.params.id || '').trim())
+
+const fallbackCover = (name?: string) => {
+  const t = (name || '市集商品').trim().slice(0, 12)
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+<rect width="600" height="600" rx="32" fill="#0b0b0b"/>
+<rect x="32" y="32" width="536" height="536" rx="26" fill="none" stroke="#1f2937" stroke-width="2"/>
+<text x="300" y="310" text-anchor="middle" font-size="44" font-weight="700" fill="#22c55e" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial">${t}</text>
+</svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+const coverSrc = computed(() => {
+  const url = (product.value?.coverUrl || '').trim()
+  if (!url || coverLoadError.value) return fallbackCover(product.value?.name)
+  return url
+})
+
+const onCoverError = () => {
+  coverLoadError.value = true
+}
 
 const load = async () => {
   if (!productId.value) {
@@ -34,6 +55,7 @@ const load = async () => {
       return
     }
     product.value = res.data
+    coverLoadError.value = false
     quantity.value = 1
   } catch {
     errorMessage.value = '加载失败，请检查网络或稍后重试'
@@ -130,7 +152,7 @@ onMounted(() => {
       <div v-else-if="product" class="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div class="rounded-2xl border border-white/10 bg-black/10 overflow-hidden">
           <div class="aspect-square bg-white">
-            <img :src="product.coverUrl" class="w-full h-full object-contain p-6" />
+            <img :src="coverSrc" class="w-full h-full object-contain p-6" @error="onCoverError" />
           </div>
         </div>
 

@@ -30,18 +30,35 @@ type BackendOrder = {
 }
 
 const coverByCategory: Record<number, string> = {
-  1: 'https://www.themealdb.com/images/ingredients/Butter.png',
-  2: 'https://www.themealdb.com/images/ingredients/Chicken.png',
-  3: 'https://www.themealdb.com/images/ingredients/Salt.png',
-  4: 'https://www.themealdb.com/images/ingredients/Eggs.png',
-  5: 'https://www.themealdb.com/images/ingredients/Milk.png'
+  1: '厨具',
+  2: '食材',
+  3: '调味',
+  4: '课程',
+  5: '周边'
+}
+
+const svgCover = (title: string, sub: string) => {
+  const t = (title || '').trim()
+  const s = (sub || '').trim()
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+<defs>
+<linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#0b0b0b"/><stop offset="1" stop-color="#121212"/>
+</linearGradient>
+</defs>
+<rect width="600" height="600" rx="32" fill="url(#g)"/>
+<rect x="32" y="32" width="536" height="536" rx="26" fill="none" stroke="#1f2937" stroke-width="2"/>
+<text x="300" y="285" text-anchor="middle" font-size="42" font-weight="700" fill="#22c55e" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial">${t}</text>
+<text x="300" y="345" text-anchor="middle" font-size="20" fill="#9ca3af" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial">${s}</text>
+</svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
 
 const coverByProduct = (p: BackendProduct) => {
   const title = String(p.title ?? '').trim() || `商品 ${p.id}`
   const short = title.length > 18 ? `${title.slice(0, 18)}…` : title
-  const text = encodeURIComponent(short)
-  return `https://dummyimage.com/600x600/0b0b0b/22c55e.png&text=${text}`
+  const cat = coverByCategory[p.categoryId] ?? '市集'
+  return svgCover(short, `${cat} · #${p.id}`)
 }
 
 export const CommerceAPI = {

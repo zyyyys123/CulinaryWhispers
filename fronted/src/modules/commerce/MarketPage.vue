@@ -15,6 +15,7 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const products = ref<ProductVO[]>([])
+const coverErrorMap = ref<Record<string, boolean>>({})
 const listLoading = ref(false)
 const checkoutLoading = ref(false)
 const listErrorMessage = ref('')
@@ -344,6 +345,28 @@ const goProduct = (id: string) => {
   router.push({ name: 'market-product', params: { id } })
 }
 
+const fallbackCover = (name?: string) => {
+  const t = (name || '市集商品').trim().slice(0, 12)
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+<rect width="600" height="600" rx="32" fill="#0b0b0b"/>
+<rect x="32" y="32" width="536" height="536" rx="26" fill="none" stroke="#1f2937" stroke-width="2"/>
+<text x="300" y="310" text-anchor="middle" font-size="44" font-weight="700" fill="#22c55e" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial">${t}</text>
+</svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+const productCoverSrc = (p: ProductVO) => {
+  if (!p) return ''
+  if (coverErrorMap.value[p.id]) return fallbackCover(p.name)
+  const url = (p.coverUrl || '').trim()
+  if (!url) return fallbackCover(p.name)
+  return url
+}
+
+const onProductCoverError = (id: string) => {
+  coverErrorMap.value = { ...coverErrorMap.value, [id]: true }
+}
+
 onMounted(() => {
   fetchProducts(true)
   if (route.query.openOrders === '1') {
@@ -598,7 +621,7 @@ onMounted(() => {
         >
           <!-- Image -->
           <div class="relative aspect-square overflow-hidden bg-white">
-            <img :src="product.coverUrl" class="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-500" />
+            <img :src="productCoverSrc(product)" class="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-500" @error="onProductCoverError(product.id)" />
             <div v-if="product.stock <= 0" class="absolute inset-0 bg-black/60 flex items-center justify-center">
               <div class="px-4 py-2 rounded-full border border-white/20 text-white text-xs tracking-widest">售罄</div>
             </div>
