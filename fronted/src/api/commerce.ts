@@ -37,6 +37,14 @@ const coverByCategory: Record<number, string> = {
   5: '周边'
 }
 
+const coverByCategoryPhoto: Record<number, string> = {
+  1: 'https://images.unsplash.com/photo-1556909114-8b59f83d0c6a?auto=format&fit=crop&w=1200&q=80',
+  2: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80',
+  3: 'https://images.unsplash.com/photo-1603079840301-4394b6bb3d08?auto=format&fit=crop&w=1200&q=80',
+  4: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80',
+  5: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1200&q=80'
+}
+
 const svgCover = (title: string, sub: string) => {
   const t = (title || '').trim()
   const s = (sub || '').trim()
@@ -54,7 +62,22 @@ const svgCover = (title: string, sub: string) => {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
 
+const coverByProductId: Record<number, string> = {
+  1: 'https://images.unsplash.com/photo-1583778176476-4a8b02a64a28?auto=format&fit=crop&w=1200&q=80',
+  2: 'https://images.unsplash.com/photo-1593618998162-812b34f0b3e3?auto=format&fit=crop&w=1200&q=80',
+  3: 'https://images.unsplash.com/photo-1585238342029-4a5a98f1f1a8?auto=format&fit=crop&w=1200&q=80',
+  4: 'https://images.unsplash.com/photo-1580910051074-8f2c8b5a2db0?auto=format&fit=crop&w=1200&q=80',
+  5: 'https://images.unsplash.com/photo-1615813967515-e1838c1c5116?auto=format&fit=crop&w=1200&q=80',
+  6: 'https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=1200&q=80',
+  7: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80',
+  8: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80',
+  9: 'https://images.unsplash.com/photo-1556909114-8b59f83d0c6a?auto=format&fit=crop&w=1200&q=80',
+  10: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1200&q=80'
+}
+
 const coverByProduct = (p: BackendProduct) => {
+  const cover = coverByProductId[p.id] || coverByCategoryPhoto[p.categoryId] || ''
+  if (cover) return cover
   const title = String(p.title ?? '').trim() || `商品 ${p.id}`
   const short = title.length > 18 ? `${title.slice(0, 18)}…` : title
   const cat = coverByCategory[p.categoryId] ?? '市集'
@@ -79,7 +102,7 @@ export const CommerceAPI = {
           name: p.title,
           description: p.description,
           price: Number(p.price ?? 0),
-          coverUrl: coverByProduct(p) ?? coverByCategory[p.categoryId] ?? coverByCategory[1],
+          coverUrl: coverByProduct(p),
           images: [],
           stock: Number(p.stock ?? 0),
           categoryId: String(p.categoryId ?? ''),
@@ -104,7 +127,7 @@ export const CommerceAPI = {
         name: p.title,
         description: p.description,
         price: Number(p.price ?? 0),
-        coverUrl: coverByProduct(p) ?? coverByCategory[p.categoryId] ?? coverByCategory[1],
+        coverUrl: coverByProduct(p),
         images: [],
         stock: Number(p.stock ?? 0),
         categoryId: String(p.categoryId ?? ''),
