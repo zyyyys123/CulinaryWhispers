@@ -65,6 +65,26 @@ const proteinText = computed(() => (hasNutrition.value ? `${recipe.value?.protei
 const fatText = computed(() => (hasNutrition.value ? `${recipe.value?.fat ?? 0}g` : '--'))
 const carbsText = computed(() => (hasNutrition.value ? `${recipe.value?.carbs ?? 0}g` : '--'))
 
+const videoUrl = computed(() => (recipe.value?.videoUrl ?? '').trim())
+const isDirectVideo = computed(() => /\.(mp4|webm|ogg)(\?.*)?$/i.test(videoUrl.value))
+const youtubeEmbedSrc = computed(() => {
+  const url = videoUrl.value
+  if (!url) return ''
+  try {
+    const u = new URL(url)
+    if (u.hostname.includes('youtube.com')) {
+      const v = u.searchParams.get('v')
+      if (v) return `https://www.youtube.com/embed/${encodeURIComponent(v)}`
+    }
+    if (u.hostname === 'youtu.be') {
+      const id = u.pathname.replace('/', '').trim()
+      if (id) return `https://www.youtube.com/embed/${encodeURIComponent(id)}`
+    }
+  } catch {
+  }
+  return ''
+})
+
 const containsAscii = (text: string) => /[A-Za-z]/.test(text || '')
 
 const displaySteps = computed(() => {
@@ -452,6 +472,29 @@ onUnmounted(() => {
           <p class="text-xl text-gray-300 font-serif leading-relaxed italic border-l-2 border-primary pl-6">
             "{{ recipe.description }}"
           </p>
+        </section>
+
+        <section v-if="videoUrl" class="content-block">
+          <h3 class="text-2xl font-serif text-primary mb-6">视频教程</h3>
+          <div class="rounded-2xl border border-white/10 bg-black/20 overflow-hidden">
+            <div v-if="isDirectVideo" class="aspect-video bg-black">
+              <video :src="videoUrl" controls playsinline class="w-full h-full"></video>
+            </div>
+            <div v-else-if="youtubeEmbedSrc" class="aspect-video bg-black">
+              <iframe
+                :src="youtubeEmbedSrc"
+                class="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+              ></iframe>
+            </div>
+            <div v-else class="p-5">
+              <div class="text-sm text-gray-300 mb-3">暂不支持直接播放该链接，可点击在新窗口打开：</div>
+              <a :href="videoUrl" target="_blank" rel="noopener noreferrer" class="text-primary break-all hover:underline">
+                {{ videoUrl }}
+              </a>
+            </div>
+          </div>
         </section>
 
         <!-- Ingredients (Mobile Only view, hidden on Desktop if needed, but here we show inline) -->
