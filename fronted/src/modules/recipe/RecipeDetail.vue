@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -70,20 +70,67 @@ const isDirectVideo = computed(() => /\.(mp4|webm|ogg)(\?.*)?$/i.test(videoUrl.v
 const youtubeEmbedSrc = computed(() => {
   const url = videoUrl.value
   if (!url) return ''
+  const toEmbed = (id: string) => `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`
   try {
     const u = new URL(url)
-    if (u.hostname.includes('youtube.com')) {
-      const v = u.searchParams.get('v')
-      if (v) return `https://www.youtube.com/embed/${encodeURIComponent(v)}`
+    const host = u.hostname.replace(/^www\./, '')
+    if (host.includes('youtube.com')) {
+      if (u.pathname.startsWith('/watch')) {
+        const v = u.searchParams.get('v')
+        if (v) return toEmbed(v)
+      }
+      if (u.pathname.startsWith('/shorts/')) {
+        const id = u.pathname.split('/')[2]
+        if (id) return toEmbed(id)
+      }
+      if (u.pathname.startsWith('/embed/')) {
+        const id = u.pathname.split('/')[2]
+        if (id) return toEmbed(id)
+      }
+      if (u.pathname.startsWith('/live/')) {
+        const id = u.pathname.split('/')[2]
+        if (id) return toEmbed(id)
+      }
     }
-    if (u.hostname === 'youtu.be') {
+    if (host === 'youtu.be') {
       const id = u.pathname.replace('/', '').trim()
-      if (id) return `https://www.youtube.com/embed/${encodeURIComponent(id)}`
+      if (id) return toEmbed(id)
     }
   } catch {
   }
   return ''
 })
+const iframeLoaded = ref(false)
+const iframeFailed = ref(false)
+let iframeTimer: number | undefined
+
+const resetIframeState = () => {
+  iframeLoaded.value = false
+  iframeFailed.value = false
+  if (iframeTimer) {
+    window.clearTimeout(iframeTimer)
+    iframeTimer = undefined
+  }
+  if (youtubeEmbedSrc.value) {
+    iframeTimer = window.setTimeout(() => {
+      if (!iframeLoaded.value) iframeFailed.value = true
+    }, 6000)
+  }
+}
+
+const onIframeLoad = () => {
+  iframeLoaded.value = true
+  if (iframeTimer) {
+    window.clearTimeout(iframeTimer)
+    iframeTimer = undefined
+  }
+}
+
+const onIframeError = () => {
+  iframeFailed.value = true
+}
+
+watch([videoUrl, youtubeEmbedSrc], resetIframeState, { immediate: true })
 
 const containsAscii = (text: string) => /[A-Za-z]/.test(text || '')
 
@@ -480,13 +527,23 @@ onUnmounted(() => {
             <div v-if="isDirectVideo" class="aspect-video bg-black">
               <video :src="videoUrl" controls playsinline class="w-full h-full"></video>
             </div>
-            <div v-else-if="youtubeEmbedSrc" class="aspect-video bg-black">
+            <div v-else-if="youtubeEmbedSrc" class="aspect-video bg-black relative">
               <iframe
                 :src="youtubeEmbedSrc"
                 class="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen
+                @load="onIframeLoad"
+                @error="onIframeError"
               ></iframe>
+              <div v-if="iframeFailed" class="absolute inset-0 flex items-center justify-center bg-black/80 p-4">
+                <div class="text-center space-y-3">
+                  <div class="text-sm text-gray-300">视频加载失败，可点击新窗口打开</div>
+                  <a :href="videoUrl" target="_blank" rel="noopener noreferrer" class="text-primary break-all hover:underline">
+                    {{ videoUrl }}
+                  </a>
+                </div>
+              </div>
             </div>
             <div v-else class="p-5">
               <div class="text-sm text-gray-300 mb-3">暂不支持直接播放该链接，可点击在新窗口打开：</div>
