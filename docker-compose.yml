@@ -30,6 +30,15 @@ services:
       - SPRING_DATA_REDIS_PORT=6379
       - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
       - MANAGEMENT_HEALTH_ELASTICSEARCH_ENABLED=false
+      # AI 模块配置
+      - CULINARY_AI_ENABLED=${CULINARY_AI_ENABLED:-false}
+      - CULINARY_AI_API_KEY=${CULINARY_AI_API_KEY:-}
+      - CULINARY_AI_BASE_URL=${CULINARY_AI_BASE_URL:-https://api.openai.com/v1/chat/completions}
+      - CULINARY_AI_MODEL=${CULINARY_AI_MODEL:-deepseek-chat}
+      - CULINARY_AI_TEMPERATURE=${CULINARY_AI_TEMPERATURE:-0.3}
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy

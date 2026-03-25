@@ -13,6 +13,7 @@ const successText = ref('')
 const form = ref<RecipePublishDTO>({
   title: '',
   coverUrl: '',
+  videoUrl: '',
   description: '',
   difficulty: 1,
   timeCost: 30,
@@ -54,10 +55,17 @@ const submit = async () => {
   errorText.value = ''
   successText.value = ''
 
+  const videoUrl = (form.value.videoUrl ?? '').trim()
+  if (videoUrl && !/^https?:\/\/\S+$/i.test(videoUrl)) {
+    errorText.value = '视频链接仅支持 http/https'
+    return
+  }
+
   const payload = {
     ...form.value,
     title: form.value.title.trim(),
     coverUrl: form.value.coverUrl.trim(),
+    videoUrl,
     description: form.value.description.trim(),
     steps: form.value.steps
       .map(s => ({ ...s, desc: (s.desc ?? '').trim() }))
@@ -112,6 +120,14 @@ const submit = async () => {
           <div class="md:col-span-2">
             <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Cover URL</div>
             <input v-model="form.coverUrl" class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary" />
+          </div>
+          <div class="md:col-span-2">
+            <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Video URL</div>
+            <input
+              v-model="form.videoUrl"
+              placeholder="https://...（可选，支持 http/https）"
+              class="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white focus:outline-none focus:border-primary"
+            />
           </div>
           <div class="md:col-span-2">
             <div class="text-xs tracking-widest uppercase text-gray-500 mb-1">Description</div>

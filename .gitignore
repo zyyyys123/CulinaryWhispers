@@ -88,3 +88,4 @@ go-edge/**/gateway-server
 go-edge/**/im-server
 go-edge/**/*.test
 go-edge/**/vendor/
+scripts/tools/pie_chart.tcl
