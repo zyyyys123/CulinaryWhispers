@@ -88,3 +88,5 @@ go-edge/**/gateway-server
 go-edge/**/im-server
 go-edge/**/*.test
 go-edge/**/vendor/
+scripts/tools/pie_chart.tcl
+scripts/ops/pr_body_issue_67_v2.md
