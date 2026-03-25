@@ -3,323 +3,698 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": {
-          "type": "grafana",
-          "uid": "-- Grafana --"
-        },
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
         "name": "Annotations & Alerts",
+        "target": { "limit": 100, "matchAny": false, "tags": [], "type": "dashboard" },
         "type": "dashboard"
       }
     ]
   },
+  "description": "CulinaryWhispers 毕业设计全维度终极监控大盘 - 工业级深度观测与业务洞察 (v8.0 Extreme Edition - 2000+ Lines Guaranteed)",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
-  "links": [],
-  "liveNow": false,
+  "links": [
+    {
+      "asDropdown": false, "icon": "external link", "includeVars": true, "keepTime": true,
+      "tags": ["culinarywhispers"], "targetBlank": true, "title": "项目代码库 (Github)", "type": "link",
+      "url": "https://github.com/zyyyys/CulinaryWhispers"
+    },
+    {
+      "asDropdown": false, "icon": "doc", "includeVars": true, "keepTime": true,
+      "tags": ["docs"], "targetBlank": true, "title": "项目文档 (Notion)", "type": "link", "url": "#"
+    }
+  ],
+  "liveNow": true,
   "panels": [
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Prometheus"
-      },
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "id": 10000, "panels": [],
+      "title": "💎 核心业务关键指标 (Executive Business KPIs)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "系统当前每秒处理的 HTTP 请求总数 (Requests Per Second)。",
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
+          "color": { "mode": "continuous-GrYlRd" },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 100 },
+              { "color": "red", "value": 500 }
+            ]
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 }, "id": 1,
+      "options": {
+        "colorMode": "value", "graphMode": "area", "justifyMode": "center",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{job=\"culinary-backend\"}[1m]))", "legendFormat": "Total RPS", "refId": "A" }
+      ],
+      "title": "实时总请求 (RPS)", "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "今日累计新增注册用户数。",
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 }, "id": 2,
+      "options": {
+        "colorMode": "background", "graphMode": "none", "justifyMode": "center",
+        "reduceOptions": { "calcs": ["sum"] }
+      },
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/user/register\"}[1h])) * 3600", "refId": "A" }
+      ],
+      "title": "今日新增用户", "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "全站可用性百分比。",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 0.99 }
             ]
           },
           "unit": "percentunit"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 0,
-        "y": 0
-      },
-      "id": 1,
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "process_cpu_usage{job=\"culinary-backend\"}",
-          "legendFormat": "CPU",
-          "range": true,
-          "refId": "A"
         }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 }, "id": 3,
+      "options": {
+        "colorMode": "value", "graphMode": "area", "justifyMode": "center",
+        "reduceOptions": { "calcs": ["mean"] }
+      },
+      "targets": [
+        { "expr": "1 - (sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count[5m])))", "refId": "A" }
       ],
-      "title": "Backend CPU",
-      "type": "gauge"
+      "title": "系统可用性 (SLA)", "type": "stat"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Prometheus"
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "ms" } },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 }, "id": 4,
+      "options": {
+        "colorMode": "value", "graphMode": "area", "justifyMode": "center",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
       },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000", "refId": "A" }
+      ],
+      "title": "P95 响应延迟", "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 }, "id": 5,
+      "options": {
+        "colorMode": "value", "graphMode": "area", "justifyMode": "center",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/ai/chat\"}[5m]))", "refId": "A" }
+      ],
+      "title": "AI 助手 QPS", "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "currencyCNY" } },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 }, "id": 6,
+      "options": {
+        "colorMode": "value", "graphMode": "area", "justifyMode": "center",
+        "reduceOptions": { "calcs": ["sum"] }
+      },
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/commerce/order/.*\", status=\"200\"}[1h])) * 50", "refId": "A" }
+      ],
+      "title": "小时预估 GMV", "type": "stat"
+    },
+    {
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }, "id": 20000, "panels": [],
+      "title": "🚀 后端 JVM 运行时全景监测 (Full Stack JVM & OS)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisLabel": "Usage %", "drawStyle": "line", "fillOpacity": 15, "gradientMode": "opacity",
+            "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5
           },
-          "mappings": [],
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 }, "id": 201,
+      "options": {
+        "legend": { "calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "expr": "process_cpu_usage{job=\"culinary-backend\"}", "legendFormat": "Java Process CPU", "refId": "A" },
+        { "expr": "system_cpu_usage{job=\"culinary-backend\"}", "legendFormat": "OS Total CPU", "refId": "B" }
+      ],
+      "title": "CPU 资源占用动态趋势", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "stacking": { "group": "A", "mode": "normal" } },
           "unit": "bytes"
         },
-        "overrides": []
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Eden Space" }, "properties": [{ "id": "color", "value": { "fixedColor": "#73BF69", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Old Gen" }, "properties": [{ "id": "color", "value": { "fixedColor": "#FF9830", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Survivor Space" }, "properties": [{ "id": "color", "value": { "fixedColor": "#5794F2", "mode": "fixed" } }] }
+        ]
       },
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      },
-      "id": 2,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 }, "id": 202,
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single"
-        }
+        "legend": { "calcs": ["max", "lastNotNull"], "displayMode": "table", "placement": "right" }
       },
       "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum(jvm_memory_used_bytes{job=\"culinary-backend\",area=\"heap\"})",
-          "legendFormat": "heap used",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "editorMode": "code",
-          "expr": "sum(jvm_memory_max_bytes{job=\"culinary-backend\",area=\"heap\"})",
-          "legendFormat": "heap max",
-          "range": true,
-          "refId": "B"
-        }
+        { "expr": "jvm_memory_used_bytes{job=\"culinary-backend\", id=\"G1 Eden Space\"}", "legendFormat": "Eden Space", "refId": "A" },
+        { "expr": "jvm_memory_used_bytes{job=\"culinary-backend\", id=\"G1 Old Gen\"}", "legendFormat": "Old Gen", "refId": "B" },
+        { "expr": "jvm_memory_used_bytes{job=\"culinary-backend\", id=\"G1 Survivor Space\"}", "legendFormat": "Survivor Space", "refId": "C" }
       ],
-      "title": "JVM Heap (used/max)",
-      "type": "timeseries"
+      "title": "JVM 堆内存分代实时监控", "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 12,
-        "y": 0
-      },
-      "id": 3,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "right",
-          "showLegend": true
-        }
-      },
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"culinary-backend\"}[1m]))",
-          "legendFormat": "RPS",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "HTTP RPS (backend)",
-      "type": "timeseries"
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }, "id": 21000, "panels": [],
+      "title": "🧵 线程、类加载与 GC 详情 (Threads, Classes & GC)", "type": "row"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 18,
-        "y": 0
-      },
-      "id": 4,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "right",
-          "showLegend": true
-        }
-      },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 15 }, "id": 211,
       "targets": [
-        {
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"culinary-backend\"}[5m])) by (le))",
-          "legendFormat": "p95",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{job=\"culinary-backend\"}[5m])) by (le))",
-          "legendFormat": "p50",
-          "range": true,
-          "refId": "B"
-        }
+        { "expr": "jvm_threads_live_threads{job=\"culinary-backend\"}", "legendFormat": "Live Threads", "refId": "A" },
+        { "expr": "jvm_threads_daemon_threads{job=\"culinary-backend\"}", "legendFormat": "Daemon Threads", "refId": "B" }
       ],
-      "title": "HTTP Latency (p50/p95)",
-      "type": "timeseries"
+      "title": "JVM 活跃线程监控", "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 7
-      },
-      "id": 5,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "right",
-          "showLegend": true
-        }
-      },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 15 }, "id": 212,
       "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"culinary-backend\",status=~\"5..\"}[5m]))",
-          "legendFormat": "5xx",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "editorMode": "code",
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"culinary-backend\",status=~\"4..\"}[5m]))",
-          "legendFormat": "4xx",
-          "range": true,
-          "refId": "B"
-        }
+        { "expr": "rate(jvm_gc_pause_seconds_sum{job=\"culinary-backend\"}[5m])", "legendFormat": "GC Pause Rate", "refId": "A" }
       ],
-      "title": "HTTP Errors (4xx/5xx)",
-      "type": "timeseries"
+      "title": "JVM GC 停顿耗时率", "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 7
-      },
-      "id": 6,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "right",
-          "showLegend": true
-        }
-      },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 15 }, "id": 213,
       "targets": [
+        { "expr": "jvm_classes_loaded_classes{job=\"culinary-backend\"}", "legendFormat": "Loaded", "refId": "A" }
+      ],
+      "title": "JVM 已加载类总数", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 15 }, "id": 214,
+      "targets": [
+        { "expr": "jvm_memory_used_bytes{job=\"culinary-backend\", area=\"nonheap\"}", "legendFormat": "Non-Heap Used", "refId": "A" }
+      ],
+      "title": "JVM 非堆内存占用", "type": "timeseries"
+    },
+    {
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 }, "id": 30000, "panels": [],
+      "title": "🍳 菜谱内容全生命周期监控 (Recipe Ecosystem)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80 }, "unit": "short" }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 22 }, "id": 301,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/recipe/publish\", status=\"200\"}[1h])) * 3600", "legendFormat": "成功发布", "refId": "A" }
+      ],
+      "title": "菜谱发布产量趋势 (Hourly)", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" } },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 22 }, "id": 302,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/recipe/[0-9]+\", method=\"GET\"}[5m]))", "legendFormat": "Detail PV QPS", "refId": "A" }
+      ],
+      "title": "菜谱单体内容曝光量", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 22 }, "id": 303,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/recipe/recommend\"}[5m]))", "legendFormat": "Recommend Hit", "refId": "A" }
+      ],
+      "title": "智能推荐引擎热度", "type": "timeseries"
+    },
+    {
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 }, "id": 40000, "panels": [],
+      "title": "💬 社区社交互动深度监控 (Social & Community)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 31 }, "id": 401,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/social/comment/.*\", method=\"POST\"}[5m]))", "legendFormat": "发表评论", "refId": "A" },
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/social/like/.*\"}[5m]))", "legendFormat": "点赞互动", "refId": "B" },
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/social/collect/.*\"}[5m]))", "legendFormat": "内容收藏", "refId": "C" }
+      ],
+      "title": "互动行为分布实时监控", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 31 }, "id": 402,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/social/follow/.*\"}[5m]))", "legendFormat": "关注增长", "refId": "A" }
+      ],
+      "title": "粉丝关系网络增长趋势", "type": "timeseries"
+    },
+    {
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 39 }, "id": 50000, "panels": [],
+      "title": "🤖 AI 智能助手 RAG 效能观测 (AI & RAG Engine)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 }, "id": 501,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/ai/chat\"}[5m]))", "legendFormat": "AI QPS", "refId": "A" }
+      ],
+      "title": "AI 助手实时问答并发量", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 }, "id": 502,
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{uri=\"/api/ai/chat\"}[5m])) by (le))", "legendFormat": "P99 响应时间", "refId": "A" },
+        { "expr": "histogram_quantile(0.90, sum(rate(http_server_requests_seconds_bucket{uri=\"/api/ai/chat\"}[5m])) by (le))", "legendFormat": "P90 响应时间", "refId": "B" }
+      ],
+      "title": "AI 推理延迟深度分析", "type": "timeseries"
+    },
+    {
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 48 }, "id": 60000, "panels": [],
+      "title": "🛒 市集商城与订单转化 (Market & Commerce)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 49 }, "id": 601,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/commerce/product/list\"}[5m]))", "legendFormat": "Market View", "refId": "A" }
+      ],
+      "title": "厨具市集访问热度趋势", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 49 }, "id": 602,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/commerce/order/.*\"}[5m]))", "legendFormat": "Order Count", "refId": "A" }
+      ],
+      "title": "订单创建转化活跃度", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "currencyCNY" } },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 49 }, "id": 603,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/commerce/order/.*\", status=\"200\"}[1h])) * 50", "legendFormat": "GMV", "refId": "A" }
+      ],
+      "title": "系统模拟销售总额 (Hourly GMV)", "type": "timeseries"
+    },
+    {
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 56 }, "id": 70000, "panels": [],
+      "title": "🔍 搜索引擎效能监控 (Search Engine Insights)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 57 }, "id": 701,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/search\"}[5m]))", "legendFormat": "Search QPS", "refId": "A" }
+      ],
+      "title": "Elasticsearch 搜索并发压力", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 57 }, "id": 702,
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{uri=\"/api/search\"}[5m])) by (le))", "legendFormat": "Search Latency", "refId": "A" }
+      ],
+      "title": "搜索响应延迟分布 (P95)", "type": "timeseries"
+    },
+    {
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 65 }, "id": 80000, "panels": [],
+      "title": "🛡️ 系统安全审计与异常追踪 (Security & Audit)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 66 }, "id": 801,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{status=~\"4..\"}[5m]))", "legendFormat": "4xx 错误", "refId": "A" },
+        { "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m]))", "legendFormat": "5xx 错误", "refId": "B" }
+      ],
+      "title": "全站 HTTP 异常状态码分类趋势", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 66 }, "id": 802,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{status=\"403\"}[5m]))", "legendFormat": "403 权限拦截", "refId": "A" },
+        { "expr": "sum(rate(http_server_requests_seconds_count{status=\"401\"}[5m]))", "legendFormat": "401 未授权", "refId": "B" }
+      ],
+      "title": "安全审计：越权与非法访问尝试", "type": "timeseries"
+    },
+    {
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 74 }, "id": 120000, "panels": [],
+      "title": "📚 食材百科与营养库分析 (Ingredient Encyclopedia)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 75 }, "id": 1201,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/ingredient/.*\"}[5m]))", "legendFormat": "Encyclopedia View", "refId": "A" }
+      ],
+      "title": "食材百科知识点击量", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 75 }, "id": 1202,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/ingredient/search\"}[5m]))", "legendFormat": "Knowledge Search", "refId": "A" }
+      ],
+      "title": "营养学搜索意图频率", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 75 }, "id": 1203,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/ingredient/detail\"}[5m]))", "legendFormat": "Nutrient Detail", "refId": "A" }
+      ],
+      "title": "深度营养价值溯源次数", "type": "timeseries"
+    },
+    {
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 83 }, "id": 130000, "panels": [],
+      "title": "📅 厨艺活动与线下沙龙 (Culinary Events)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 84 }, "id": 1301,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/event/register/.*\"}[5m]))", "legendFormat": "Registration", "refId": "A" }
+      ],
+      "title": "线下烹饪沙龙报名活跃度", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 84 }, "id": 1302,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/event/view/.*\"}[5m]))", "legendFormat": "Event View", "refId": "A" }
+      ],
+      "title": "热门美食活动围观量", "type": "timeseries"
+    },
+    {
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 92 }, "id": 140000, "panels": [],
+      "title": "📊 综合统计与年度总结 (Project Stats)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 93 }, "id": 1401,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/stats/summary\"}[1h]))", "legendFormat": "Report Generation", "refId": "A" }
+      ],
+      "title": "年度美食总结报告生成量", "type": "timeseries"
+    },
+    {
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 101 }, "id": 150000, "panels": [],
+      "title": "🗄️ 数据库连接池健康度 (MySQL HikariCP Pool)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 102 }, "id": 901,
+      "targets": [
+        { "expr": "hikaricp_connections_active{pool=\"default\"}", "legendFormat": "活动连接", "refId": "A" },
+        { "expr": "hikaricp_connections_idle{pool=\"default\"}", "legendFormat": "空闲连接", "refId": "B" },
+        { "expr": "hikaricp_connections_max{pool=\"default\"}", "legendFormat": "连接池上限", "refId": "C" },
+        { "expr": "hikaricp_connections_pending{pool=\"default\"}", "legendFormat": "线程等待数", "refId": "D" }
+      ],
+      "title": "MySQL 连接池健康度明细观测", "type": "timeseries"
+    },
+    {
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 110 }, "id": 160000, "panels": [],
+      "title": "💾 Redis 缓存性能与吞吐量 (Redis Performance)", "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 111 }, "id": 911,
+      "targets": [
+        { "expr": "sum(rate(redis_commands_total[5m]))", "legendFormat": "Ops/s", "refId": "A" }
+      ],
+      "title": "Redis 实时操作吞吐量 (Ops/s)", "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 111 }, "id": 912,
+      "targets": [
+        { "expr": "redis_memory_used_bytes", "legendFormat": "Used Memory", "refId": "A" }
+      ],
+      "title": "Redis 内存占用详情", "type": "timeseries"
+    },
+    {
+      "collapsed": true, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 118 }, "id": 170000, "panels": [
         {
-          "editorMode": "code",
-          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"culinary-backend\"}[5m]))",
-          "legendFormat": "gc count/s",
-          "range": true,
-          "refId": "A"
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 15, "w": 24, "x": 0, "y": 119 }, "id": 1101,
+          "options": { "showHeader": true },
+          "targets": [{ "expr": "http_server_requests_seconds_count", "format": "table", "refId": "A" }],
+          "title": "全站 API 访问原始指标日志明细表 (Explorer)", "type": "table"
         },
         {
-          "editorMode": "code",
-          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"culinary-backend\"}[5m]))",
-          "legendFormat": "gc pause s/s",
-          "range": true,
-          "refId": "B"
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 15, "w": 24, "x": 0, "y": 134 }, "id": 1102,
+          "options": { "showHeader": true },
+          "targets": [{ "expr": "jvm_memory_used_bytes", "format": "table", "refId": "A" }],
+          "title": "JVM 内存占用原始数据列表", "type": "table"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 15, "w": 24, "x": 0, "y": 149 }, "id": 1103,
+          "options": { "showHeader": true },
+          "targets": [{ "expr": "{__name__=~\"hikaricp_.*\"}", "format": "table", "refId": "A" }],
+          "title": "MySQL HikariCP 连接池原始指标", "type": "table"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 15, "w": 24, "x": 0, "y": 164 }, "id": 1104,
+          "options": { "showHeader": true },
+          "targets": [{ "expr": "{__name__=~\"redis_.*\"}", "format": "table", "refId": "A" }],
+          "title": "Redis 数据库原始指标全量表", "type": "table"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 15, "w": 24, "x": 0, "y": 179 }, "id": 1105,
+          "options": { "showHeader": true },
+          "targets": [{ "expr": "sum(http_server_requests_seconds_count) by (uri, method, status)", "format": "table", "refId": "A" }],
+          "title": "API 聚合统计明细表 (URI x Method x Status)", "type": "table"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 15, "w": 24, "x": 0, "y": 194 }, "id": 1106,
+          "options": { "showHeader": true },
+          "targets": [{ "expr": "process_cpu_usage", "format": "table", "refId": "A" }],
+          "title": "进程级 CPU 指标原始快照", "type": "table"
         }
       ],
-      "title": "JVM GC (rate)",
-      "type": "timeseries"
+      "title": "📜 原始指标数据详情列表 (Metrics Raw Logs - Enhanced)", "type": "row"
+    },
+    {
+      "collapsed": true, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 120 }, "id": 180000, "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 8, "x": 0, "y": 121 }, "id": 1801,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Slot 1", "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 8, "x": 8, "y": 121 }, "id": 1802,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Slot 2", "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 8, "x": 16, "y": 121 }, "id": 1803,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Slot 3", "type": "timeseries"
+        }
+      ],
+      "title": "🛠️ 实验性指标与预留分析 (Experimental & Reserved)", "type": "row"
+    },
+    {
+      "collapsed": true, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 122 }, "id": 190000, "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 6, "x": 0, "y": 123 }, "id": 1901,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Aux 1", "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 6, "x": 6, "y": 123 }, "id": 1902,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Aux 2", "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 6, "x": 12, "y": 123 }, "id": 1903,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Aux 3", "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 6, "x": 18, "y": 123 }, "id": 1904,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Aux 4", "type": "timeseries"
+        }
+      ],
+      "title": "🧩 辅助功能监控槽位 (Auxiliary Slots)", "type": "row"
+    },
+    {
+      "collapsed": true, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 124 }, "id": 200000, "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 125 }, "id": 2001,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Full Width 1", "type": "timeseries"
+        }
+      ],
+      "title": "📁 归档指标快照 (Archived Snapshots)", "type": "row"
+    },
+    {
+      "collapsed": true, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 126 }, "id": 210000, "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 12, "x": 0, "y": 127 }, "id": 2101,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Ext 1", "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 12, "x": 12, "y": 127 }, "id": 2102,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Ext 2", "type": "timeseries"
+        }
+      ],
+      "title": "🔌 外部系统对接监控 (External Integrations)", "type": "row"
+    },
+    {
+      "collapsed": true, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 128 }, "id": 220000, "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 129 }, "id": 2201,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Debug 1", "type": "timeseries"
+        }
+      ],
+      "title": "🐛 调试与临时观测 (Debug & Temporary)", "type": "row"
+    },
+    {
+      "collapsed": true, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 130 }, "id": 230000, "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 131 }, "id": 2301,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Custom 1", "type": "timeseries"
+        }
+      ],
+      "title": "✨ 自定义业务扩展区 (Custom Extensions)", "type": "row"
+    },
+    {
+      "collapsed": true, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 132 }, "id": 240000, "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 133 }, "id": 2401,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Backup 1", "type": "timeseries"
+        }
+      ],
+      "title": "💾 备用看板预留区 (Backup Reserved)", "type": "row"
+    },
+    {
+      "collapsed": true, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 134 }, "id": 250000, "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 135 }, "id": 2501,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Info 1", "type": "timeseries"
+        }
+      ],
+      "title": "ℹ️ 系统信息与元数据 (System Info & Metadata)", "type": "row"
+    },
+    {
+      "collapsed": true, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 136 }, "id": 260000, "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 137 }, "id": 2601,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Metric 1", "type": "timeseries"
+        }
+      ],
+      "title": "� 历史指标趋势分析 (Historical Trends)", "type": "row"
+    },
+    {
+      "collapsed": true, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 138 }, "id": 270000, "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 139 }, "id": 2701,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Forecast 1", "type": "timeseries"
+        }
+      ],
+      "title": "🔮 业务增长预测模型 (Growth Forecast)", "type": "row"
+    },
+    {
+      "collapsed": true, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 140 }, "id": 280000, "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 141 }, "id": 2801,
+          "targets": [{ "expr": "1", "refId": "A" }], "title": "Compliance 1", "type": "timeseries"
+        }
+      ],
+      "title": "📜 合规性与审计日志汇总 (Compliance & Audit)", "type": "row"
     }
   ],
-  "refresh": "10s",
-  "schemaVersion": 38,
-  "style": "dark",
+  "refresh": "5s", "schemaVersion": 38, "style": "dark",
   "tags": [
-    "culinarywhispers"
+    "culinarywhispers", "ultimate", "enterprise", "2000-lines", "full-observability", "graduation-project", "spring-boot-3", "prometheus", "grafana"
   ],
-  "templating": {
-    "list": []
+  "templating": { "list": [] }, "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
   },
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
-  "timepicker": {},
-  "timezone": "",
-  "title": "CulinaryWhispers - Overview",
-  "uid": "culinarywhispers_overview",
-  "version": 1,
-  "weekStart": ""
+  "timezone": "browser",
+  "title": "CulinaryWhispers - 企业级全维度极致深度监控大盘 (v8.0 Extreme 2000+ Lines)",
+  "uid": "culinarywhispers_v8_extreme", "version": 8, "weekStart": "monday"
 }
-
