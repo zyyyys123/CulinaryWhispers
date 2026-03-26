@@ -16,6 +16,7 @@ const showAi = ref(false)
 const aiInput = ref('')
 const aiSending = ref(false)
 const aiMessages = ref<Array<{ role: 'user' | 'assistant'; content: string; sources?: string[]; usedRemoteModel?: boolean }>>([])
+const isHeroPaused = ref(false) // 控制大球动画的开关
 
 const hasToken = computed(() => Boolean(auth.token))
 
@@ -147,7 +148,23 @@ const sendAi = async () => {
       
       <!-- 3D Scene Layer (Background) -->
       <div class="absolute inset-0 z-0">
-        <HeroScene />
+        <HeroScene :is-paused="isHeroPaused" />
+      </div>
+
+      <!-- 动画控制按钮 -->
+      <div class="absolute top-32 right-8 z-30">
+        <button 
+          @click="isHeroPaused = !isHeroPaused"
+          class="flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/20 transition-all text-white/70 hover:text-white"
+        >
+          <div class="relative flex h-2 w-2">
+            <span v-if="!isHeroPaused" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2" :class="!isHeroPaused ? 'bg-primary' : 'bg-gray-500'"></span>
+          </div>
+          <span class="text-xs font-bold tracking-widest uppercase">
+            {{ isHeroPaused ? '播放动画' : '暂停动画' }}
+          </span>
+        </button>
       </div>
       
       <!-- Gradient Overlay to make text readable -->

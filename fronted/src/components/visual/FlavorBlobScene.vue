@@ -99,22 +99,29 @@ void main() {
 }
 `
 
+const props = defineProps<{
+  isPaused?: boolean
+}>()
+
 const uniforms = {
   uTime: { value: 0 },
 }
 
 const { onLoop } = useRenderLoop()
 
-onLoop(({ elapsed }) => {
-  uniforms.uTime.value = elapsed * 0.5 // Slow down the shader animation
+onLoop(({ delta }) => {
+  if (props.isPaused) return
+
+  uniforms.uTime.value += delta * 0.5 // Use cumulative time to avoid jumps
   if (groupRef.value) {
-    groupRef.value.rotation.y = elapsed * 0.05 // Slow down global rotation
-    groupRef.value.rotation.z = elapsed * 0.02
+    groupRef.value.rotation.y += delta * 0.1
+    groupRef.value.rotation.z += delta * 0.05
   }
 })
 
 // Mouse Interaction
 const onMouseMove = (ev: MouseEvent) => {
+  if (props.isPaused) return
   // Simple parallax
   const x = (ev.clientX / window.innerWidth) * 2 - 1
   const y = -(ev.clientY / window.innerHeight) * 2 + 1

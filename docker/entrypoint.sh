@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-# 配置 JVM 崩溃日志和重放日志的存储路径（规范化）
+# ??? JVM ?????????????????????????????
 JVM_OPTS="-XX:ErrorFile=/app/logs/jvm_crash/hs_err_pid%p.log -XX:ReplayDataFile=/app/logs/jvm_crash/replay_pid%p.log"
 
 if [ "${SKYWALKING_ENABLED}" = "true" ] && [ -f "/app/agent/skywalking-agent.jar" ]; then
